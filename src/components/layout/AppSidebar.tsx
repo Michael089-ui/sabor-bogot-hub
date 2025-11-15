@@ -25,13 +25,13 @@ import {
 } from "@/components/ui/sidebar";
 
 const menuItems = [
-  { title: "Inicio", url: "/", icon: Home },
-  { title: "Chat IA", url: "/chat", icon: MessageSquare },
+  { title: "Dashboard", url: "/dashboard", icon: Home },
+  { title: "Chat IA", url: "/chat-ia", icon: MessageSquare },
   { title: "Mapa", url: "/mapa", icon: Map },
   { title: "Restaurantes", url: "/restaurantes", icon: UtensilsCrossed },
   { title: "Favoritos", url: "/favoritos", icon: Heart },
   { title: "Reseñas", url: "/resenas", icon: Star },
-  { title: "Historial", url: "/historial", icon: History },
+  { title: "Historial", url: "/historial/busquedas", icon: History },
 ];
 
 const userMenuItems = [
