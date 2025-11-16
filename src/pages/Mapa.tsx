@@ -1,19 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Plus, Minus, Navigation, ChevronDown, Sparkles } from "lucide-react";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import { Search, SlidersHorizontal, Plus, Minus, Navigation } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuCheckboxItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
+import L from "leaflet";
 
-// Mock data para restaurantes
+// Mock data con coordenadas de Bogotá
 const mockRestaurantes = [
   {
     id: 1,
@@ -21,185 +17,276 @@ const mockRestaurantes = [
     tipo: "Comida Colombiana",
     calificacion: 4.5,
     precio: "$$$",
-    imagen: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop"
+    imagen: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400",
+    lat: 4.6097,
+    lng: -74.0817,
   },
   {
     id: 2,
-    nombre: "El Fogón de la Abuela",
-    tipo: "Comida Tradicional",
-    calificacion: 4.2,
-    precio: "$$",
-    imagen: "https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=400&h=300&fit=crop"
+    nombre: "Sushi Dreams",
+    tipo: "Japonesa",
+    calificacion: 4.8,
+    precio: "$$$$",
+    imagen: "https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=400",
+    lat: 4.6534,
+    lng: -74.0836,
   },
   {
     id: 3,
-    nombre: "Sabores del Pacífico",
-    tipo: "Mariscos",
-    calificacion: 4.7,
-    precio: "$$$$",
-    imagen: "https://images.unsplash.com/photo-1559339352-11d035aa65de?w=400&h=300&fit=crop"
+    nombre: "Pizza Roma",
+    tipo: "Italiana",
+    calificacion: 4.3,
+    precio: "$$",
+    imagen: "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400",
+    lat: 4.6762,
+    lng: -74.0481,
   },
   {
     id: 4,
-    nombre: "El Rincón Paisa",
-    tipo: "Comida Paisa",
-    calificacion: 4.0,
+    nombre: "Tacos El Güero",
+    tipo: "Mexicana",
+    calificacion: 4.6,
     precio: "$$",
-    imagen: "https://images.unsplash.com/photo-1552566626-52f8b828add9?w=400&h=300&fit=crop"
+    imagen: "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=400",
+    lat: 4.6398,
+    lng: -74.0892,
   },
   {
     id: 5,
-    nombre: "Ajiaco y Algo Más",
-    tipo: "Comida Bogotana",
-    calificacion: 4.3,
-    precio: "$$",
-    imagen: "https://images.unsplash.com/photo-1590846406792-0adc7f938f1d?w=400&h=300&fit=crop"
-  }
+    nombre: "Le Petit Bistro",
+    tipo: "Francesa",
+    calificacion: 4.7,
+    precio: "$$$$",
+    imagen: "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400",
+    lat: 4.6482,
+    lng: -74.0632,
+  },
 ];
 
-const Mapa = () => {
-  const navigate = useNavigate();
-  const [mapSearchQuery, setMapSearchQuery] = useState("");
+// Ícono personalizado para marcadores de restaurantes
+const createCustomIcon = (precio: string) => {
+  const colors: Record<string, string> = {
+    "$": "#22c55e",
+    "$$": "#3b82f6",
+    "$$$": "#f97316",
+    "$$$$": "#ef4444",
+  };
+
+  const color = colors[precio] || "#3b82f6";
+
+  return L.divIcon({
+    className: "custom-marker",
+    html: `
+      <div style="
+        background-color: ${color};
+        width: 32px;
+        height: 32px;
+        border-radius: 50% 50% 50% 0;
+        transform: rotate(-45deg);
+        border: 3px solid white;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      ">
+        <span style="
+          transform: rotate(45deg);
+          font-size: 16px;
+        ">🍽️</span>
+      </div>
+    `,
+    iconSize: [32, 32],
+    iconAnchor: [16, 32],
+    popupAnchor: [0, -32],
+  });
+};
+
+// Componente para controles del mapa
+function MapControls({ onLocate }: { onLocate: () => void }) {
+  const map = useMap();
 
   return (
-    <div className="flex h-full w-full bg-background">
+    <div className="absolute bottom-6 right-6 z-[1000] flex flex-col gap-2">
+      <Button
+        size="icon"
+        variant="secondary"
+        className="shadow-lg"
+        onClick={() => map.zoomIn()}
+      >
+        <Plus className="h-4 w-4" />
+      </Button>
+      <Button
+        size="icon"
+        variant="secondary"
+        className="shadow-lg"
+        onClick={() => map.zoomOut()}
+      >
+        <Minus className="h-4 w-4" />
+      </Button>
+      <Button
+        size="icon"
+        variant="secondary"
+        className="shadow-lg"
+        onClick={onLocate}
+      >
+        <Navigation className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+}
+
+// Componente para centrar el mapa en un restaurante
+function MapUpdater({ selectedId, restaurants }: { selectedId: number | null; restaurants: typeof mockRestaurantes }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (selectedId) {
+      const restaurant = restaurants.find((r) => r.id === selectedId);
+      if (restaurant) {
+        map.flyTo([restaurant.lat, restaurant.lng], 16, {
+          duration: 1,
+        });
+      }
+    }
+  }, [selectedId, restaurants, map]);
+
+  return null;
+}
+
+export default function Mapa() {
+  const navigate = useNavigate();
+  const [mapSearchQuery, setMapSearchQuery] = useState("");
+  const [selectedRestaurant, setSelectedRestaurant] = useState<number | null>(null);
+  const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+
+  const filteredRestaurants = mockRestaurantes.filter((restaurant) =>
+    restaurant.nombre.toLowerCase().includes(mapSearchQuery.toLowerCase()) ||
+    restaurant.tipo.toLowerCase().includes(mapSearchQuery.toLowerCase())
+  );
+
+  const handleLocate = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          setUserLocation([latitude, longitude]);
+        },
+        (error) => {
+          console.error("Error getting location:", error);
+        }
+      );
+    }
+  };
+
+  const userLocationIcon = L.divIcon({
+    className: "user-location-marker",
+    html: `
+      <div style="
+        background-color: #3b82f6;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        border: 3px solid white;
+        box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+      "></div>
+    `,
+    iconSize: [20, 20],
+    iconAnchor: [10, 10],
+  });
+
+  return (
+    <div className="flex h-screen bg-background">
       {/* Panel Izquierdo - Filtros y Resultados */}
-      <div className="w-80 border-r border-border bg-card flex flex-col">
-        {/* Header */}
-        <div className="p-6 border-b border-border">
-          <h1 className="text-2xl font-bold text-foreground mb-4">Resultados</h1>
-          
-          {/* Filtros */}
-          <div className="flex flex-wrap gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-1">
-                  Tipo de comida
-                  <ChevronDown className="h-3 w-3" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-48">
-                <DropdownMenuLabel>Seleccionar tipo</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuCheckboxItem>Colombiana</DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem>Italiana</DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem>Mexicana</DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem>Mariscos</DropdownMenuCheckboxItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-1">
-                  Precio
-                  <ChevronDown className="h-3 w-3" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-48">
-                <DropdownMenuLabel>Rango de precio</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuCheckboxItem>$ (Económico)</DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem>$$ (Moderado)</DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem>$$$ (Caro)</DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem>$$$$ (Muy caro)</DropdownMenuCheckboxItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-1">
-                  Ubicación
-                  <ChevronDown className="h-3 w-3" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-48">
-                <DropdownMenuLabel>Zona</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuCheckboxItem>Chapinero</DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem>Usaquén</DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem>Centro</DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem>Norte</DropdownMenuCheckboxItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-1">
-                  Calificación
-                  <ChevronDown className="h-3 w-3" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-48">
-                <DropdownMenuLabel>Mínima</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuCheckboxItem>4.5+ estrellas</DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem>4.0+ estrellas</DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem>3.5+ estrellas</DropdownMenuCheckboxItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-1">
-                  Disponibilidad
-                  <ChevronDown className="h-3 w-3" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-48">
-                <DropdownMenuLabel>Horario</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuCheckboxItem>Abierto ahora</DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem>Reservas disponibles</DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem>Delivery</DropdownMenuCheckboxItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-1">
-                  Filtros
-                  <ChevronDown className="h-3 w-3" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-48">
-                <DropdownMenuLabel>Más filtros</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuCheckboxItem>Pet-friendly</DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem>Terraza</DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem>Vegetariano</DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem>Parqueadero</DropdownMenuCheckboxItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+      <div className="w-96 border-r border-border flex flex-col">
+        {/* Filtros */}
+        <div className="p-4 border-b border-border space-y-3">
+          <div className="flex gap-2">
+            <Select>
+              <SelectTrigger className="flex-1">
+                <SelectValue placeholder="Tipo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="colombiana">Colombiana</SelectItem>
+                <SelectItem value="japonesa">Japonesa</SelectItem>
+                <SelectItem value="italiana">Italiana</SelectItem>
+                <SelectItem value="mexicana">Mexicana</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select>
+              <SelectTrigger className="flex-1">
+                <SelectValue placeholder="Precio" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="$">$</SelectItem>
+                <SelectItem value="$$">$$</SelectItem>
+                <SelectItem value="$$$">$$$</SelectItem>
+                <SelectItem value="$$$$">$$$$</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex gap-2">
+            <Select>
+              <SelectTrigger className="flex-1">
+                <SelectValue placeholder="Ubicación" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="chapinero">Chapinero</SelectItem>
+                <SelectItem value="usaquen">Usaquén</SelectItem>
+                <SelectItem value="zona-t">Zona T</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select>
+              <SelectTrigger className="flex-1">
+                <SelectValue placeholder="Calificación" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="4">4+ estrellas</SelectItem>
+                <SelectItem value="3">3+ estrellas</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex gap-2">
+            <Select>
+              <SelectTrigger className="flex-1">
+                <SelectValue placeholder="Disponibilidad" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ahora">Disponible ahora</SelectItem>
+                <SelectItem value="hoy">Disponible hoy</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button variant="outline" size="icon">
+              <SlidersHorizontal className="h-4 w-4" />
+            </Button>
           </div>
         </div>
 
-        {/* Lista de Resultados */}
+        {/* Lista de Restaurantes */}
         <ScrollArea className="flex-1">
           <div className="p-4 space-y-3">
-            {mockRestaurantes.map((restaurante) => (
+            {filteredRestaurants.map((restaurant) => (
               <div
-                key={restaurante.id}
-                className="flex gap-3 p-3 rounded-lg border border-border bg-background hover:bg-accent/50 transition-colors cursor-pointer"
+                key={restaurant.id}
+                className={`bg-card rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all cursor-pointer border ${
+                  selectedRestaurant === restaurant.id ? "border-primary ring-2 ring-primary/20" : "border-border"
+                }`}
+                onClick={() => setSelectedRestaurant(restaurant.id)}
               >
                 <img
-                  src={restaurante.imagen}
-                  alt={restaurante.nombre}
-                  className="w-20 h-20 rounded-md object-cover flex-shrink-0"
+                  src={restaurant.imagen}
+                  alt={restaurant.nombre}
+                  className="w-full h-32 object-cover"
                 />
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-foreground text-sm line-clamp-1">
-                    {restaurante.nombre}
-                  </h3>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {restaurante.tipo}
-                  </p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-xs font-medium text-foreground">
-                      ⭐ {restaurante.calificacion}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {restaurante.precio}
-                    </span>
+                <div className="p-3">
+                  <h3 className="font-semibold text-foreground mb-1">{restaurant.nombre}</h3>
+                  <div className="flex items-center justify-between text-sm">
+                    <Badge variant="secondary" className="text-xs">
+                      {restaurant.tipo}
+                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <span className="text-yellow-500">⭐ {restaurant.calificacion}</span>
+                      <span className="text-muted-foreground">{restaurant.precio}</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -207,111 +294,93 @@ const Mapa = () => {
           </div>
         </ScrollArea>
 
-        {/* Botón CTA */}
+        {/* Botón Recomiéndame */}
         <div className="p-4 border-t border-border">
           <Button
+            className="w-full"
             onClick={() => navigate("/chatia")}
-            className="w-full gap-2"
-            size="lg"
           >
-            <Sparkles className="h-4 w-4" />
-            Recomiéndame algo
+            🤖 Recomiéndame algo
           </Button>
         </div>
       </div>
 
       {/* Panel Derecho - Mapa */}
-      <div className="flex-1 relative bg-muted/20">
-        {/* Buscador sobre el mapa */}
-        <div className="absolute top-4 left-4 right-4 z-10">
-          <div className="max-w-md mx-auto">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder="Buscar en el mapa..."
-                value={mapSearchQuery}
-                onChange={(e) => setMapSearchQuery(e.target.value)}
-                className="pl-9 bg-background shadow-lg border-border"
-              />
-            </div>
+      <div className="flex-1 relative">
+        {/* Barra de Búsqueda sobre el Mapa */}
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] w-96">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar restaurantes en el mapa..."
+              value={mapSearchQuery}
+              onChange={(e) => setMapSearchQuery(e.target.value)}
+              className="pl-10 bg-background/95 backdrop-blur-sm shadow-lg"
+            />
           </div>
         </div>
 
-        {/* Área del Mapa (Placeholder) */}
-        <div className="w-full h-full relative overflow-hidden">
-          {/* Simulación de mapa con patrón de cuadrícula */}
-          <div className="absolute inset-0 bg-gradient-to-br from-green-50 to-blue-50 dark:from-green-950/20 dark:to-blue-950/20">
-            <svg className="w-full h-full opacity-20" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                  <path
-                    d="M 40 0 L 0 0 0 40"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1"
-                    className="text-muted-foreground"
+        {/* Mapa de Leaflet */}
+        <MapContainer
+          center={[4.6097, -74.0817]}
+          zoom={13}
+          className="h-full w-full"
+          zoomControl={false}
+        >
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
+          
+          {/* Marcadores de Restaurantes */}
+          {filteredRestaurants.map((restaurant) => (
+            <Marker
+              key={restaurant.id}
+              position={[restaurant.lat, restaurant.lng]}
+              icon={createCustomIcon(restaurant.precio)}
+              eventHandlers={{
+                click: () => setSelectedRestaurant(restaurant.id),
+              }}
+            >
+              <Popup>
+                <div className="w-48">
+                  <img
+                    src={restaurant.imagen}
+                    alt={restaurant.nombre}
+                    className="w-full h-24 object-cover rounded mb-2"
                   />
-                </pattern>
-              </defs>
-              <rect width="100%" height="100%" fill="url(#grid)" />
-            </svg>
-          </div>
+                  <h3 className="font-semibold text-sm mb-1">{restaurant.nombre}</h3>
+                  <p className="text-xs text-muted-foreground mb-2">{restaurant.tipo}</p>
+                  <div className="flex items-center justify-between text-xs mb-2">
+                    <span className="text-yellow-500">⭐ {restaurant.calificacion}</span>
+                    <span className="text-muted-foreground">{restaurant.precio}</span>
+                  </div>
+                  <Button
+                    size="sm"
+                    className="w-full"
+                    onClick={() => navigate("/restaurante-detalle")}
+                  >
+                    Ver detalles
+                  </Button>
+                </div>
+              </Popup>
+            </Marker>
+          ))}
 
-          {/* Texto central del placeholder */}
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-center space-y-2 bg-background/80 backdrop-blur-sm p-6 rounded-lg border border-border">
-              <div className="text-4xl mb-2">🗺️</div>
-              <p className="text-sm font-medium text-foreground">Vista de Mapa</p>
-              <p className="text-xs text-muted-foreground max-w-xs">
-                Aquí se mostrará el mapa interactivo con las ubicaciones de los restaurantes
-              </p>
-            </div>
-          </div>
+          {/* Marcador de Ubicación del Usuario */}
+          {userLocation && (
+            <Marker position={userLocation} icon={userLocationIcon}>
+              <Popup>Tu ubicación</Popup>
+            </Marker>
+          )}
 
-          {/* Marcadores simulados en el mapa */}
-          <div className="absolute top-1/4 left-1/3 w-8 h-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground shadow-lg animate-pulse">
-            📍
-          </div>
-          <div className="absolute top-1/2 left-1/2 w-8 h-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground shadow-lg">
-            📍
-          </div>
-          <div className="absolute top-2/3 right-1/3 w-8 h-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground shadow-lg">
-            📍
-          </div>
-        </div>
-
-        {/* Controles de Mapa */}
-        <div className="absolute right-4 top-1/2 transform -translate-y-1/2 z-10 flex flex-col gap-2">
-          <Button
-            size="icon"
-            variant="secondary"
-            className="shadow-lg bg-background hover:bg-accent"
-          >
-            <Plus className="h-4 w-4" />
-          </Button>
-          <Button
-            size="icon"
-            variant="secondary"
-            className="shadow-lg bg-background hover:bg-accent"
-          >
-            <Minus className="h-4 w-4" />
-          </Button>
-        </div>
-
-        {/* Botón de Geolocalización */}
-        <div className="absolute right-4 bottom-4 z-10">
-          <Button
-            size="icon"
-            variant="secondary"
-            className="shadow-lg bg-background hover:bg-accent"
-          >
-            <Navigation className="h-4 w-4" />
-          </Button>
-        </div>
+          {/* Controles personalizados */}
+          <MapControls onLocate={handleLocate} />
+          
+          {/* Actualizar vista del mapa cuando se selecciona un restaurante */}
+          <MapUpdater selectedId={selectedRestaurant} restaurants={filteredRestaurants} />
+        </MapContainer>
       </div>
     </div>
   );
-};
-
-export default Mapa;
+}
