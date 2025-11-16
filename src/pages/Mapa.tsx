@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import L from "leaflet";
+import type { Map as LeafletMap } from "leaflet";
 
 // Mock data con coordenadas de Bogotá
 const mockRestaurantes = [
@@ -105,13 +106,21 @@ const createCustomIcon = (precio: string) => {
 function MapControls({ onLocate }: { onLocate: () => void }) {
   const map = useMap();
 
+  const handleZoomIn = () => {
+    map.zoomIn();
+  };
+
+  const handleZoomOut = () => {
+    map.zoomOut();
+  };
+
   return (
     <div className="absolute bottom-6 right-6 z-[1000] flex flex-col gap-2">
       <Button
         size="icon"
         variant="secondary"
         className="shadow-lg"
-        onClick={() => map.zoomIn()}
+        onClick={handleZoomIn}
       >
         <Plus className="h-4 w-4" />
       </Button>
@@ -119,7 +128,7 @@ function MapControls({ onLocate }: { onLocate: () => void }) {
         size="icon"
         variant="secondary"
         className="shadow-lg"
-        onClick={() => map.zoomOut()}
+        onClick={handleZoomOut}
       >
         <Minus className="h-4 w-4" />
       </Button>
@@ -140,12 +149,14 @@ function MapUpdater({ selectedId, restaurants }: { selectedId: number | null; re
   const map = useMap();
 
   useEffect(() => {
-    if (selectedId) {
+    if (selectedId && map) {
       const restaurant = restaurants.find((r) => r.id === selectedId);
       if (restaurant) {
-        map.flyTo([restaurant.lat, restaurant.lng], 16, {
-          duration: 1,
-        });
+        setTimeout(() => {
+          map.flyTo([restaurant.lat, restaurant.lng], 16, {
+            duration: 1,
+          });
+        }, 100);
       }
     }
   }, [selectedId, restaurants, map]);
@@ -322,10 +333,12 @@ export default function Mapa() {
 
         {/* Mapa de Leaflet */}
         <MapContainer
+          key="map-container"
           center={[4.6097, -74.0817]}
           zoom={13}
           className="h-full w-full"
           zoomControl={false}
+          scrollWheelZoom={true}
         >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
