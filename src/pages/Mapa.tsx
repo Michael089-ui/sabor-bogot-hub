@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import { Search, SlidersHorizontal, Plus, Minus, Navigation } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import L from "leaflet";
-import type { Map as LeafletMap } from "leaflet";
 
 // Mock data con coordenadas de Bogotá
 const mockRestaurantes = [
@@ -102,16 +101,14 @@ const createCustomIcon = (precio: string) => {
   });
 };
 
-// Componente para controles del mapa
-function MapControls({ onLocate }: { onLocate: () => void }) {
-  const map = useMap();
-
+// Componente para controles del mapa sin useMap
+function MapControls({ map, onLocate }: { map: L.Map | null; onLocate: () => void }) {
   const handleZoomIn = () => {
-    map.zoomIn();
+    map?.zoomIn();
   };
 
   const handleZoomOut = () => {
-    map.zoomOut();
+    map?.zoomOut();
   };
 
   return (
@@ -144,10 +141,8 @@ function MapControls({ onLocate }: { onLocate: () => void }) {
   );
 }
 
-// Componente para centrar el mapa en un restaurante
-function MapUpdater({ selectedId, restaurants }: { selectedId: number | null; restaurants: typeof mockRestaurantes }) {
-  const map = useMap();
-
+// Componente para centrar el mapa en un restaurante sin useMap
+function MapUpdater({ selectedId, restaurants, map }: { selectedId: number | null; restaurants: typeof mockRestaurantes; map: L.Map | null }) {
   useEffect(() => {
     if (selectedId && map) {
       const restaurant = restaurants.find((r) => r.id === selectedId);
@@ -169,6 +164,8 @@ export default function Mapa() {
   const [mapSearchQuery, setMapSearchQuery] = useState("");
   const [selectedRestaurant, setSelectedRestaurant] = useState<number | null>(null);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+  const [map, setMap] = useState<L.Map | null>(null);
+  const mapRef = useRef<L.Map | null>(null);
 
   const filteredRestaurants = mockRestaurantes.filter((restaurant) =>
     restaurant.nombre.toLowerCase().includes(mapSearchQuery.toLowerCase()) ||
@@ -339,6 +336,8 @@ export default function Mapa() {
           className="h-full w-full"
           zoomControl={false}
           scrollWheelZoom={true}
+          ref={mapRef}
+          whenReady={() => setMap(mapRef.current)}
         >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -388,10 +387,10 @@ export default function Mapa() {
           )}
 
           {/* Controles personalizados */}
-          <MapControls onLocate={handleLocate} />
+          <MapControls map={map} onLocate={handleLocate} />
           
           {/* Actualizar vista del mapa cuando se selecciona un restaurante */}
-          <MapUpdater selectedId={selectedRestaurant} restaurants={filteredRestaurants} />
+          <MapUpdater selectedId={selectedRestaurant} restaurants={filteredRestaurants} map={map} />
         </MapContainer>
       </div>
     </div>
