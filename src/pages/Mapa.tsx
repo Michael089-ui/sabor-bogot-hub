@@ -368,8 +368,6 @@ export default function Mapa() {
           zoomControl={false}
           scrollWheelZoom={true}
         >
-          {(() => (
-            <>
               <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -414,8 +412,6 @@ export default function Mapa() {
               <UserLocationMarker userLocation={userLocation} />
               <MapControls onLocate={handleLocate} />
               <MapUpdater selectedId={selectedRestaurant} restaurants={filteredRestaurants} />
-            </>
-          )) as unknown as React.ReactNode}
         </MapContainer>
       </div>
     </div>
