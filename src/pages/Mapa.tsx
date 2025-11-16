@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import { Search, SlidersHorizontal, Plus, Minus, Navigation } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+
+// Solucionar problema de iconos por defecto de Leaflet
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
 
 // Mock data con coordenadas de Bogotá
 const mockRestaurantes = [
@@ -101,14 +110,16 @@ const createCustomIcon = (precio: string) => {
   });
 };
 
-// Componente para controles del mapa sin useMap
-function MapControls({ map, onLocate }: { map: L.Map | null; onLocate: () => void }) {
+// Componente para controles del mapa usando useMap hook
+function MapControls({ onLocate }: { onLocate: () => void }) {
+  const map = useMap();
+
   const handleZoomIn = () => {
-    map?.zoomIn();
+    map.zoomIn();
   };
 
   const handleZoomOut = () => {
-    map?.zoomOut();
+    map.zoomOut();
   };
 
   return (
@@ -141,10 +152,12 @@ function MapControls({ map, onLocate }: { map: L.Map | null; onLocate: () => voi
   );
 }
 
-// Componente para centrar el mapa en un restaurante sin useMap
-function MapUpdater({ selectedId, restaurants, map }: { selectedId: number | null; restaurants: typeof mockRestaurantes; map: L.Map | null }) {
+// Componente para centrar el mapa en un restaurante usando useMap
+function MapUpdater({ selectedId, restaurants }: { selectedId: number | null; restaurants: typeof mockRestaurantes }) {
+  const map = useMap();
+
   useEffect(() => {
-    if (selectedId && map) {
+    if (selectedId) {
       const restaurant = restaurants.find((r) => r.id === selectedId);
       if (restaurant) {
         setTimeout(() => {
@@ -159,13 +172,48 @@ function MapUpdater({ selectedId, restaurants, map }: { selectedId: number | nul
   return null;
 }
 
+// Componente para manejar la ubicación del usuario
+function UserLocationMarker({ userLocation }: { userLocation: [number, number] | null }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (userLocation) {
+      map.flyTo(userLocation, 16, {
+        duration: 1,
+      });
+    }
+  }, [userLocation, map]);
+
+  if (!userLocation) return null;
+
+  const userLocationIcon = L.divIcon({
+    className: "user-location-marker",
+    html: `
+      <div style="
+        background-color: #3b82f6;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        border: 3px solid white;
+        box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+      "></div>
+    `,
+    iconSize: [20, 20],
+    iconAnchor: [10, 10],
+  });
+
+  return (
+    <Marker position={userLocation} icon={userLocationIcon}>
+      <Popup>Tu ubicación</Popup>
+    </Marker>
+  );
+}
+
 export default function Mapa() {
   const navigate = useNavigate();
   const [mapSearchQuery, setMapSearchQuery] = useState("");
   const [selectedRestaurant, setSelectedRestaurant] = useState<number | null>(null);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
-  const [map, setMap] = useState<L.Map | null>(null);
-  const mapRef = useRef<L.Map | null>(null);
 
   const filteredRestaurants = mockRestaurantes.filter((restaurant) =>
     restaurant.nombre.toLowerCase().includes(mapSearchQuery.toLowerCase()) ||
@@ -185,22 +233,6 @@ export default function Mapa() {
       );
     }
   };
-
-  const userLocationIcon = L.divIcon({
-    className: "user-location-marker",
-    html: `
-      <div style="
-        background-color: #3b82f6;
-        width: 20px;
-        height: 20px;
-        border-radius: 50%;
-        border: 3px solid white;
-        box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
-      "></div>
-    `,
-    iconSize: [20, 20],
-    iconAnchor: [10, 10],
-  });
 
   return (
     <div className="flex h-screen bg-background">
@@ -330,14 +362,11 @@ export default function Mapa() {
 
         {/* Mapa de Leaflet */}
         <MapContainer
-          key="map-container"
           center={[4.6097, -74.0817]}
           zoom={13}
           className="h-full w-full"
           zoomControl={false}
           scrollWheelZoom={true}
-          ref={mapRef}
-          whenReady={() => setMap(mapRef.current)}
         >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -379,18 +408,10 @@ export default function Mapa() {
             </Marker>
           ))}
 
-          {/* Marcador de Ubicación del Usuario */}
-          {userLocation && (
-            <Marker position={userLocation} icon={userLocationIcon}>
-              <Popup>Tu ubicación</Popup>
-            </Marker>
-          )}
-
-          {/* Controles personalizados */}
-          <MapControls map={map} onLocate={handleLocate} />
-          
-          {/* Actualizar vista del mapa cuando se selecciona un restaurante */}
-          <MapUpdater selectedId={selectedRestaurant} restaurants={filteredRestaurants} map={map} />
+          {/* Componentes que usan useMap hook */}
+          <UserLocationMarker userLocation={userLocation} />
+          <MapControls onLocate={handleLocate} />
+          <MapUpdater selectedId={selectedRestaurant} restaurants={filteredRestaurants} />
         </MapContainer>
       </div>
     </div>
