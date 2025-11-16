@@ -368,50 +368,54 @@ export default function Mapa() {
           zoomControl={false}
           scrollWheelZoom={true}
         >
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-          
-          {/* Marcadores de Restaurantes */}
-          {filteredRestaurants.map((restaurant) => (
-            <Marker
-              key={restaurant.id}
-              position={[restaurant.lat, restaurant.lng]}
-              icon={createCustomIcon(restaurant.precio)}
-              eventHandlers={{
-                click: () => setSelectedRestaurant(restaurant.id),
-              }}
-            >
-              <Popup>
-                <div className="w-48">
-                  <img
-                    src={restaurant.imagen}
-                    alt={restaurant.nombre}
-                    className="w-full h-24 object-cover rounded mb-2"
-                  />
-                  <h3 className="font-semibold text-sm mb-1">{restaurant.nombre}</h3>
-                  <p className="text-xs text-muted-foreground mb-2">{restaurant.tipo}</p>
-                  <div className="flex items-center justify-between text-xs mb-2">
-                    <span className="text-yellow-500">⭐ {restaurant.calificacion}</span>
-                    <span className="text-muted-foreground">{restaurant.precio}</span>
-                  </div>
-                  <Button
-                    size="sm"
-                    className="w-full"
-                    onClick={() => navigate("/restaurante-detalle")}
-                  >
-                    Ver detalles
-                  </Button>
-                </div>
-              </Popup>
-            </Marker>
-          ))}
+          {(() => (
+            <>
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+              
+              {/* Marcadores de Restaurantes */}
+              {filteredRestaurants.map((restaurant) => (
+                <Marker
+                  key={restaurant.id}
+                  position={[restaurant.lat, restaurant.lng]}
+                  icon={createCustomIcon(restaurant.precio)}
+                  eventHandlers={{
+                    click: () => setSelectedRestaurant(restaurant.id),
+                  }}
+                >
+                  <Popup>
+                    <div className="w-48">
+                      <img
+                        src={restaurant.imagen}
+                        alt={restaurant.nombre}
+                        className="w-full h-24 object-cover rounded mb-2"
+                      />
+                      <h3 className="font-semibold text-sm mb-1">{restaurant.nombre}</h3>
+                      <p className="text-xs text-muted-foreground mb-2">{restaurant.tipo}</p>
+                      <div className="flex items-center justify-between text-xs mb-2">
+                        <span className="text-yellow-500">⭐ {restaurant.calificacion}</span>
+                        <span className="text-muted-foreground">{restaurant.precio}</span>
+                      </div>
+                      <Button
+                        size="sm"
+                        className="w-full"
+                        onClick={() => navigate("/restaurante-detalle")}
+                      >
+                        Ver detalles
+                      </Button>
+                    </div>
+                  </Popup>
+                </Marker>
+              ))}
 
-          {/* Componentes que usan useMap hook */}
-          <UserLocationMarker userLocation={userLocation} />
-          <MapControls onLocate={handleLocate} />
-          <MapUpdater selectedId={selectedRestaurant} restaurants={filteredRestaurants} />
+              {/* Componentes que usan useMap hook */}
+              <UserLocationMarker userLocation={userLocation} />
+              <MapControls onLocate={handleLocate} />
+              <MapUpdater selectedId={selectedRestaurant} restaurants={filteredRestaurants} />
+            </>
+          )) as unknown as React.ReactNode}
         </MapContainer>
       </div>
     </div>
