@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PublicHeader } from "@/components/PublicHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 const Login = () => {
@@ -30,38 +31,24 @@ const Login = () => {
         <div className="w-full max-w-md space-y-8">
           {/* Hero Title */}
           <div className="text-center space-y-2">
-            <h1 className="text-3xl md:text-4xl font-bold text-foreground">
-              Descubre, saborea y recomienda con IA
-            </h1>
+            <h1 className="text-3xl md:text-4xl font-bold text-foreground">Descubre, saborea y recomienda con IA</h1>
           </div>
 
           {/* Login Card */}
           <Card className="shadow-lg">
             <CardHeader className="space-y-1">
               <CardTitle className="text-2xl">Iniciar sesión</CardTitle>
-              <CardDescription>
-                Ingresa tus credenciales para acceder
-              </CardDescription>
+              <CardDescription>Ingresa tus credenciales para acceder</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Correo electrónico</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="Ingresa tu correo electrónico"
-                  className="w-full"
-                />
+                <Input id="email" type="email" placeholder="Ingresa tu correo electrónico" className="w-full" />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="password">Contraseña</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Ingresa tu contraseña"
-                  className="w-full"
-                />
+                <Input id="password" type="password" placeholder="Ingresa tu contraseña" className="w-full" />
               </div>
 
               <Button className="w-full" size="lg">
@@ -69,10 +56,7 @@ const Login = () => {
               </Button>
 
               <div className="text-center">
-                <Link
-                  to="/recuperar-contrasena"
-                  className="text-sm text-primary hover:underline"
-                >
+                <Link to="/recuperar-contrasena" className="text-sm text-primary hover:underline">
                   ¿Olvidaste tu contraseña?
                 </Link>
               </div>
@@ -83,9 +67,7 @@ const Login = () => {
                   <span className="w-full border-t border-border" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-card px-2 text-muted-foreground">
-                    O accede con
-                  </span>
+                  <span className="bg-card px-2 text-muted-foreground">O accede con</span>
                 </div>
               </div>
 
