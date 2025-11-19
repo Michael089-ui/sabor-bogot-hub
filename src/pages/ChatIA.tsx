@@ -1,30 +1,28 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Send, Mic, Sparkles } from "lucide-react";
 import ChatMessage from "@/components/ChatMessage";
+import { useToast } from "@/hooks/use-toast";
+
+interface Message {
+  role: "user" | "assistant";
+  content: string;
+  timestamp: string;
+}
 
 const ChatIA = () => {
   const [inputMessage, setInputMessage] = useState("");
-
-  // Mock conversation history
-  const mockMessages = [
+  const [messages, setMessages] = useState<Message[]>([
     {
-      role: "assistant" as const,
+      role: "assistant",
       content: "Hola, soy tu asistente. ¿En qué puedo ayudarte hoy a encontrar los mejores sabores de Bogotá?",
-      timestamp: "10:30 AM"
-    },
-    {
-      role: "user" as const,
-      content: "Busco un restaurante italiano cerca de la Zona Rosa",
-      timestamp: "10:32 AM"
-    },
-    {
-      role: "assistant" as const,
-      content: "¡Excelente elección! Te recomiendo varios restaurantes italianos en la Zona Rosa. ¿Prefieres algo romántico o casual? ¿Cuál es tu presupuesto aproximado?",
-      timestamp: "10:32 AM"
+      timestamp: new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
     }
-  ];
+  ]);
+  const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
   // Quick suggestion prompts
   const quickSuggestions = [
@@ -34,11 +32,114 @@ const ChatIA = () => {
     "¿Comida barata cerca de mí?"
   ];
 
-  const handleSendMessage = () => {
-    if (inputMessage.trim()) {
-      // Logic will be added later
-      console.log("Sending:", inputMessage);
-      setInputMessage("");
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const handleSendMessage = async () => {
+    if (!inputMessage.trim() || isLoading) return;
+
+    const userMessage: Message = {
+      role: "user",
+      content: inputMessage.trim(),
+      timestamp: new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setInputMessage("");
+    setIsLoading(true);
+
+    try {
+      const response = await fetch(
+        `https://ozladdazcubyvmgdpyop.supabase.co/functions/v1/chat`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            messages: [...messages, userMessage].map(m => ({
+              role: m.role,
+              content: m.content
+            }))
+          })
+        }
+      );
+
+      if (!response.ok || !response.body) {
+        throw new Error('Error al conectar con el asistente');
+      }
+
+      // Create assistant message placeholder
+      const assistantMessage: Message = {
+        role: "assistant",
+        content: "",
+        timestamp: new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
+      };
+      setMessages(prev => [...prev, assistantMessage]);
+
+      // Process streaming response
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6);
+            if (data === '[DONE]') continue;
+
+            try {
+              const parsed = JSON.parse(data);
+              const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
+              
+              if (text) {
+                setMessages(prev => {
+                  const newMessages = [...prev];
+                  const lastMessage = newMessages[newMessages.length - 1];
+                  if (lastMessage.role === "assistant") {
+                    lastMessage.content += text;
+                  }
+                  return newMessages;
+                });
+              }
+            } catch (e) {
+              console.error('Error parsing SSE:', e);
+            }
+          }
+        }
+      }
+
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo enviar el mensaje. Por favor intenta de nuevo.",
+        variant: "destructive"
+      });
+      
+      // Remove the empty assistant message if there was an error
+      setMessages(prev => {
+        const newMessages = [...prev];
+        const lastMessage = newMessages[newMessages.length - 1];
+        if (lastMessage.role === "assistant" && !lastMessage.content) {
+          newMessages.pop();
+        }
+        return newMessages;
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -81,7 +182,7 @@ const ChatIA = () => {
 
           {/* Message History */}
           <div className="space-y-4">
-            {mockMessages.map((message, index) => (
+            {messages.map((message, index) => (
               <ChatMessage
                 key={index}
                 role={message.role}
@@ -89,6 +190,14 @@ const ChatIA = () => {
                 timestamp={message.timestamp}
               />
             ))}
+            {isLoading && messages[messages.length - 1]?.role === "user" && (
+              <ChatMessage
+                role="assistant"
+                content="Escribiendo..."
+                timestamp={new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
+              />
+            )}
+            <div ref={messagesEndRef} />
           </div>
         </div>
       </div>
@@ -118,7 +227,7 @@ const ChatIA = () => {
               onClick={handleSendMessage}
               size="icon"
               className="h-12 w-12 rounded-full"
-              disabled={!inputMessage.trim()}
+              disabled={!inputMessage.trim() || isLoading}
             >
               <Send className="h-5 w-5" />
             </Button>
