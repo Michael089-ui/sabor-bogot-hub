@@ -75,10 +75,10 @@ const mockRestaurantes = [
 // Ícono personalizado para marcadores de restaurantes
 const createCustomIcon = (precio: string) => {
   const colors: Record<string, string> = {
-    "$": "#22c55e",
-    "$$": "#3b82f6",
-    "$$$": "#f97316",
-    "$$$$": "#ef4444",
+    "$": "#4aba81",      // Verde acento de la marca - Económico
+    "$$": "#e6a144",     // Naranja dorado - Moderado
+    "$$$": "#e67444",    // Terracota primario de la marca - Costoso
+    "$$$$": "#d14444",   // Rojo terracota oscuro - Premium
   };
 
   const color = colors[precio] || "#3b82f6";
