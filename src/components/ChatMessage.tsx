@@ -26,13 +26,13 @@ const ChatMessage = ({ role, content, timestamp }: ChatMessageProps) => {
         <div className="flex flex-col gap-1">
           <div
             className={cn(
-              "rounded-2xl px-4 py-3 shadow-sm",
+              "rounded-2xl px-4 py-3 shadow-lg transition-all duration-300 hover:shadow-xl",
               isUser
-                ? "bg-primary text-primary-foreground rounded-tr-sm"
-                : "bg-card text-card-foreground border border-border rounded-tl-sm"
+                ? "bg-gradient-primary text-white rounded-tr-sm"
+                : "bg-gradient-subtle text-foreground border-2 border-primary/20 rounded-tl-sm"
             )}
           >
-            <p className="text-sm leading-relaxed">{content}</p>
+            <p className="text-base leading-relaxed font-medium whitespace-pre-wrap">{content}</p>
           </div>
           {timestamp && (
             <span className={cn("text-xs text-muted-foreground px-2", isUser && "text-right")}>

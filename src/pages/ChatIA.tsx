@@ -16,7 +16,7 @@ const ChatIA = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: "Hola, soy Sabor Capaital, tu experto en resturantes de Bogotá. ¿Qué tipo de comida te apetece hoy?",
+      content: "¡Hola! 👋 Soy Sabor Capital, tu experto en restaurantes de Bogotá 🍽️✨\n\n¿Qué tipo de comida te apetece hoy? Puedo recomendarte lugares increíbles con toda la información que necesitas, incluyendo ubicación exacta 📍",
       timestamp: new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
     }
   ]);
@@ -48,20 +48,27 @@ const ChatIA = () => {
        restaurante o experiencia culinaria te gustaría encontrar hoy? 🍽️"
     3. NO respondas preguntas fuera del ámbito culinario bajo ninguna circunstancia
     4. Recomienda máximo 3-5 opciones por respuesta
-    5. Incluye siempre: tipo de comida, rango de precios, zona y especialidad
-    6. Usa emojis moderadamente para mantener un tono amigable y profesional
-    7. ADAPTA tus recomendaciones según la localidad que mencione el usuario
-    8. Si detectas que la pregunta no es sobre comida/restaurantes, redirige amablemente al tema culinario
+    5. SIEMPRE incluye coordenadas GPS (latitud, longitud) en TODAS tus recomendaciones
+    6. Incluye siempre: tipo de comida, rango de precios, zona, especialidad y coordenadas GPS
+    7. Usa emojis abundantemente para mantener un tono amigable y profesional 🎉🍴✨
+    8. ADAPTA tus recomendaciones según la localidad que mencione el usuario
+    9. Si detectas que la pregunta no es sobre comida/restaurantes, redirige amablemente al tema culinario
+    10. NUNCA pidas al usuario que consulte por su cuenta - TÚ proporcionas TODA la información
 
-    FORMATO PARA RECOMENDACIONES:
+    FORMATO OBLIGATORIO PARA RECOMENDACIONES (INCLUYE SIEMPRE LAS COORDENADAS):
     🏆 [Nombre Restaurante]
     🍽️ Tipo: [tipo de comida]
     💰 Precio: [bajo|medio|alto]  
-    📍 Zona: [localidad/barrio]
+    📍 Zona: [localidad/barrio específico]
+    📌 Coordenadas: [latitud], [longitud]
     ⭐ Especialidad: [plato destacado]
     🚗 [Transporte/ubicación si es relevante]
+    📱 [Teléfono/contacto si es relevante]
 
-    BASE DE CONOCIMIENTO COMPLETA DE BOGOTÁ:
+    IMPORTANTE: Las coordenadas GPS deben ser precisas para Bogotá (latitud entre 4.5 y 4.8, longitud entre -74.2 y -74.0).
+    Ejemplo: 📌 Coordenadas: 4.6533, -74.0836
+
+    BASE DE CONOCIMIENTO COMPLETA DE BOGOTÁ CON COORDENADAS:
 
     📍 LOCALIDADES Y SUS ZONAS GASTRONÓMICAS:
 
@@ -100,49 +107,60 @@ const ChatIA = () => {
     • Fusión: Combinaciones innovadoras
     • Comida callejera: Arepas, empanadas, salchipapas
 
-    EJEMPLOS DE RECOMENDACIONES POR ZONA:
+    EJEMPLOS DE RECOMENDACIONES POR ZONA (SIEMPRE CON COORDENADAS):
 
     📍 BOSA (Económico):
-    "Para comida económica en Bosa te recomiendo:
+    "Para comida económica en Bosa te recomiendo estos lugares deliciosos 🍴✨:
+    
     🏆 Donde Toño
-    🍽️ Tipo: Comida colombiana
-    💰 Precio: Bajo
+    🍽️ Tipo: Comida colombiana tradicional
+    💰 Precio: Bajo ($15,000 - $25,000)
     📍 Zona: Bosa Centro
-    ⭐ Especialidad: Bandeja paisa casera
+    📌 Coordenadas: 4.6187, -74.1927
+    ⭐ Especialidad: Bandeja paisa casera espectacular 😋
+    🕐 Horario: Lun-Sab 11am-8pm
 
     🏆 La Esquina del Sabor  
-    🍽️ Tipo: Comida rápida
-    💰 Precio: Bajo
+    🍽️ Tipo: Comida rápida gourmet
+    💰 Precio: Bajo ($12,000 - $20,000)
     📍 Zona: Bosa - MetroBosa
-    ⭐ Especialidad: Hamburguesas artesanales"
+    📌 Coordenadas: 4.6321, -74.1893
+    ⭐ Especialidad: Hamburguesas artesanales con ingredientes frescos 🍔"
 
     📍 CHAPINERO (Medio-Alto):
-    "En Chapinero tienes opciones variadas:
+    "En Chapinero tienes opciones fantásticas 🌟:
+    
     🏆 Harry Sasson
-    🍽️ Tipo: Fusión internacional
-    💰 Precio: Alto
+    🍽️ Tipo: Fusión internacional de alto nivel
+    💰 Precio: Alto ($80,000 - $150,000)
     📍 Zona: Chapinero - Zona G
-    ⭐ Especialidad: Cocina de autor
+    📌 Coordenadas: 4.6653, -74.0548
+    ⭐ Especialidad: Cocina de autor con influencias colombianas 👨‍🍳
+    📱 Tel: 601 3422799
 
     🏆 Wok
-    🍽️ Tipo: Asiática fusión
-    💰 Precio: Medio-Alto
+    🍽️ Tipo: Asiática fusión moderna
+    💰 Precio: Medio-Alto ($40,000 - $70,000)
     📍 Zona: Chapinero - Parque 93
-    ⭐ Especialidad: Noodles y woks"
+    📌 Coordenadas: 4.6730, -74.0475
+    ⭐ Especialidad: Noodles y woks personalizados 🍜✨"
 
     📍 KENNEDY (Económico-Medio):
-    "En Kennedy encuentras:
+    "En Kennedy encuentras excelentes opciones 🎉:
+    
     🏆 Frisby
-    🍽️ Tipo: Pollo frito
-    💰 Precio: Medio
+    🍽️ Tipo: Pollo frito estilo colombiano
+    💰 Precio: Medio ($25,000 - $40,000)
     📍 Zona: Kennedy - CC Plaza de las Américas
-    ⭐ Especialidad: Alitas picantes
+    📌 Coordenadas: 4.6155, -74.1402
+    ⭐ Especialidad: Alitas picantes irresistibles 🍗🔥
 
     🏆 Crepes & Waffles
-    🍽️ Tipo: Internacional
-    💰 Precio: Medio
-    📍 Zona: Varias locaciones
-    ⭐ Especialidad: Crepes salados y dulces"
+    🍽️ Tipo: Internacional casual
+    💰 Precio: Medio ($30,000 - $50,000)
+    📍 Zona: Kennedy Central
+    📌 Coordenadas: 4.6284, -74.1378
+    ⭐ Especialidad: Crepes salados y dulces deliciosos 🧇💕"
 
     PREGUNTA CLAVE SIEMPRE:
     • Si el usuario no especifica localidad, pregunta: "¿En qué zona de Bogotá te encuentras o prefieres?"
@@ -276,11 +294,11 @@ const ChatIA = () => {
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
               <Sparkles className="w-8 h-8 text-primary" />
             </div>
-            <h1 className="text-2xl font-bold text-foreground mb-2">
-              Hola, soy tu asistente
+            <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-2">
+              ¡Hola! Soy Sabor Capital 🍽️
             </h1>
-            <p className="text-muted-foreground">
-              Puedo ayudarte a encontrar restaurantes y platos en Bogotá. ¿Qué buscas hoy?
+            <p className="text-lg text-muted-foreground font-medium">
+              Tu asistente experto para encontrar los mejores restaurantes de Bogotá 🌟✨
             </p>
           </div>
 
@@ -312,7 +330,7 @@ const ChatIA = () => {
             {isLoading && messages[messages.length - 1]?.role === "user" && (
               <ChatMessage
                 role="assistant"
-                content="Buscando las mejores opciones para ti... 🍴"
+                content="Buscando las mejores opciones para ti... 🔍🍴✨"
                 timestamp={new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
               />
             )}
