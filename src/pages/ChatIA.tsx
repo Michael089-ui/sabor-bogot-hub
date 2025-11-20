@@ -4,22 +4,84 @@ import { Input } from "@/components/ui/input";
 import { Send, Mic, Sparkles, MapPin, ExternalLink } from "lucide-react";
 import ChatMessage from "@/components/ChatMessage";
 import { useToast } from "@/hooks/use-toast";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
+import { Plus, Minus, Navigation } from "lucide-react";
 
 // Fix for default marker icon
-import icon from 'leaflet/dist/images/marker-icon.png';
-import iconShadow from 'leaflet/dist/images/marker-shadow.png';
-
-let DefaultIcon = L.icon({
-  iconUrl: icon,
-  shadowUrl: iconShadow,
-  iconSize: [25, 41],
-  iconAnchor: [12, 41]
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-L.Marker.prototype.options.icon = DefaultIcon;
+// Ícono personalizado para restaurantes recomendados
+const createCustomIcon = () => {
+  return L.divIcon({
+    className: "custom-marker",
+    html: `
+      <div style="
+        background-color: #e67444;
+        width: 32px;
+        height: 32px;
+        border-radius: 50% 50% 50% 0;
+        transform: rotate(-45deg);
+        border: 3px solid white;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      ">
+        <span style="
+          transform: rotate(45deg);
+          font-size: 16px;
+        ">🍽️</span>
+      </div>
+    `,
+    iconSize: [32, 32],
+    iconAnchor: [16, 32],
+    popupAnchor: [0, -32],
+  });
+};
+
+// Componente para controles del mapa
+function MapControls() {
+  const map = useMap();
+
+  const handleZoomIn = () => map.zoomIn();
+  const handleZoomOut = () => map.zoomOut();
+  const handleLocate = () => {
+    map.locate({ setView: true, maxZoom: 16 });
+  };
+
+  return (
+    <div className="absolute bottom-6 right-6 z-[1000] flex flex-col gap-2">
+      <Button
+        size="icon"
+        onClick={handleZoomIn}
+        className="bg-card hover:bg-accent shadow-lg border border-border"
+      >
+        <Plus className="h-5 w-5" />
+      </Button>
+      <Button
+        size="icon"
+        onClick={handleZoomOut}
+        className="bg-card hover:bg-accent shadow-lg border border-border"
+      >
+        <Minus className="h-5 w-5" />
+      </Button>
+      <Button
+        size="icon"
+        onClick={handleLocate}
+        className="bg-card hover:bg-accent shadow-lg border border-border"
+      >
+        <Navigation className="h-5 w-5" />
+      </Button>
+    </div>
+  );
+}
 
 interface Message {
   role: "user" | "assistant";
@@ -401,49 +463,59 @@ const ChatIA = () => {
 
           {/* Interactive Map */}
           {restaurants.length > 0 && (
-            <div className="mt-6 rounded-lg overflow-hidden shadow-lg border-2 border-primary/20">
-              <div className="bg-gradient-primary p-3">
-                <h3 className="text-white font-semibold flex items-center gap-2">
-                  <MapPin className="w-5 h-5" />
-                  Ubicaciones Recomendadas
+            <div className="mt-6 rounded-xl overflow-hidden shadow-2xl border border-border">
+              <div className="bg-gradient-to-r from-primary to-primary/80 p-4">
+                <h3 className="text-white font-bold text-lg flex items-center gap-2">
+                  <MapPin className="w-6 h-6" />
+                  📍 Ubicaciones Recomendadas
                 </h3>
               </div>
-              <MapContainer
-                center={[restaurants[0].lat, restaurants[0].lng]}
-                zoom={13}
-                style={{ height: "400px", width: "100%" }}
-              >
-                <TileLayer
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                />
-                {restaurants.map((restaurant, idx) => (
-                  <Marker key={idx} position={[restaurant.lat, restaurant.lng]}>
-                    <Popup>
-                      <div className="p-2">
-                        <h4 className="font-bold text-lg mb-2">{restaurant.name}</h4>
-                        {restaurant.address && (
-                          <p className="text-sm mb-1">
-                            <MapPin className="inline w-3 h-3 mr-1" />
-                            {restaurant.address}
-                          </p>
-                        )}
-                        {restaurant.website && (
-                          <a
-                            href={restaurant.website}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-primary text-sm flex items-center gap-1 hover:underline"
-                          >
-                            <ExternalLink className="w-3 h-3" />
-                            Visitar sitio web
-                          </a>
-                        )}
-                      </div>
-                    </Popup>
-                  </Marker>
-                ))}
-              </MapContainer>
+              <div className="relative">
+                <MapContainer
+                  center={[restaurants[0].lat, restaurants[0].lng]}
+                  zoom={13}
+                  style={{ height: "500px", width: "100%" }}
+                  className="z-0"
+                >
+                  <TileLayer
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                  />
+                  {restaurants.map((restaurant, idx) => (
+                    <Marker 
+                      key={idx} 
+                      position={[restaurant.lat, restaurant.lng]}
+                      icon={createCustomIcon()}
+                    >
+                      <Popup className="custom-popup" maxWidth={300}>
+                        <div className="p-3">
+                          <h4 className="font-bold text-lg mb-3 text-foreground border-b border-border pb-2">
+                            {restaurant.name}
+                          </h4>
+                          {restaurant.address && (
+                            <div className="flex items-start gap-2 mb-2">
+                              <MapPin className="w-4 h-4 mt-0.5 text-primary flex-shrink-0" />
+                              <p className="text-sm text-muted-foreground">{restaurant.address}</p>
+                            </div>
+                          )}
+                          {restaurant.website && (
+                            <a
+                              href={restaurant.website}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-2 text-sm text-primary hover:text-primary/80 font-medium mt-2 transition-colors"
+                            >
+                              <ExternalLink className="w-4 h-4" />
+                              Visitar sitio web
+                            </a>
+                          )}
+                        </div>
+                      </Popup>
+                    </Marker>
+                  ))}
+                  <MapControls />
+                </MapContainer>
+              </div>
             </div>
           )}
         </div>
