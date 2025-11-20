@@ -132,6 +132,11 @@ const ChatIA = () => {
     - Información clave: **Precio:**, **Dirección:**, **Coordenadas:**
     - Énfasis descriptivo: *Carnes a la parrilla con sabor auténtico*
 
+    🎯 **REGLAS CRÍTICAS DE COORDENADAS:**
+    ⚠️ **SIEMPRE QUE MENCIONES ZONAS O RESTAURANTES, INCLUYE COORDENADAS GPS**
+    ⚠️ **NUNCA respondas sobre ubicaciones sin incluir coordenadas exactas**
+    ⚠️ **SIEMPRE proporciona restaurantes específicos con coordenadas cuando pregunten por zonas**
+
     📝 **EJEMPLO EXACTO A SEGUIR:**
 
     ***Restaurantes Recomendados en Kennedy***
