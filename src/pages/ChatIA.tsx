@@ -1,14 +1,38 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Mic, Sparkles } from "lucide-react";
+import { Send, Mic, Sparkles, MapPin, ExternalLink } from "lucide-react";
 import ChatMessage from "@/components/ChatMessage";
 import { useToast } from "@/hooks/use-toast";
+import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
+import L from "leaflet";
+
+// Fix for default marker icon
+import icon from 'leaflet/dist/images/marker-icon.png';
+import iconShadow from 'leaflet/dist/images/marker-shadow.png';
+
+let DefaultIcon = L.icon({
+  iconUrl: icon,
+  shadowUrl: iconShadow,
+  iconSize: [25, 41],
+  iconAnchor: [12, 41]
+});
+
+L.Marker.prototype.options.icon = DefaultIcon;
 
 interface Message {
   role: "user" | "assistant";
   content: string;
   timestamp: string;
+}
+
+interface Restaurant {
+  name: string;
+  lat: number;
+  lng: number;
+  address?: string;
+  website?: string;
 }
 
 const ChatIA = () => {
@@ -21,6 +45,7 @@ const ChatIA = () => {
     }
   ]);
   const [isLoading, setIsLoading] = useState(false);
+  const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -49,24 +74,27 @@ const ChatIA = () => {
     3. NO respondas preguntas fuera del ámbito culinario bajo ninguna circunstancia
     4. Recomienda máximo 3-5 opciones por respuesta
     5. SIEMPRE incluye coordenadas GPS (latitud, longitud) en TODAS tus recomendaciones
-    6. Incluye siempre: tipo de comida, rango de precios, zona, especialidad y coordenadas GPS
+    6. Incluye siempre: tipo de comida, rango de precios, zona, especialidad, coordenadas GPS, dirección y sitio web (cuando esté disponible)
     7. Usa emojis abundantemente para mantener un tono amigable y profesional 🎉🍴✨
     8. ADAPTA tus recomendaciones según la localidad que mencione el usuario
     9. Si detectas que la pregunta no es sobre comida/restaurantes, redirige amablemente al tema culinario
     10. NUNCA pidas al usuario que consulte por su cuenta - TÚ proporcionas TODA la información
+    11. NUNCA uses "***" para resaltar - usa SOLO "-" o emoticonos de comida (🍕🍔🍝🍜🍱🥘🌮🍛🍲🥗🍳)
 
     FORMATO OBLIGATORIO PARA RECOMENDACIONES (INCLUYE SIEMPRE LAS COORDENADAS):
-    🏆 [Nombre Restaurante]
-    🍽️ Tipo: [tipo de comida]
-    💰 Precio: [bajo|medio|alto]  
-    📍 Zona: [localidad/barrio específico]
-    📌 Coordenadas: [latitud], [longitud]
-    ⭐ Especialidad: [plato destacado]
-    🚗 [Transporte/ubicación si es relevante]
-    📱 [Teléfono/contacto si es relevante]
+    
+    🍽️ [Nombre Restaurante]
+    - Tipo: [tipo de comida]
+    - Precio: [bajo|medio|alto]  
+    - Zona: [localidad/barrio específico]
+    - Dirección: [dirección completa]
+    - Coordenadas: [latitud], [longitud]
+    - Especialidad: [plato destacado]
+    - Sitio web: [URL si está disponible]
+    - Teléfono: [número si es relevante]
 
     IMPORTANTE: Las coordenadas GPS deben ser precisas para Bogotá (latitud entre 4.5 y 4.8, longitud entre -74.2 y -74.0).
-    Ejemplo: 📌 Coordenadas: 4.6533, -74.0836
+    Ejemplo de coordenadas: 4.6533, -74.0836
 
     BASE DE CONOCIMIENTO COMPLETA DE BOGOTÁ CON COORDENADAS:
 
@@ -258,6 +286,50 @@ const ChatIA = () => {
         }
       }
 
+      // Extract restaurants from the assistant's response
+      const extractRestaurants = (content: string): Restaurant[] => {
+        const restaurants: Restaurant[] = [];
+        const coordPattern = /Coordenadas:\s*([-\d.]+),\s*([-\d.]+)/gi;
+        const namePattern = /🍽️\s*(.+?)(?:\n|-)/i;
+        const addressPattern = /Dirección:\s*(.+?)(?:\n|$)/i;
+        const websitePattern = /Sitio web:\s*(.+?)(?:\n|$)/i;
+        
+        // Split by restaurant sections (looking for the food emoji pattern)
+        const sections = content.split(/(?=🍽️)/);
+        
+        for (const section of sections) {
+          const coordMatch = coordPattern.exec(section);
+          if (coordMatch) {
+            const nameMatch = section.match(namePattern);
+            const addressMatch = section.match(addressPattern);
+            const websiteMatch = section.match(websitePattern);
+            
+            restaurants.push({
+              name: nameMatch ? nameMatch[1].trim() : "Restaurante",
+              lat: parseFloat(coordMatch[1]),
+              lng: parseFloat(coordMatch[2]),
+              address: addressMatch ? addressMatch[1].trim() : undefined,
+              website: websiteMatch ? websiteMatch[1].trim() : undefined
+            });
+          }
+          coordPattern.lastIndex = 0;
+        }
+        
+        return restaurants;
+      };
+
+      // Update restaurants after message is complete
+      setMessages(prev => {
+        const lastMessage = prev[prev.length - 1];
+        if (lastMessage?.role === "assistant") {
+          const extracted = extractRestaurants(lastMessage.content);
+          if (extracted.length > 0) {
+            setRestaurants(extracted);
+          }
+        }
+        return prev;
+      });
+
     } catch (error) {
       console.error('Error sending message:', error);
       toast({
@@ -336,6 +408,54 @@ const ChatIA = () => {
             )}
             <div ref={messagesEndRef} />
           </div>
+
+          {/* Interactive Map */}
+          {restaurants.length > 0 && (
+            <div className="mt-6 rounded-lg overflow-hidden shadow-lg border-2 border-primary/20">
+              <div className="bg-gradient-primary p-3">
+                <h3 className="text-white font-semibold flex items-center gap-2">
+                  <MapPin className="w-5 h-5" />
+                  Ubicaciones Recomendadas
+                </h3>
+              </div>
+              <MapContainer
+                center={[restaurants[0].lat, restaurants[0].lng]}
+                zoom={13}
+                style={{ height: "400px", width: "100%" }}
+              >
+                <TileLayer
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                />
+                {restaurants.map((restaurant, idx) => (
+                  <Marker key={idx} position={[restaurant.lat, restaurant.lng]}>
+                    <Popup>
+                      <div className="p-2">
+                        <h4 className="font-bold text-lg mb-2">{restaurant.name}</h4>
+                        {restaurant.address && (
+                          <p className="text-sm mb-1">
+                            <MapPin className="inline w-3 h-3 mr-1" />
+                            {restaurant.address}
+                          </p>
+                        )}
+                        {restaurant.website && (
+                          <a
+                            href={restaurant.website}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary text-sm flex items-center gap-1 hover:underline"
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                            Visitar sitio web
+                          </a>
+                        )}
+                      </div>
+                    </Popup>
+                  </Marker>
+                ))}
+              </MapContainer>
+            </div>
+          )}
         </div>
       </div>
 
