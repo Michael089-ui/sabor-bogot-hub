@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages } = await req.json();
+    const { messages, systemPrompt } = await req.json();
     const GOOGLE_GEMINI_API_KEY = Deno.env.get('GOOGLE_GEMINI_API_KEY');
 
     if (!GOOGLE_GEMINI_API_KEY) {
@@ -31,6 +31,26 @@ serve(async (req) => {
       parts: [{ text: msg.content }]
     }));
 
+    // Prepare request body with system instruction
+    const requestBody: any = {
+      contents,
+      generationConfig: {
+        temperature: 1.0,
+        topK: 40,
+        topP: 0.95,
+        maxOutputTokens: 2048,
+      }
+    };
+
+    // Add system instruction if provided
+    if (systemPrompt) {
+      requestBody.systemInstruction = {
+        parts: [{ text: systemPrompt }]
+      };
+    }
+
+    console.log('Sending request to Gemini with system instruction');
+
     // Call Google Gemini API with streaming
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:streamGenerateContent?key=${GOOGLE_GEMINI_API_KEY}&alt=sse`,
@@ -39,15 +59,7 @@ serve(async (req) => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          contents,
-          generationConfig: {
-            temperature: 0.9,
-            topK: 40,
-            topP: 0.95,
-            maxOutputTokens: 2048,
-          }
-        }),
+        body: JSON.stringify(requestBody),
       }
     );
 
