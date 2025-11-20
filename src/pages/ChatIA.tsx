@@ -1,87 +1,22 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Mic, Sparkles, MapPin, ExternalLink } from "lucide-react";
+import { Send, Mic, Sparkles, MapPin, ExternalLink, Plus, Minus, Navigation } from "lucide-react";
 import ChatMessage from "@/components/ChatMessage";
 import { useToast } from "@/hooks/use-toast";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
-import "leaflet/dist/leaflet.css";
-import L from "leaflet";
-import { Plus, Minus, Navigation } from "lucide-react";
+import { GoogleMap, LoadScript, Marker, InfoWindow } from "@react-google-maps/api";
 
-// Fix for default marker icon
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-});
+const GOOGLE_MAPS_API_KEY = "AIzaSyBer6JXdqunENnx3lqiLAszzqqREO8nGY0";
 
-// Ícono personalizado para restaurantes recomendados
-const createCustomIcon = () => {
-  return L.divIcon({
-    className: "custom-marker",
-    html: `
-      <div style="
-        background-color: #e67444;
-        width: 32px;
-        height: 32px;
-        border-radius: 50% 50% 50% 0;
-        transform: rotate(-45deg);
-        border: 3px solid white;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      ">
-        <span style="
-          transform: rotate(45deg);
-          font-size: 16px;
-        ">🍽️</span>
-      </div>
-    `,
-    iconSize: [32, 32],
-    iconAnchor: [16, 32],
-    popupAnchor: [0, -32],
-  });
+const mapContainerStyle = {
+  width: '100%',
+  height: '500px'
 };
 
-// Componente para controles del mapa
-function MapControls() {
-  const map = useMap();
-
-  const handleZoomIn = () => map.zoomIn();
-  const handleZoomOut = () => map.zoomOut();
-  const handleLocate = () => {
-    map.locate({ setView: true, maxZoom: 16 });
-  };
-
-  return (
-    <div className="absolute bottom-6 right-6 z-[1000] flex flex-col gap-2">
-      <Button
-        size="icon"
-        onClick={handleZoomIn}
-        className="bg-card hover:bg-accent shadow-lg border border-border"
-      >
-        <Plus className="h-5 w-5" />
-      </Button>
-      <Button
-        size="icon"
-        onClick={handleZoomOut}
-        className="bg-card hover:bg-accent shadow-lg border border-border"
-      >
-        <Minus className="h-5 w-5" />
-      </Button>
-      <Button
-        size="icon"
-        onClick={handleLocate}
-        className="bg-card hover:bg-accent shadow-lg border border-border"
-      >
-        <Navigation className="h-5 w-5" />
-      </Button>
-    </div>
-  );
-}
+const defaultCenter = {
+  lat: 4.6533,
+  lng: -74.0836
+};
 
 interface Message {
   role: "user" | "assistant";
@@ -108,6 +43,8 @@ const ChatIA = () => {
   ]);
   const [isLoading, setIsLoading] = useState(false);
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
+  const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
+  const [map, setMap] = useState<google.maps.Map | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -382,6 +319,11 @@ const ChatIA = () => {
           const extracted = extractRestaurants(lastMessage.content);
           if (extracted.length > 0) {
             setRestaurants(extracted);
+            // Center map on first restaurant
+            if (map && extracted[0]) {
+              map.panTo({ lat: extracted[0].lat, lng: extracted[0].lng });
+              map.setZoom(13);
+            }
           }
         }
         return prev;
@@ -411,6 +353,38 @@ const ChatIA = () => {
 
   const handleQuickSuggestion = (suggestion: string) => {
     setInputMessage(suggestion);
+  };
+
+  const handleZoomIn = () => {
+    if (map) {
+      map.setZoom((map.getZoom() || 13) + 1);
+    }
+  };
+
+  const handleZoomOut = () => {
+    if (map) {
+      map.setZoom((map.getZoom() || 13) - 1);
+    }
+  };
+
+  const handleLocate = () => {
+    if (navigator.geolocation && map) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          map.panTo({ lat: latitude, lng: longitude });
+          map.setZoom(16);
+        },
+        (error) => {
+          console.error("Error getting location:", error);
+          toast({
+            title: "Error",
+            description: "No se pudo obtener tu ubicación",
+            variant: "destructive"
+          });
+        }
+      );
+    }
   };
 
   return (
@@ -466,60 +440,94 @@ const ChatIA = () => {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Interactive Map */}
+          {/* Map Section - Only show when there are restaurants */}
           {restaurants.length > 0 && (
-            <div className="mt-6 rounded-xl overflow-hidden shadow-2xl border border-border">
-              <div className="bg-gradient-to-r from-primary to-primary/80 p-4">
-                <h3 className="text-white font-bold text-lg flex items-center gap-2">
-                  <MapPin className="w-6 h-6" />
-                  📍 Ubicaciones Recomendadas
-                </h3>
-              </div>
-              <div className="relative">
-                <MapContainer
-                  center={[restaurants[0].lat, restaurants[0].lng]}
-                  zoom={13}
-                  style={{ height: "500px", width: "100%" }}
-                  className="z-0"
-                >
-                  <TileLayer
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                  />
-                  {restaurants.map((restaurant, idx) => (
-                    <Marker 
-                      key={idx} 
-                      position={[restaurant.lat, restaurant.lng]}
-                      icon={createCustomIcon()}
+            <div className="mt-8 mb-6">
+              <div className="bg-card rounded-lg border border-border p-4">
+                <div className="flex items-center gap-2 mb-4">
+                  <MapPin className="h-5 w-5 text-primary" />
+                  <h3 className="font-semibold text-lg">Ubicaciones en el Mapa</h3>
+                </div>
+                
+                <div className="relative rounded-lg overflow-hidden">
+                  <LoadScript googleMapsApiKey={GOOGLE_MAPS_API_KEY}>
+                    <GoogleMap
+                      mapContainerStyle={mapContainerStyle}
+                      center={restaurants[0] ? { lat: restaurants[0].lat, lng: restaurants[0].lng } : defaultCenter}
+                      zoom={13}
+                      onLoad={(mapInstance) => setMap(mapInstance)}
+                      options={{
+                        disableDefaultUI: true,
+                        zoomControl: false,
+                      }}
                     >
-                      <Popup className="custom-popup" maxWidth={300}>
-                        <div className="p-3">
-                          <h4 className="font-bold text-lg mb-3 text-foreground border-b border-border pb-2">
-                            {restaurant.name}
-                          </h4>
-                          {restaurant.address && (
-                            <div className="flex items-start gap-2 mb-2">
-                              <MapPin className="w-4 h-4 mt-0.5 text-primary flex-shrink-0" />
-                              <p className="text-sm text-muted-foreground">{restaurant.address}</p>
-                            </div>
-                          )}
-                          {restaurant.website && (
-                            <a
-                              href={restaurant.website}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-2 text-sm text-primary hover:text-primary/80 font-medium mt-2 transition-colors"
-                            >
-                              <ExternalLink className="w-4 h-4" />
-                              Visitar sitio web
-                            </a>
-                          )}
-                        </div>
-                      </Popup>
-                    </Marker>
-                  ))}
-                  <MapControls />
-                </MapContainer>
+                      {restaurants.map((restaurant, index) => (
+                        <Marker
+                          key={index}
+                          position={{ lat: restaurant.lat, lng: restaurant.lng }}
+                          onClick={() => setSelectedRestaurant(restaurant)}
+                          icon={{
+                            path: google.maps.SymbolPath.CIRCLE,
+                            scale: 10,
+                            fillColor: "#e67444",
+                            fillOpacity: 1,
+                            strokeColor: "#ffffff",
+                            strokeWeight: 2,
+                          }}
+                        />
+                      ))}
+
+                      {selectedRestaurant && (
+                        <InfoWindow
+                          position={{ lat: selectedRestaurant.lat, lng: selectedRestaurant.lng }}
+                          onCloseClick={() => setSelectedRestaurant(null)}
+                        >
+                          <div className="p-2">
+                            <h4 className="font-semibold text-sm mb-1">{selectedRestaurant.name}</h4>
+                            {selectedRestaurant.address && (
+                              <p className="text-xs text-gray-600 mb-1">{selectedRestaurant.address}</p>
+                            )}
+                            {selectedRestaurant.website && (
+                              <a
+                                href={selectedRestaurant.website}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-primary hover:underline flex items-center gap-1"
+                              >
+                                Sitio web <ExternalLink className="h-3 w-3" />
+                              </a>
+                            )}
+                          </div>
+                        </InfoWindow>
+                      )}
+                    </GoogleMap>
+                  </LoadScript>
+
+                  {/* Map Controls */}
+                  <div className="absolute bottom-6 right-6 z-10 flex flex-col gap-2">
+                    <Button
+                      size="icon"
+                      onClick={handleZoomIn}
+                      className="bg-card hover:bg-accent shadow-lg border border-border"
+                    >
+                      <Plus className="h-5 w-5" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      onClick={handleZoomOut}
+                      className="bg-card hover:bg-accent shadow-lg border border-border"
+                    >
+                      <Minus className="h-5 w-5" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      onClick={handleLocate}
+                      className="bg-card hover:bg-accent shadow-lg border border-border"
+                    >
+                      <Navigation className="h-5 w-5" />
+                    </Button>
+                  </div>
+                </div>
               </div>
             </div>
           )}

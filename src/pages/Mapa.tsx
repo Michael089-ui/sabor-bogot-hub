@@ -1,22 +1,24 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import { GoogleMap, LoadScript, Marker, InfoWindow } from "@react-google-maps/api";
 import { Search, SlidersHorizontal, Plus, Minus, Navigation } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
 
-// Solucionar problema de iconos por defecto de Leaflet
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-});
+const GOOGLE_MAPS_API_KEY = "AIzaSyBer6JXdqunENnx3lqiLAszzqqREO8nGY0";
+
+const mapContainerStyle = {
+  width: '100%',
+  height: '100%'
+};
+
+const defaultCenter = {
+  lat: 4.6097,
+  lng: -74.0817
+};
 
 // Mock data con coordenadas de Bogotá
 const mockRestaurantes = [
@@ -72,32 +74,16 @@ const mockRestaurantes = [
   },
 ];
 
-// Ícono personalizado para marcadores de restaurantes
-const createCustomIcon = (precio: string) => {
+// Colores para marcadores según precio
+const getPriceColor = (precio: string) => {
   const colors: Record<string, string> = {
-    "$": "#4aba81",      // Verde acento de la marca - Económico
-    "$$": "#e6a144",     // Naranja dorado - Moderado
-    "$$$": "#e67444",    // Terracota primario de la marca - Costoso
-    "$$$$": "#d14444",   // Rojo terracota oscuro - Premium
+    "$": "#4aba81",
+    "$$": "#e6a144",
+    "$$$": "#e67444",
+    "$$$$": "#d14444",
   };
-
-  const color = colors[precio] || "#3b82f6";
-
-  return L.divIcon({
-    className: "custom-marker",
-    html: `
-      <div style="
-        background-color: ${color};
-        width: 32px;
-        height: 32px;
-        border-radius: 50% 50% 50% 0;
-        transform: rotate(-45deg);
-        border: 3px solid white;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      ">
+  return colors[precio] || "#3b82f6";
+};
         <span style="
           transform: rotate(45deg);
           font-size: 16px;
@@ -310,7 +296,7 @@ export default function Mapa() {
                 className={`bg-card rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all cursor-pointer border ${
                   selectedRestaurant === restaurant.id ? "border-primary ring-2 ring-primary/20" : "border-border"
                 }`}
-                onClick={() => setSelectedRestaurant(restaurant.id)}
+                onClick={() => handleRestaurantClick(restaurant)}
               >
                 <img
                   src={restaurant.imagen}
@@ -360,59 +346,74 @@ export default function Mapa() {
           </div>
         </div>
 
-        {/* Mapa de Leaflet */}
-        <MapContainer
-          center={[4.6097, -74.0817]}
-          zoom={13}
-          className="h-full w-full"
-          zoomControl={false}
-          scrollWheelZoom={true}
-        >
-              <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        {/* Mapa de Google Maps */}
+        <LoadScript googleMapsApiKey={GOOGLE_MAPS_API_KEY}>
+          <GoogleMap
+            mapContainerStyle={mapContainerStyle}
+            center={defaultCenter}
+            zoom={13}
+            onLoad={(mapInstance) => setMap(mapInstance)}
+            options={{
+              disableDefaultUI: true,
+              zoomControl: false,
+            }}
+          >
+            {filteredRestaurants.map((restaurant) => (
+              <Marker
+                key={restaurant.id}
+                position={{ lat: restaurant.lat, lng: restaurant.lng }}
+                onClick={() => setSelectedRestaurant(restaurant)}
+                icon={{
+                  path: google.maps.SymbolPath.CIRCLE,
+                  scale: 12,
+                  fillColor: getPriceColor(restaurant.precio),
+                  fillOpacity: 1,
+                  strokeColor: "#ffffff",
+                  strokeWeight: 3,
+                }}
               />
-              
-              {/* Marcadores de Restaurantes */}
-              {filteredRestaurants.map((restaurant) => (
-                <Marker
-                  key={restaurant.id}
-                  position={[restaurant.lat, restaurant.lng]}
-                  icon={createCustomIcon(restaurant.precio)}
-                  eventHandlers={{
-                    click: () => setSelectedRestaurant(restaurant.id),
-                  }}
-                >
-                  <Popup>
-                    <div className="w-48">
-                      <img
-                        src={restaurant.imagen}
-                        alt={restaurant.nombre}
-                        className="w-full h-24 object-cover rounded mb-2"
-                      />
-                      <h3 className="font-semibold text-sm mb-1">{restaurant.nombre}</h3>
-                      <p className="text-xs text-muted-foreground mb-2">{restaurant.tipo}</p>
-                      <div className="flex items-center justify-between text-xs mb-2">
-                        <span className="text-yellow-500">⭐ {restaurant.calificacion}</span>
-                        <span className="text-muted-foreground">{restaurant.precio}</span>
-                      </div>
-                      <Button
-                        size="sm"
-                        className="w-full"
-                        onClick={() => navigate("/restaurante-detalle")}
-                      >
-                        Ver detalles
-                      </Button>
-                    </div>
-                  </Popup>
-                </Marker>
-              ))}
+            ))}
 
-              {/* Componentes que usan useMap hook */}
-              <UserLocationMarker userLocation={userLocation} />
-              <MapControls onLocate={handleLocate} />
-              <MapUpdater selectedId={selectedRestaurant} restaurants={filteredRestaurants} />
-        </MapContainer>
+            {selectedRestaurant && (
+              <InfoWindow
+                position={{ lat: selectedRestaurant.lat, lng: selectedRestaurant.lng }}
+                onCloseClick={() => setSelectedRestaurant(null)}
+              >
+                <div className="w-48">
+                  <img src={selectedRestaurant.imagen} alt={selectedRestaurant.nombre} className="w-full h-24 object-cover rounded mb-2" />
+                  <h3 className="font-semibold text-sm mb-1">{selectedRestaurant.nombre}</h3>
+                  <p className="text-xs text-muted-foreground mb-2">{selectedRestaurant.tipo}</p>
+                  <div className="flex items-center justify-between text-xs mb-2">
+                    <span className="text-yellow-500">⭐ {selectedRestaurant.calificacion}</span>
+                    <span className="text-muted-foreground">{selectedRestaurant.precio}</span>
+                  </div>
+                  <Button size="sm" className="w-full" onClick={() => navigate("/restaurante-detalle")}>Ver detalles</Button>
+                </div>
+              </InfoWindow>
+            )}
+
+            {userLocation && (
+              <Marker
+                position={userLocation}
+                icon={{
+                  path: google.maps.SymbolPath.CIRCLE,
+                  scale: 8,
+                  fillColor: "#3b82f6",
+                  fillOpacity: 1,
+                  strokeColor: "#ffffff",
+                  strokeWeight: 3,
+                }}
+              />
+            )}
+          </GoogleMap>
+        </LoadScript>
+
+        {/* Controles del Mapa */}
+        <div className="absolute bottom-6 right-6 z-10 flex flex-col gap-2">
+          <Button size="icon" variant="secondary" className="shadow-lg" onClick={handleZoomIn}><Plus className="h-4 w-4" /></Button>
+          <Button size="icon" variant="secondary" className="shadow-lg" onClick={handleZoomOut}><Minus className="h-4 w-4" /></Button>
+          <Button size="icon" variant="secondary" className="shadow-lg" onClick={handleLocate}><Navigation className="h-4 w-4" /></Button>
+        </div>
       </div>
     </div>
   );
