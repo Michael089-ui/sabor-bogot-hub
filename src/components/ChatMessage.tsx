@@ -6,6 +6,38 @@ interface ChatMessageProps {
   timestamp?: string;
 }
 
+// Función para formatear el contenido con negritas
+const formatMessage = (content: string): JSX.Element => {
+  // Dividir por diferentes patrones de formato
+  const parts = content.split(/(\*\*\*.*?\*\*\*|\*\*.*?\*\*|\*.*?\*)/g);
+  
+  return (
+    <>
+      {parts.map((part, index) => {
+        // ***texto*** → <strong>texto</strong>
+        if (part.startsWith('***') && part.endsWith('***')) {
+          const text = part.slice(3, -3);
+          return <strong key={index} className="font-bold text-base">{text}</strong>;
+        }
+        // **texto** → <strong>texto</strong>
+        else if (part.startsWith('**') && part.endsWith('**')) {
+          const text = part.slice(2, -2);
+          return <strong key={index} className="font-bold">{text}</strong>;
+        }
+        // *texto* → <em>texto</em>
+        else if (part.startsWith('*') && part.endsWith('*') && part.length > 2) {
+          const text = part.slice(1, -1);
+          return <em key={index} className="italic">{text}</em>;
+        }
+        // Texto normal
+        else {
+          return <span key={index}>{part}</span>;
+        }
+      })}
+    </>
+  );
+};
+
 const ChatMessage = ({ role, content, timestamp }: ChatMessageProps) => {
   const isUser = role === "user";
 
@@ -32,7 +64,7 @@ const ChatMessage = ({ role, content, timestamp }: ChatMessageProps) => {
                 : "bg-gradient-subtle text-foreground border-2 border-primary/20 rounded-tl-sm"
             )}
           >
-            <p className="text-base leading-relaxed font-medium whitespace-pre-wrap">{content}</p>
+            <p className="text-base leading-relaxed font-medium whitespace-pre-wrap">{formatMessage(content)}</p>
           </div>
           {timestamp && (
             <span className={cn("text-xs text-muted-foreground px-2", isUser && "text-right")}>

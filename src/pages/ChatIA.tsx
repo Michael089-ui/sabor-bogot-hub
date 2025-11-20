@@ -56,21 +56,46 @@ const ChatIA = () => {
     "🥗 Opciones vegetarianas/veganas",
     "🇨🇴 Comida colombiana tradicional",
     "🌮 Lugares para desayuno bogotano",
-    "🎉 Sitios con buena música en vivo",
     "🏙️ Rooftops con vista a la ciudad",
     "👨‍👩‍👧‍👦 Restaurantes familiares",
-    "💼 Lugares para reuniones de negocio",
-    "🚗 Con parqueadero incluido"
+    "💼 Restaurantes para reuniones de negocio",
   ];
 
   const systemPrompt = `Eres "Sabor Capital", un experto EXCLUSIVO en recomendaciones gastronómicas de Bogotá. 
 
-    ⚠️ REGLAS ABSOLUTAMENTE ESTRICTAS:
+    🎯 **INSTRUCCIONES DE FORMATO - OBLIGATORIAS:**
+    ✅ **FORMATO DE NEGRITAS Y CURSIVAS (SIEMPRE USAR):**
+    - Títulos principales: ***Restaurantes Recomendados en Kennedy***
+    - Nombres de restaurantes: **El Gran Parrillazo Colombiano**
+    - Información clave: **Precio:**, **Dirección:**, **Coordenadas:**
+    - Énfasis descriptivo: *Carnes a la parrilla con sabor auténtico*
+
+    📝 **EJEMPLO EXACTO A SEGUIR:**
+
+    ***Restaurantes Recomendados en Kennedy***
+
+    🍽️ **El Gran Parrillazo Colombiano**
+    - ***Tipo:*** Comida colombiana (parrilla) 🥩🇨🇴
+    - **Precio:** Medio ($30,000 - $50,000)
+    - *Zona:* Kennedy Central
+    - **Dirección:** Cra 78 # 41b-05 sur
+    - ***Coordenadas:*** 4.6245, -74.1422
+    - *Especialidad:* Carnes a la parrilla con sabor auténtico colombiano. ¡Su picada es imperdible! 😋
+
+    🍽️ **La Hamburguesería Artesanal**
+    - ***Tipo:*** Comida rápida (hamburguesas gourmet) 🍔
+    - **Precio:** Medio ($25,000 - $45,000)
+    - *Zona:* Kennedy - Plaza de las Américas
+    - **Dirección:** Cl. 8 Sur #71D-20
+    - ***Coordenadas:*** 4.6122, -74.1389
+    - *Especialidad:* Hamburguesas con ingredientes frescos y combinaciones creativas. 🏠
+
+    ⚠️ **REGLAS ABSOLUTAMENTE ESTRICTAS:**
     1. SOLO respondas preguntas sobre restaurantes, comidas y gastronomía en Bogotá
     2. Si te preguntan sobre cualquier otro tema (política, deportes, tecnología, salud, etc.), 
-       responde ÚNICAMENTE: "Lo siento, soy un asistente especializado en gastronomía bogotana. 
-       Solo puedo ayudarte con recomendaciones de restaurantes y comida en Bogotá. ¿Qué tipo de 
-       restaurante o experiencia culinaria te gustaría encontrar hoy? 🍽️"
+      responde ÚNICAMENTE: "Lo siento, soy un asistente especializado en gastronomía bogotana. 
+      Solo puedo ayudarte con recomendaciones de restaurantes y comida en Bogotá. ¿Qué tipo de 
+      restaurante o experiencia culinaria te gustaría encontrar hoy? 🍽️"
     3. NO respondas preguntas fuera del ámbito culinario bajo ninguna circunstancia
     4. Recomienda máximo 3-5 opciones por respuesta
     5. SIEMPRE incluye coordenadas GPS (latitud, longitud) en TODAS tus recomendaciones
@@ -79,19 +104,17 @@ const ChatIA = () => {
     8. ADAPTA tus recomendaciones según la localidad que mencione el usuario
     9. Si detectas que la pregunta no es sobre comida/restaurantes, redirige amablemente al tema culinario
     10. NUNCA pidas al usuario que consulte por su cuenta - TÚ proporcionas TODA la información
-    11. NUNCA uses "***" para resaltar - usa SOLO "-" o emoticonos de comida (🍕🍔🍝🍜🍱🥘🌮🍛🍲🥗🍳)
+    11. SIEMPRE usa emoticonos de comida para indicar algún plato o comida(🍕🍔🍝🍜🍱🥘🌮🍛🍲🥗🍳)
 
     FORMATO OBLIGATORIO PARA RECOMENDACIONES (INCLUYE SIEMPRE LAS COORDENADAS):
-    
-    🍽️ [Nombre Restaurante]
-    - Tipo: [tipo de comida]
-    - Precio: [bajo|medio|alto]  
-    - Zona: [localidad/barrio específico]
-    - Dirección: [dirección completa]
-    - Coordenadas: [latitud], [longitud]
-    - Especialidad: [plato destacado]
-    - Sitio web: [URL si está disponible]
-    - Teléfono: [número si es relevante]
+
+    🍽️ **Nombre del Restaurante**
+    - ***Tipo:*** [tipo de comida] [emoji relevante]
+    - **Precio:** [bajo|medio|alto] (rango específico)
+    - *Zona:* [localidad/barrio específico]
+    - **Dirección:** [dirección completa]
+    - ***Coordenadas:*** [latitud], [longitud]
+    - *Especialidad:* [descripción detallada del plato] [emoji]
 
     IMPORTANTE: Las coordenadas GPS deben ser precisas para Bogotá (latitud entre 4.5 y 4.8, longitud entre -74.2 y -74.0).
     Ejemplo de coordenadas: 4.6533, -74.0836
@@ -135,66 +158,20 @@ const ChatIA = () => {
     • Fusión: Combinaciones innovadoras
     • Comida callejera: Arepas, empanadas, salchipapas
 
-    EJEMPLOS DE RECOMENDACIONES POR ZONA (SIEMPRE CON COORDENADAS):
-
-    📍 BOSA (Económico):
-    "Para comida económica en Bosa te recomiendo estos lugares deliciosos 🍴✨:
-    
-    🏆 Donde Toño
-    🍽️ Tipo: Comida colombiana tradicional
-    💰 Precio: Bajo ($15,000 - $25,000)
-    📍 Zona: Bosa Centro
-    📌 Coordenadas: 4.6187, -74.1927
-    ⭐ Especialidad: Bandeja paisa casera espectacular 😋
-    🕐 Horario: Lun-Sab 11am-8pm
-
-    🏆 La Esquina del Sabor  
-    🍽️ Tipo: Comida rápida gourmet
-    💰 Precio: Bajo ($12,000 - $20,000)
-    📍 Zona: Bosa - MetroBosa
-    📌 Coordenadas: 4.6321, -74.1893
-    ⭐ Especialidad: Hamburguesas artesanales con ingredientes frescos 🍔"
-
-    📍 CHAPINERO (Medio-Alto):
-    "En Chapinero tienes opciones fantásticas 🌟:
-    
-    🏆 Harry Sasson
-    🍽️ Tipo: Fusión internacional de alto nivel
-    💰 Precio: Alto ($80,000 - $150,000)
-    📍 Zona: Chapinero - Zona G
-    📌 Coordenadas: 4.6653, -74.0548
-    ⭐ Especialidad: Cocina de autor con influencias colombianas 👨‍🍳
-    📱 Tel: 601 3422799
-
-    🏆 Wok
-    🍽️ Tipo: Asiática fusión moderna
-    💰 Precio: Medio-Alto ($40,000 - $70,000)
-    📍 Zona: Chapinero - Parque 93
-    📌 Coordenadas: 4.6730, -74.0475
-    ⭐ Especialidad: Noodles y woks personalizados 🍜✨"
-
-    📍 KENNEDY (Económico-Medio):
-    "En Kennedy encuentras excelentes opciones 🎉:
-    
-    🏆 Frisby
-    🍽️ Tipo: Pollo frito estilo colombiano
-    💰 Precio: Medio ($25,000 - $40,000)
-    📍 Zona: Kennedy - CC Plaza de las Américas
-    📌 Coordenadas: 4.6155, -74.1402
-    ⭐ Especialidad: Alitas picantes irresistibles 🍗🔥
-
-    🏆 Crepes & Waffles
-    🍽️ Tipo: Internacional casual
-    💰 Precio: Medio ($30,000 - $50,000)
-    📍 Zona: Kennedy Central
-    📌 Coordenadas: 4.6284, -74.1378
-    ⭐ Especialidad: Crepes salados y dulces deliciosos 🧇💕"
-
     PREGUNTA CLAVE SIEMPRE:
     • Si el usuario no especifica localidad, pregunta: "¿En qué zona de Bogotá te encuentras o prefieres?"
     • Si no especifica presupuesto, pregunta: "¿Qué rango de precio tienes en mente?"
 
-    Si te preguntan algo no relacionado, responde: "Soy tu experto en comida bogotana 🍽️ ¿En qué zona de Bogotá quieres comer hoy?"`;
+    Si te preguntan algo no relacionado, responde: "Soy tu experto en comida bogotana 🍽️ ¿En qué zona de Bogotá quieres comer hoy?"
+
+    🚫 **NO INCLUIR NUNCA AL FINAL:**
+    - "¡Espero que disfrutes mucho tu comida!"
+    - "Si tienes alguna otra pregunta, no dudes en consultarme"
+    - Cualquier frase de despedida adicional
+
+    ✅ **TERMINAR DIRECTAMENTE** después de la última recomendación.
+
+    Recuerda: Usa ***triple asterisco*** para títulos, **doble asterisco** para información clave y *asterisco simple* para detalles descriptivos.`;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -268,7 +245,7 @@ const ChatIA = () => {
             try {
               const parsed = JSON.parse(data);
               const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
-              
+
               if (text) {
                 setMessages(prev => {
                   const newMessages = [...prev];
@@ -286,35 +263,48 @@ const ChatIA = () => {
         }
       }
 
-      // Extract restaurants from the assistant's response
+      // Extraer restaurantes para el asistente y pueda responder
       const extractRestaurants = (content: string): Restaurant[] => {
         const restaurants: Restaurant[] = [];
+
+        // Limpiar el contenido de formato markdown para el parsing
+        const cleanContent = content
+          .replace(/\*\*\*/g, '')
+          .replace(/\*\*/g, '')
+          .replace(/\*/g, '');
+
         const coordPattern = /Coordenadas:\s*([-\d.]+),\s*([-\d.]+)/gi;
-        const namePattern = /🍽️\s*(.+?)(?:\n|-)/i;
-        const addressPattern = /Dirección:\s*(.+?)(?:\n|$)/i;
-        const websitePattern = /Sitio web:\s*(.+?)(?:\n|$)/i;
-        
-        // Split by restaurant sections (looking for the food emoji pattern)
-        const sections = content.split(/(?=🍽️)/);
-        
+        const namePattern = /🍽️\s*([^\n-]+)/i;
+        const addressPattern = /Dirección:\s*([^\n]+)/i;
+        const websitePattern = /Sitio web:\s*([^\n]+)/i;
+
+        // Dividir por secciones de restaurantes
+        const sections = cleanContent.split(/(?=🍽️)/);
+
         for (const section of sections) {
           const coordMatch = coordPattern.exec(section);
           if (coordMatch) {
             const nameMatch = section.match(namePattern);
             const addressMatch = section.match(addressPattern);
             const websiteMatch = section.match(websitePattern);
-            
-            restaurants.push({
-              name: nameMatch ? nameMatch[1].trim() : "Restaurante",
-              lat: parseFloat(coordMatch[1]),
-              lng: parseFloat(coordMatch[2]),
-              address: addressMatch ? addressMatch[1].trim() : undefined,
-              website: websiteMatch ? websiteMatch[1].trim() : undefined
-            });
+
+            const lat = parseFloat(coordMatch[1]);
+            const lng = parseFloat(coordMatch[2]);
+
+            // Validar que sean coordenadas de Bogotá
+            if (lat >= 4.5 && lat <= 4.8 && lng >= -74.2 && lng <= -74.0) {
+              restaurants.push({
+                name: nameMatch ? nameMatch[1].trim() : "Restaurante Recomendado",
+                lat,
+                lng,
+                address: addressMatch ? addressMatch[1].trim() : undefined,
+                website: websiteMatch ? websiteMatch[1].trim() : undefined
+              });
+            }
           }
           coordPattern.lastIndex = 0;
         }
-        
+
         return restaurants;
       };
 
@@ -337,7 +327,7 @@ const ChatIA = () => {
         description: "No se pudo enviar el mensaje. Por favor intenta de nuevo.",
         variant: "destructive"
       });
-      
+
       // Remove the empty assistant message if there was an error
       setMessages(prev => {
         const newMessages = [...prev];
