@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { GoogleMap, LoadScript, Marker, InfoWindow } from "@react-google-maps/api";
 import { Search, SlidersHorizontal, Plus, Minus, Navigation } from "lucide-react";
@@ -20,7 +20,6 @@ const defaultCenter = {
   lng: -74.0817
 };
 
-// Mock data con coordenadas de Bogotá
 const mockRestaurantes = [
   {
     id: 1,
@@ -74,132 +73,12 @@ const mockRestaurantes = [
   },
 ];
 
-// Colores para marcadores según precio
-const getPriceColor = (precio: string) => {
-  const colors: Record<string, string> = {
-    "$": "#4aba81",
-    "$$": "#e6a144",
-    "$$$": "#e67444",
-    "$$$$": "#d14444",
-  };
-  return colors[precio] || "#3b82f6";
-};
-        <span style="
-          transform: rotate(45deg);
-          font-size: 16px;
-        ">🍽️</span>
-      </div>
-    `,
-    iconSize: [32, 32],
-    iconAnchor: [16, 32],
-    popupAnchor: [0, -32],
-  });
-};
-
-// Componente para controles del mapa usando useMap hook
-function MapControls({ onLocate }: { onLocate: () => void }) {
-  const map = useMap();
-
-  const handleZoomIn = () => {
-    map.zoomIn();
-  };
-
-  const handleZoomOut = () => {
-    map.zoomOut();
-  };
-
-  return (
-    <div className="absolute bottom-6 right-6 z-[1000] flex flex-col gap-2">
-      <Button
-        size="icon"
-        variant="secondary"
-        className="shadow-lg"
-        onClick={handleZoomIn}
-      >
-        <Plus className="h-4 w-4" />
-      </Button>
-      <Button
-        size="icon"
-        variant="secondary"
-        className="shadow-lg"
-        onClick={handleZoomOut}
-      >
-        <Minus className="h-4 w-4" />
-      </Button>
-      <Button
-        size="icon"
-        variant="secondary"
-        className="shadow-lg"
-        onClick={onLocate}
-      >
-        <Navigation className="h-4 w-4" />
-      </Button>
-    </div>
-  );
-}
-
-// Componente para centrar el mapa en un restaurante usando useMap
-function MapUpdater({ selectedId, restaurants }: { selectedId: number | null; restaurants: typeof mockRestaurantes }) {
-  const map = useMap();
-
-  useEffect(() => {
-    if (selectedId) {
-      const restaurant = restaurants.find((r) => r.id === selectedId);
-      if (restaurant) {
-        setTimeout(() => {
-          map.flyTo([restaurant.lat, restaurant.lng], 16, {
-            duration: 1,
-          });
-        }, 100);
-      }
-    }
-  }, [selectedId, restaurants, map]);
-
-  return null;
-}
-
-// Componente para manejar la ubicación del usuario
-function UserLocationMarker({ userLocation }: { userLocation: [number, number] | null }) {
-  const map = useMap();
-
-  useEffect(() => {
-    if (userLocation) {
-      map.flyTo(userLocation, 16, {
-        duration: 1,
-      });
-    }
-  }, [userLocation, map]);
-
-  if (!userLocation) return null;
-
-  const userLocationIcon = L.divIcon({
-    className: "user-location-marker",
-    html: `
-      <div style="
-        background-color: #3b82f6;
-        width: 20px;
-        height: 20px;
-        border-radius: 50%;
-        border: 3px solid white;
-        box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
-      "></div>
-    `,
-    iconSize: [20, 20],
-    iconAnchor: [10, 10],
-  });
-
-  return (
-    <Marker position={userLocation} icon={userLocationIcon}>
-      <Popup>Tu ubicación</Popup>
-    </Marker>
-  );
-}
-
 export default function Mapa() {
   const navigate = useNavigate();
   const [mapSearchQuery, setMapSearchQuery] = useState("");
-  const [selectedRestaurant, setSelectedRestaurant] = useState<number | null>(null);
-  const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+  const [selectedRestaurant, setSelectedRestaurant] = useState<typeof mockRestaurantes[0] | null>(null);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [map, setMap] = useState<google.maps.Map | null>(null);
 
   const filteredRestaurants = mockRestaurantes.filter((restaurant) =>
     restaurant.nombre.toLowerCase().includes(mapSearchQuery.toLowerCase()) ||
@@ -207,11 +86,14 @@ export default function Mapa() {
   );
 
   const handleLocate = () => {
-    if (navigator.geolocation) {
+    if (navigator.geolocation && map) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
-          setUserLocation([latitude, longitude]);
+          const newLocation = { lat: latitude, lng: longitude };
+          setUserLocation(newLocation);
+          map.panTo(newLocation);
+          map.setZoom(16);
         },
         (error) => {
           console.error("Error getting location:", error);
@@ -220,11 +102,29 @@ export default function Mapa() {
     }
   };
 
+  const handleZoomIn = () => {
+    if (map) {
+      map.setZoom((map.getZoom() || 13) + 1);
+    }
+  };
+
+  const handleZoomOut = () => {
+    if (map) {
+      map.setZoom((map.getZoom() || 13) - 1);
+    }
+  };
+
+  const handleRestaurantClick = (restaurant: typeof mockRestaurantes[0]) => {
+    setSelectedRestaurant(restaurant);
+    if (map) {
+      map.panTo({ lat: restaurant.lat, lng: restaurant.lng });
+      map.setZoom(16);
+    }
+  };
+
   return (
     <div className="flex h-screen bg-background">
-      {/* Panel Izquierdo - Filtros y Resultados */}
       <div className="w-96 border-r border-border flex flex-col">
-        {/* Filtros */}
         <div className="p-4 border-b border-border space-y-3">
           <div className="flex gap-2">
             <Select>
@@ -287,28 +187,21 @@ export default function Mapa() {
           </div>
         </div>
 
-        {/* Lista de Restaurantes */}
         <ScrollArea className="flex-1">
           <div className="p-4 space-y-3">
             {filteredRestaurants.map((restaurant) => (
               <div
                 key={restaurant.id}
                 className={`bg-card rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all cursor-pointer border ${
-                  selectedRestaurant === restaurant.id ? "border-primary ring-2 ring-primary/20" : "border-border"
+                  selectedRestaurant?.id === restaurant.id ? "border-primary ring-2 ring-primary/20" : "border-border"
                 }`}
                 onClick={() => handleRestaurantClick(restaurant)}
               >
-                <img
-                  src={restaurant.imagen}
-                  alt={restaurant.nombre}
-                  className="w-full h-32 object-cover"
-                />
+                <img src={restaurant.imagen} alt={restaurant.nombre} className="w-full h-32 object-cover" />
                 <div className="p-3">
                   <h3 className="font-semibold text-foreground mb-1">{restaurant.nombre}</h3>
                   <div className="flex items-center justify-between text-sm">
-                    <Badge variant="secondary" className="text-xs">
-                      {restaurant.tipo}
-                    </Badge>
+                    <Badge variant="secondary" className="text-xs">{restaurant.tipo}</Badge>
                     <div className="flex items-center gap-2">
                       <span className="text-yellow-500">⭐ {restaurant.calificacion}</span>
                       <span className="text-muted-foreground">{restaurant.precio}</span>
@@ -320,21 +213,15 @@ export default function Mapa() {
           </div>
         </ScrollArea>
 
-        {/* Botón Recomiéndame */}
         <div className="p-4 border-t border-border">
-          <Button
-            className="w-full"
-            onClick={() => navigate("/chatia")}
-          >
+          <Button className="w-full" onClick={() => navigate("/chatia")}>
             🤖 Recomiéndame algo
           </Button>
         </div>
       </div>
 
-      {/* Panel Derecho - Mapa */}
       <div className="flex-1 relative">
-        {/* Barra de Búsqueda sobre el Mapa */}
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] w-96">
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 w-96">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -346,7 +233,6 @@ export default function Mapa() {
           </div>
         </div>
 
-        {/* Mapa de Google Maps */}
         <LoadScript googleMapsApiKey={GOOGLE_MAPS_API_KEY}>
           <GoogleMap
             mapContainerStyle={mapContainerStyle}
@@ -363,14 +249,6 @@ export default function Mapa() {
                 key={restaurant.id}
                 position={{ lat: restaurant.lat, lng: restaurant.lng }}
                 onClick={() => setSelectedRestaurant(restaurant)}
-                icon={{
-                  path: google.maps.SymbolPath.CIRCLE,
-                  scale: 12,
-                  fillColor: getPriceColor(restaurant.precio),
-                  fillOpacity: 1,
-                  strokeColor: "#ffffff",
-                  strokeWeight: 3,
-                }}
               />
             ))}
 
@@ -387,32 +265,29 @@ export default function Mapa() {
                     <span className="text-yellow-500">⭐ {selectedRestaurant.calificacion}</span>
                     <span className="text-muted-foreground">{selectedRestaurant.precio}</span>
                   </div>
-                  <Button size="sm" className="w-full" onClick={() => navigate("/restaurante-detalle")}>Ver detalles</Button>
+                  <Button size="sm" className="w-full" onClick={() => navigate("/restaurante-detalle")}>
+                    Ver detalles
+                  </Button>
                 </div>
               </InfoWindow>
             )}
 
             {userLocation && (
-              <Marker
-                position={userLocation}
-                icon={{
-                  path: google.maps.SymbolPath.CIRCLE,
-                  scale: 8,
-                  fillColor: "#3b82f6",
-                  fillOpacity: 1,
-                  strokeColor: "#ffffff",
-                  strokeWeight: 3,
-                }}
-              />
+              <Marker position={userLocation} />
             )}
           </GoogleMap>
         </LoadScript>
 
-        {/* Controles del Mapa */}
         <div className="absolute bottom-6 right-6 z-10 flex flex-col gap-2">
-          <Button size="icon" variant="secondary" className="shadow-lg" onClick={handleZoomIn}><Plus className="h-4 w-4" /></Button>
-          <Button size="icon" variant="secondary" className="shadow-lg" onClick={handleZoomOut}><Minus className="h-4 w-4" /></Button>
-          <Button size="icon" variant="secondary" className="shadow-lg" onClick={handleLocate}><Navigation className="h-4 w-4" /></Button>
+          <Button size="icon" variant="secondary" className="shadow-lg" onClick={handleZoomIn}>
+            <Plus className="h-4 w-4" />
+          </Button>
+          <Button size="icon" variant="secondary" className="shadow-lg" onClick={handleZoomOut}>
+            <Minus className="h-4 w-4" />
+          </Button>
+          <Button size="icon" variant="secondary" className="shadow-lg" onClick={handleLocate}>
+            <Navigation className="h-4 w-4" />
+          </Button>
         </div>
       </div>
     </div>

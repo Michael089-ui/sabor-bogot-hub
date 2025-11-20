@@ -48,7 +48,6 @@ const ChatIA = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
-  // Quick suggestion prompts
   const quickSuggestions = [
     "🍴 Restaurantes románticos en Bogotá",
     "💰 Comida económica cerca del centro",
@@ -220,7 +219,6 @@ const ChatIA = () => {
         throw new Error('Error al conectar con el asistente');
       }
 
-      // Create assistant message placeholder
       const assistantMessage: Message = {
         role: "assistant",
         content: "",
@@ -228,7 +226,6 @@ const ChatIA = () => {
       };
       setMessages(prev => [...prev, assistantMessage]);
 
-      // Process streaming response
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
@@ -267,11 +264,8 @@ const ChatIA = () => {
         }
       }
 
-      // Extraer restaurantes para el asistente y pueda responder
       const extractRestaurants = (content: string): Restaurant[] => {
         const restaurants: Restaurant[] = [];
-
-        // Limpiar el contenido de formato markdown para el parsing
         const cleanContent = content
           .replace(/\*\*\*/g, '')
           .replace(/\*\*/g, '')
@@ -282,7 +276,6 @@ const ChatIA = () => {
         const addressPattern = /Dirección:\s*([^\n]+)/i;
         const websitePattern = /Sitio web:\s*([^\n]+)/i;
 
-        // Dividir por secciones de restaurantes
         const sections = cleanContent.split(/(?=🍽️)/);
 
         for (const section of sections) {
@@ -295,7 +288,6 @@ const ChatIA = () => {
             const lat = parseFloat(coordMatch[1]);
             const lng = parseFloat(coordMatch[2]);
 
-            // Validar que sean coordenadas de Bogotá
             if (lat >= 4.5 && lat <= 4.8 && lng >= -74.2 && lng <= -74.0) {
               restaurants.push({
                 name: nameMatch ? nameMatch[1].trim() : "Restaurante Recomendado",
@@ -312,14 +304,12 @@ const ChatIA = () => {
         return restaurants;
       };
 
-      // Update restaurants after message is complete
       setMessages(prev => {
         const lastMessage = prev[prev.length - 1];
         if (lastMessage?.role === "assistant") {
           const extracted = extractRestaurants(lastMessage.content);
           if (extracted.length > 0) {
             setRestaurants(extracted);
-            // Center map on first restaurant
             if (map && extracted[0]) {
               map.panTo({ lat: extracted[0].lat, lng: extracted[0].lng });
               map.setZoom(13);
@@ -337,7 +327,6 @@ const ChatIA = () => {
         variant: "destructive"
       });
 
-      // Remove the empty assistant message if there was an error
       setMessages(prev => {
         const newMessages = [...prev];
         const lastMessage = newMessages[newMessages.length - 1];
@@ -389,10 +378,8 @@ const ChatIA = () => {
 
   return (
     <div className="flex flex-col h-full bg-background">
-      {/* Chat Container */}
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-4xl mx-auto px-4 py-6">
-          {/* Welcome Section */}
           <div className="mb-8 text-center">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
               <Sparkles className="w-8 h-8 text-primary" />
@@ -405,7 +392,6 @@ const ChatIA = () => {
             </p>
           </div>
 
-          {/* Quick Suggestions */}
           <div className="flex flex-wrap gap-2 justify-center mb-8">
             {quickSuggestions.map((suggestion, index) => (
               <Button
@@ -420,7 +406,6 @@ const ChatIA = () => {
             ))}
           </div>
 
-          {/* Message History */}
           <div className="space-y-4">
             {messages.map((message, index) => (
               <ChatMessage
@@ -433,14 +418,13 @@ const ChatIA = () => {
             {isLoading && messages[messages.length - 1]?.role === "user" && (
               <ChatMessage
                 role="assistant"
-                content="Buscando las mejores opciones para ti... 🔍🍴✨"
+                content="Buscando las mejores opciones para ti..."
                 timestamp={new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
               />
             )}
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Map Section - Only show when there are restaurants */}
           {restaurants.length > 0 && (
             <div className="mt-8 mb-6">
               <div className="bg-card rounded-lg border border-border p-4">
@@ -466,14 +450,6 @@ const ChatIA = () => {
                           key={index}
                           position={{ lat: restaurant.lat, lng: restaurant.lng }}
                           onClick={() => setSelectedRestaurant(restaurant)}
-                          icon={{
-                            path: google.maps.SymbolPath.CIRCLE,
-                            scale: 10,
-                            fillColor: "#e67444",
-                            fillOpacity: 1,
-                            strokeColor: "#ffffff",
-                            strokeWeight: 2,
-                          }}
                         />
                       ))}
 
@@ -503,27 +479,14 @@ const ChatIA = () => {
                     </GoogleMap>
                   </LoadScript>
 
-                  {/* Map Controls */}
                   <div className="absolute bottom-6 right-6 z-10 flex flex-col gap-2">
-                    <Button
-                      size="icon"
-                      onClick={handleZoomIn}
-                      className="bg-card hover:bg-accent shadow-lg border border-border"
-                    >
+                    <Button size="icon" onClick={handleZoomIn} className="bg-card hover:bg-accent shadow-lg border border-border">
                       <Plus className="h-5 w-5" />
                     </Button>
-                    <Button
-                      size="icon"
-                      onClick={handleZoomOut}
-                      className="bg-card hover:bg-accent shadow-lg border border-border"
-                    >
+                    <Button size="icon" onClick={handleZoomOut} className="bg-card hover:bg-accent shadow-lg border border-border">
                       <Minus className="h-5 w-5" />
                     </Button>
-                    <Button
-                      size="icon"
-                      onClick={handleLocate}
-                      className="bg-card hover:bg-accent shadow-lg border border-border"
-                    >
+                    <Button size="icon" onClick={handleLocate} className="bg-card hover:bg-accent shadow-lg border border-border">
                       <Navigation className="h-5 w-5" />
                     </Button>
                   </div>
@@ -534,39 +497,29 @@ const ChatIA = () => {
         </div>
       </div>
 
-      {/* Input Area */}
-      <div className="border-t border-border bg-card/50 backdrop-blur-sm">
-        <div className="max-w-4xl mx-auto px-4 py-4">
-          <div className="flex items-center gap-2">
-            <div className="flex-1 relative">
-              <Input
-                value={inputMessage}
-                onChange={(e) => setInputMessage(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
-                placeholder="Escribe o habla con el asistente..."
-                className="pr-12 h-12 rounded-full border-border"
-              />
-              <Button
-                size="icon"
-                variant="ghost"
-                className="absolute right-1 top-1/2 -translate-y-1/2 rounded-full h-10 w-10"
-                onClick={() => console.log("Voice input clicked")}
-              >
-                <Mic className="h-5 w-5 text-muted-foreground" />
-              </Button>
-            </div>
+      <div className="border-t border-border bg-background/95 backdrop-blur-sm p-4 sticky bottom-0">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex gap-2">
+            <Button size="icon" variant="ghost" className="text-muted-foreground hover:text-foreground">
+              <Mic className="h-5 w-5" />
+            </Button>
+            <Input
+              placeholder="Escribe tu mensaje..."
+              value={inputMessage}
+              onChange={(e) => setInputMessage(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSendMessage()}
+              className="flex-1"
+              disabled={isLoading}
+            />
             <Button
               onClick={handleSendMessage}
+              disabled={isLoading || !inputMessage.trim()}
               size="icon"
-              className="h-12 w-12 rounded-full"
-              disabled={!inputMessage.trim() || isLoading}
+              className="bg-primary hover:bg-primary/90"
             >
               <Send className="h-5 w-5" />
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground text-center mt-3">
-            Powered by AI
-          </p>
         </div>
       </div>
     </div>
