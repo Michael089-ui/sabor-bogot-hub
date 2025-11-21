@@ -28,25 +28,26 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <MainLayout>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/registro" element={<Registro />} />
-            <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-            <Route path="/chat-ia" element={<ProtectedRoute><ChatIA /></ProtectedRoute>} />
-            <Route path="/mapa" element={<ProtectedRoute><Mapa /></ProtectedRoute>} />
-            <Route path="/restaurantes" element={<ProtectedRoute><Restaurantes /></ProtectedRoute>} />
-            <Route path="/restaurantes/:id" element={<ProtectedRoute><RestauranteDetalle /></ProtectedRoute>} />
-            <Route path="/favoritos" element={<ProtectedRoute><Favoritos /></ProtectedRoute>} />
-            <Route path="/resenas" element={<ProtectedRoute><Resenas /></ProtectedRoute>} />
-            <Route path="/historial/busquedas" element={<ProtectedRoute><HistorialBusquedas /></ProtectedRoute>} />
-            <Route path="/historial/resultados" element={<ProtectedRoute><HistorialResultados /></ProtectedRoute>} />
-            <Route path="/perfil" element={<ProtectedRoute><Perfil /></ProtectedRoute>} />
-            <Route path="/configuracion" element={<ProtectedRoute><Configuracion /></ProtectedRoute>} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </MainLayout>
+        <Routes>
+          {/* Public routes without MainLayout */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/registro" element={<Registro />} />
+          
+          {/* Protected routes with MainLayout */}
+          <Route path="/" element={<MainLayout><ProtectedRoute><Dashboard /></ProtectedRoute></MainLayout>} />
+          <Route path="/dashboard" element={<MainLayout><ProtectedRoute><Dashboard /></ProtectedRoute></MainLayout>} />
+          <Route path="/chat-ia" element={<MainLayout><ProtectedRoute><ChatIA /></ProtectedRoute></MainLayout>} />
+          <Route path="/mapa" element={<MainLayout><ProtectedRoute><Mapa /></ProtectedRoute></MainLayout>} />
+          <Route path="/restaurantes" element={<MainLayout><ProtectedRoute><Restaurantes /></ProtectedRoute></MainLayout>} />
+          <Route path="/restaurantes/:id" element={<MainLayout><ProtectedRoute><RestauranteDetalle /></ProtectedRoute></MainLayout>} />
+          <Route path="/favoritos" element={<MainLayout><ProtectedRoute><Favoritos /></ProtectedRoute></MainLayout>} />
+          <Route path="/resenas" element={<MainLayout><ProtectedRoute><Resenas /></ProtectedRoute></MainLayout>} />
+          <Route path="/historial/busquedas" element={<MainLayout><ProtectedRoute><HistorialBusquedas /></ProtectedRoute></MainLayout>} />
+          <Route path="/historial/resultados" element={<MainLayout><ProtectedRoute><HistorialResultados /></ProtectedRoute></MainLayout>} />
+          <Route path="/perfil" element={<MainLayout><ProtectedRoute><Perfil /></ProtectedRoute></MainLayout>} />
+          <Route path="/configuracion" element={<MainLayout><ProtectedRoute><Configuracion /></ProtectedRoute></MainLayout>} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
