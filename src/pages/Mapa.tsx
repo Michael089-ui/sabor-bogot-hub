@@ -250,12 +250,13 @@ export default function Mapa() {
                 position={{ lat: restaurant.lat, lng: restaurant.lng }}
                 onClick={() => setSelectedRestaurant(restaurant)}
                 icon={{
-                  path: google.maps.SymbolPath.CIRCLE,
-                  fillColor: 'hsl(12 88% 58%)',
-                  fillOpacity: 1,
-                  strokeColor: 'hsl(0 0% 100%)',
-                  strokeWeight: 3,
-                  scale: 10,
+                  url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+                      <circle cx="16" cy="16" r="10" fill="hsl(12, 88%, 58%)" stroke="white" stroke-width="3"/>
+                    </svg>
+                  `)}`,
+                  scaledSize: new window.google.maps.Size(32, 32),
+                  anchor: new window.google.maps.Point(16, 16),
                 }}
               />
             ))}
@@ -284,12 +285,13 @@ export default function Mapa() {
               <Marker 
                 position={userLocation}
                 icon={{
-                  path: google.maps.SymbolPath.CIRCLE,
-                  fillColor: 'hsl(142 48% 45%)',
-                  fillOpacity: 1,
-                  strokeColor: 'hsl(0 0% 100%)',
-                  strokeWeight: 4,
-                  scale: 8,
+                  url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28">
+                      <circle cx="14" cy="14" r="8" fill="hsl(142, 48%, 45%)" stroke="white" stroke-width="4"/>
+                    </svg>
+                  `)}`,
+                  scaledSize: new window.google.maps.Size(28, 28),
+                  anchor: new window.google.maps.Point(14, 14),
                 }}
               />
             )}
