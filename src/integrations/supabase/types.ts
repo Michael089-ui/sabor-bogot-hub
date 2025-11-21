@@ -242,6 +242,7 @@ export type Database = {
           foto_url: string | null
           id: string
           nombre: string | null
+          onboarding_completed: boolean | null
           presupuesto: string | null
           telefono: string | null
           tipo_comida: string[] | null
@@ -254,6 +255,7 @@ export type Database = {
           foto_url?: string | null
           id: string
           nombre?: string | null
+          onboarding_completed?: boolean | null
           presupuesto?: string | null
           telefono?: string | null
           tipo_comida?: string[] | null
@@ -266,6 +268,7 @@ export type Database = {
           foto_url?: string | null
           id?: string
           nombre?: string | null
+          onboarding_completed?: boolean | null
           presupuesto?: string | null
           telefono?: string | null
           tipo_comida?: string[] | null
