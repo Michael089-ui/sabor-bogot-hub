@@ -1,11 +1,45 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PublicHeader } from "@/components/PublicHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useAuth } from "@/hooks/useAuth";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { loginSchema, LoginFormData } from "@/lib/validations";
+import { useEffect, useState } from "react";
 
 const Login = () => {
+  const { signIn, signInWithGoogle, user } = useAuth();
+  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+  });
+
+  useEffect(() => {
+    if (user) {
+      navigate('/dashboard');
+    }
+  }, [user, navigate]);
+
+  const onSubmit = async (data: LoginFormData) => {
+    setIsLoading(true);
+    await signIn(data.email, data.password);
+    setIsLoading(false);
+  };
+
+  const handleGoogleLogin = async () => {
+    setIsLoading(true);
+    await signInWithGoogle();
+    setIsLoading(false);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-subtle flex flex-col">
       {/* Header */}
@@ -40,20 +74,40 @@ const Login = () => {
               <CardTitle className="text-2xl">Iniciar sesión</CardTitle>
               <CardDescription>Ingresa tus credenciales para acceder</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Correo electrónico</Label>
-                <Input id="email" type="email" placeholder="Ingresa tu correo electrónico" className="w-full" />
-              </div>
+            <CardContent>
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Correo electrónico</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="tu@correo.com"
+                    {...register("email")}
+                    className="w-full"
+                  />
+                  {errors.email && (
+                    <p className="text-sm text-destructive">{errors.email.message}</p>
+                  )}
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="password">Contraseña</Label>
-                <Input id="password" type="password" placeholder="Ingresa tu contraseña" className="w-full" />
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Contraseña</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="••••••••"
+                    {...register("password")}
+                    className="w-full"
+                  />
+                  {errors.password && (
+                    <p className="text-sm text-destructive">{errors.password.message}</p>
+                  )}
+                </div>
 
-              <Button className="w-full" size="lg">
-                Iniciar sesión
-              </Button>
+                <Button className="w-full" size="lg" type="submit" disabled={isLoading}>
+                  {isLoading ? "Iniciando sesión..." : "Iniciar sesión"}
+                </Button>
+              </form>
 
               <div className="text-center">
                 <Link to="/recuperar-contrasena" className="text-sm text-primary hover:underline">
@@ -72,7 +126,14 @@ const Login = () => {
               </div>
 
               {/* Google Login */}
-              <Button variant="outline" className="w-full" size="lg">
+              <Button
+                variant="outline"
+                className="w-full"
+                size="lg"
+                onClick={handleGoogleLogin}
+                disabled={isLoading}
+                type="button"
+              >
                 <svg
                   className="mr-2 h-4 w-4"
                   aria-hidden="true"

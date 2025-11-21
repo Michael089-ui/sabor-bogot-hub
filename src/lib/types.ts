@@ -3,9 +3,15 @@
 // Database types - to be used when implementing Supabase integration
 
 export interface Usuario {
-  id_usuario: string; // UUID from Supabase Auth
+  id: string; // UUID from Supabase Auth
   nombre: string;
-  foto_perfil?: string;
+  apellidos?: string;
+  email?: string;
+  telefono?: string;
+  tipo_comida?: string[];
+  presupuesto?: string;
+  ubicacion?: string;
+  foto_url?: string;
   fecha_registro: string;
 }
 
