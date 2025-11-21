@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { MainLayout } from "./components/layout/MainLayout";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 import Login from "./pages/Login";
 import Registro from "./pages/Registro";
 import Dashboard from "./pages/Dashboard";
@@ -31,18 +32,18 @@ const App = () => (
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/registro" element={<Registro />} />
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/chat-ia" element={<ChatIA />} />
-            <Route path="/mapa" element={<Mapa />} />
-            <Route path="/restaurantes" element={<Restaurantes />} />
-            <Route path="/restaurantes/:id" element={<RestauranteDetalle />} />
-            <Route path="/favoritos" element={<Favoritos />} />
-            <Route path="/resenas" element={<Resenas />} />
-            <Route path="/historial/busquedas" element={<HistorialBusquedas />} />
-            <Route path="/historial/resultados" element={<HistorialResultados />} />
-            <Route path="/perfil" element={<Perfil />} />
-            <Route path="/configuracion" element={<Configuracion />} />
+            <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/chat-ia" element={<ProtectedRoute><ChatIA /></ProtectedRoute>} />
+            <Route path="/mapa" element={<ProtectedRoute><Mapa /></ProtectedRoute>} />
+            <Route path="/restaurantes" element={<ProtectedRoute><Restaurantes /></ProtectedRoute>} />
+            <Route path="/restaurantes/:id" element={<ProtectedRoute><RestauranteDetalle /></ProtectedRoute>} />
+            <Route path="/favoritos" element={<ProtectedRoute><Favoritos /></ProtectedRoute>} />
+            <Route path="/resenas" element={<ProtectedRoute><Resenas /></ProtectedRoute>} />
+            <Route path="/historial/busquedas" element={<ProtectedRoute><HistorialBusquedas /></ProtectedRoute>} />
+            <Route path="/historial/resultados" element={<ProtectedRoute><HistorialResultados /></ProtectedRoute>} />
+            <Route path="/perfil" element={<ProtectedRoute><Perfil /></ProtectedRoute>} />
+            <Route path="/configuracion" element={<ProtectedRoute><Configuracion /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </MainLayout>

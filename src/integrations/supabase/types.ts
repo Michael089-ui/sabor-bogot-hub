@@ -236,22 +236,40 @@ export type Database = {
       }
       usuario: {
         Row: {
+          apellidos: string | null
+          email: string | null
           fecha_registro: string | null
           foto_url: string | null
           id: string
           nombre: string | null
+          presupuesto: string | null
+          telefono: string | null
+          tipo_comida: string[] | null
+          ubicacion: string | null
         }
         Insert: {
+          apellidos?: string | null
+          email?: string | null
           fecha_registro?: string | null
           foto_url?: string | null
           id: string
           nombre?: string | null
+          presupuesto?: string | null
+          telefono?: string | null
+          tipo_comida?: string[] | null
+          ubicacion?: string | null
         }
         Update: {
+          apellidos?: string | null
+          email?: string | null
           fecha_registro?: string | null
           foto_url?: string | null
           id?: string
           nombre?: string | null
+          presupuesto?: string | null
+          telefono?: string | null
+          tipo_comida?: string[] | null
+          ubicacion?: string | null
         }
         Relationships: []
       }
