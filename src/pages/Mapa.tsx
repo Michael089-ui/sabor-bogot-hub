@@ -249,6 +249,14 @@ export default function Mapa() {
                 key={restaurant.id}
                 position={{ lat: restaurant.lat, lng: restaurant.lng }}
                 onClick={() => setSelectedRestaurant(restaurant)}
+                icon={{
+                  path: google.maps.SymbolPath.CIRCLE,
+                  fillColor: 'hsl(12 88% 58%)',
+                  fillOpacity: 1,
+                  strokeColor: 'hsl(0 0% 100%)',
+                  strokeWeight: 3,
+                  scale: 10,
+                }}
               />
             ))}
 
@@ -273,20 +281,42 @@ export default function Mapa() {
             )}
 
             {userLocation && (
-              <Marker position={userLocation} />
+              <Marker 
+                position={userLocation}
+                icon={{
+                  path: google.maps.SymbolPath.CIRCLE,
+                  fillColor: 'hsl(142 48% 45%)',
+                  fillOpacity: 1,
+                  strokeColor: 'hsl(0 0% 100%)',
+                  strokeWeight: 4,
+                  scale: 8,
+                }}
+              />
             )}
           </GoogleMap>
         </LoadScript>
 
         <div className="absolute bottom-6 right-6 z-10 flex flex-col gap-2">
-          <Button size="icon" variant="secondary" className="shadow-lg" onClick={handleZoomIn}>
-            <Plus className="h-4 w-4" />
+          <Button 
+            size="icon" 
+            className="shadow-glow bg-primary hover:bg-primary-hover text-primary-foreground rounded-full h-12 w-12 transition-all hover:scale-110" 
+            onClick={handleZoomIn}
+          >
+            <Plus className="h-5 w-5" />
           </Button>
-          <Button size="icon" variant="secondary" className="shadow-lg" onClick={handleZoomOut}>
-            <Minus className="h-4 w-4" />
+          <Button 
+            size="icon" 
+            className="shadow-glow bg-primary hover:bg-primary-hover text-primary-foreground rounded-full h-12 w-12 transition-all hover:scale-110" 
+            onClick={handleZoomOut}
+          >
+            <Minus className="h-5 w-5" />
           </Button>
-          <Button size="icon" variant="secondary" className="shadow-lg" onClick={handleLocate}>
-            <Navigation className="h-4 w-4" />
+          <Button 
+            size="icon" 
+            className="shadow-glow bg-accent hover:bg-accent/90 text-accent-foreground rounded-full h-12 w-12 transition-all hover:scale-110" 
+            onClick={handleLocate}
+          >
+            <Navigation className="h-5 w-5" />
           </Button>
         </div>
       </div>

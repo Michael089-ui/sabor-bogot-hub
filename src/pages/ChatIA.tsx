@@ -477,6 +477,14 @@ const ChatIA = () => {
                           key={index}
                           position={{ lat: restaurant.lat, lng: restaurant.lng }}
                           onClick={() => setSelectedRestaurant(restaurant)}
+                          icon={{
+                            path: google.maps.SymbolPath.CIRCLE,
+                            fillColor: 'hsl(12 88% 58%)',
+                            fillOpacity: 1,
+                            strokeColor: 'hsl(0 0% 100%)',
+                            strokeWeight: 3,
+                            scale: 10,
+                          }}
                         />
                       ))}
 
@@ -507,13 +515,25 @@ const ChatIA = () => {
                   </LoadScript>
 
                   <div className="absolute bottom-6 right-6 z-10 flex flex-col gap-2">
-                    <Button size="icon" onClick={handleZoomIn} className="bg-card hover:bg-accent shadow-lg border border-border">
+                    <Button 
+                      size="icon" 
+                      onClick={handleZoomIn} 
+                      className="shadow-glow bg-primary hover:bg-primary-hover text-primary-foreground rounded-full h-12 w-12 transition-all hover:scale-110"
+                    >
                       <Plus className="h-5 w-5" />
                     </Button>
-                    <Button size="icon" onClick={handleZoomOut} className="bg-card hover:bg-accent shadow-lg border border-border">
+                    <Button 
+                      size="icon" 
+                      onClick={handleZoomOut} 
+                      className="shadow-glow bg-primary hover:bg-primary-hover text-primary-foreground rounded-full h-12 w-12 transition-all hover:scale-110"
+                    >
                       <Minus className="h-5 w-5" />
                     </Button>
-                    <Button size="icon" onClick={handleLocate} className="bg-card hover:bg-accent shadow-lg border border-border">
+                    <Button 
+                      size="icon" 
+                      onClick={handleLocate} 
+                      className="shadow-glow bg-accent hover:bg-accent/90 text-accent-foreground rounded-full h-12 w-12 transition-all hover:scale-110"
+                    >
                       <Navigation className="h-5 w-5" />
                     </Button>
                   </div>
