@@ -50,6 +50,8 @@ const Registro = () => {
     "Francesa",
     "Mediterránea",
     "Fusión",
+    "Colombiana",
+    "Corrientazos"
   ];
 
   const togglePreference = (preference: string) => {
@@ -185,7 +187,7 @@ const Registro = () => {
                 <Input
                   id="ubicacion"
                   type="text"
-                  placeholder="Ciudad de México, CDMX"
+                  placeholder="Bogotá - Chapinero"
                   {...register("ubicacion")}
                 />
                 {errors.ubicacion && (
@@ -250,10 +252,10 @@ const Registro = () => {
                     <SelectValue placeholder="Selecciona tu presupuesto" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="economico">Económico ($-$$)</SelectItem>
-                    <SelectItem value="medio">Medio ($$$)</SelectItem>
-                    <SelectItem value="alto">Alto ($$$$)</SelectItem>
-                    <SelectItem value="premium">Premium ($$$$$)</SelectItem>
+                    <SelectItem value="economico">Económico (10.000 COP - 20.000 COP)</SelectItem>
+                    <SelectItem value="medio">Medio (21.000 COP - 50.000 COP)</SelectItem>
+                    <SelectItem value="alto">Alto (51.000 COP - 80.000 COP)</SelectItem>
+                    <SelectItem value="premium">Premium (81.000 COP +)</SelectItem>
                   </SelectContent>
                 </Select>
                 {errors.presupuesto && (
