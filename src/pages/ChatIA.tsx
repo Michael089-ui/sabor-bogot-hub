@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Mic, Sparkles, MapPin, ExternalLink, Plus, Minus, Navigation } from "lucide-react";
+import { Send, Mic, Sparkles, MapPin, ExternalLink, Plus, Minus, Navigation, Star, Clock, DollarSign } from "lucide-react";
 import ChatMessage from "@/components/ChatMessage";
 import { useToast } from "@/hooks/use-toast";
 import { GoogleMap, LoadScript, Marker, InfoWindow } from "@react-google-maps/api";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 
 const GOOGLE_MAPS_API_KEY = "AIzaSyBer6JXdqunENnx3lqiLAszzqqREO8nGY0";
 
@@ -16,6 +18,23 @@ const mapContainerStyle = {
 const defaultCenter = {
   lat: 4.6533,
   lng: -74.0836
+};
+
+// Íconos SVG codificados
+const restaurantIcon = {
+  url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+      <circle cx="16" cy="16" r="10" fill="hsl(12, 88%, 58%)" stroke="white" stroke-width="3"/>
+    </svg>
+  `)}`
+};
+
+const userLocationIcon = {
+  url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28">
+      <circle cx="14" cy="14" r="8" fill="hsl(142, 48%, 45%)" stroke="white" stroke-width="4"/>
+    </svg>
+  `)}`
 };
 
 interface Message {
@@ -30,6 +49,12 @@ interface Restaurant {
   lng: number;
   address?: string;
   website?: string;
+  type?: string;
+  price?: string;
+  rating?: number;
+  description?: string;
+  image?: string;
+  openingHours?: string;
 }
 
 const ChatIA = () => {
@@ -45,6 +70,7 @@ const ChatIA = () => {
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
+  const [isMapLoaded, setIsMapLoaded] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -59,7 +85,41 @@ const ChatIA = () => {
     "💼 Restaurantes para reuniones de negocio",
   ];
 
+  const restaurantImages = [
+    "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1579027989536-b7b1f875659b?w=400&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1424847651672-bf20a4b0982b?w=400&h=300&fit=crop",
+    "https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=400&h=300&fit=crop"
+  ];
+
+  // Base de datos de coordenadas reales de Bogotá por barrio
+  const neighborhoodCoordinates = {
+    "usaquén": { lat: 4.6932, lng: -74.0337 },
+    "chapinero": { lat: 4.6482, lng: -74.0632 },
+    "zona g": { lat: 4.6568, lng: -74.0594 },
+    "parque 93": { lat: 4.6750, lng: -74.0520 },
+    "zona t": { lat: 4.6662, lng: -74.0551 },
+    "la candelaria": { lat: 4.5970, lng: -74.0715 },
+    "kennedy": { lat: 4.6122, lng: -74.1389 },
+    "bosa": { lat: 4.6230, lng: -74.1850 },
+    "suba": { lat: 4.7420, lng: -74.0830 },
+    "engativá": { lat: 4.6980, lng: -74.1120 },
+    "fontibón": { lat: 4.6810, lng: -74.1420 },
+    "barrios unidos": { lat: 4.6820, lng: -74.0920 },
+    "teusaquillo": { lat: 4.6360, lng: -74.0780 },
+    "los mártires": { lat: 4.6050, lng: -74.0900 },
+    "antonio nariño": { lat: 4.5950, lng: -74.1050 },
+    "puente aranda": { lat: 4.6150, lng: -74.1150 },
+    "ciudad bolívar": { lat: 4.5600, lng: -74.1500 },
+    "san cristóbal": { lat: 4.5700, lng: -74.0850 },
+    "usme": { lat: 4.5400, lng: -74.1100 },
+    "tunjuelito": { lat: 4.5800, lng: -74.1300 },
+    "rafael uribe": { lat: 4.5900, lng: -74.1000 }
+  };
+
   const systemPrompt = `Eres "Sabor Capital", un experto en recomendaciones gastronómicas de Bogotá con conocimiento actualizado de los restaurantes que existen en diferentes barrios.
+  
   🎯 **OBJETIVO PRINCIPAL:**
   ✅ **RECOMENDAR RESTAURANTES ESPECÍFICOS POR BARRIO basándote en el conocimiento de establecimientos reales y representativos de cada zona**
 
@@ -71,98 +131,80 @@ const ChatIA = () => {
   - ***Tipo:*** [Tipo de comida específica] [emoji]
   - **Precio:** [Bajo/Medio/Alto] (rango aproximado)
   - **Dirección:** [Dirección aproximada o zona específica]
-  - ***Coordenadas:*** [latitud real], [longitud real]
+  - ***Coordenadas:*** [latitud real], [longitud real] - **USAR SOLO COORDENADAS DE LA BASE DE DATOS**
   - *Especialidad:* [Plato o característica específica] [emoji]
 
-  🔍 **BASE DE CONOCIMIENTO POR BARRIOS (RESTAURANTES REALES):**
+  🔍 **BASE DE DATOS DE COORDENADAS POR BARRIO (OBLIGATORIO USAR ESTAS):**
+
+  • **USAQUÉN:** 4.6932, -74.0337
+  • **CHAPINERO:** 4.6482, -74.0632
+  • **ZONA G:** 4.6568, -74.0594
+  • **PARQUE 93:** 4.6750, -74.0520
+  • **ZONA T:** 4.6662, -74.0551
+  • **LA CANDELARIA:** 4.5970, -74.0715
+  • **KENNEDY:** 4.6122, -74.1389
+  • **BOSA:** 4.6230, -74.1850
+  • **SUBA:** 4.7420, -74.0830
+  • **ENGATIVÁ:** 4.6980, -74.1120
+  • **FONTIBÓN:** 4.6810, -74.1420
+  • **BARRIOS UNIDOS:** 4.6820, -74.0920
+  • **TEUSAQUILLO:** 4.6360, -74.0780
+  • **LOS MÁRTIRES:** 4.6050, -74.0900
+  • **ANTONIO NARIÑO:** 4.5950, -74.1050
+  • **PUENTE ARANDA:** 4.6150, -74.1150
+  • **CIUDAD BOLÍVAR:** 4.5600, -74.1500
+  • **SAN CRISTÓBAL:** 4.5700, -74.0850
+  • **USME:** 4.5400, -74.1100
+  • **TUNJUELITO:** 4.5800, -74.1300
+  • **RAFAEL URIBE:** 4.5900, -74.1000
+
+  🍽️ **RESTAURANTES REALES POR BARRIO:**
 
   • **USAQUÉN:**
-    - **Andrés D.C.** - Cra. 11a #93-52 - 4.6772, -74.0489
-    - **Abasto** - Cra. 11a #93-52 - 4.6772, -74.0489
-    - **Osaki** - Cl. 120a #6-01 - 4.6995, -74.0332
-    - **Wok** - Cra. 11a #93-52 - 4.6772, -74.0489
-    - **Sant Just** - Cl. 70a #5-57 - 4.6568, -74.0590
+    - **Andrés D.C.** - Cra. 11a #93-52
+    - **Abasto** - Cra. 11a #93-52
+    - **Osaki** - Cl. 120a #6-01
+    - **Wok** - Cra. 11a #93-52
+    - **Sant Just** - Cl. 70a #5-57
 
   • **CHAPINERO/ZONA G:**
-    - **Harry Sasson** - Cra. 5 #69a-44 - 4.6568, -74.0594
-    - **Mesa Franca** - Cl. 69a #6-46 - 4.6565, -74.0601
-    - **El Cielo** - Cl. 70 #4-62 - 4.6545, -74.0589
-    - **Salvo Patria** - Cl. 54a #4-13 - 4.6358, -74.0682
-    - **Mini Mal** - Cra. 4a #70-46 - 4.6562, -74.0605
+    - **Harry Sasson** - Cra. 5 #69a-44
+    - **Mesa Franca** - Cl. 69a #6-46
+    - **El Cielo** - Cl. 70 #4-62
+    - **Salvo Patria** - Cl. 54a #4-13
+    - **Mini Mal** - Cra. 4a #70-46
 
   • **PARQUE 93/ZONA T:**
-    - **Rafael** - Cl. 82 #12-18 - 4.6662, -74.0551
-    - **El Bandido** - Cl. 83 #12-19 - 4.6670, -74.0548
-    - **Siete Sopas** - Cra. 13 #83-50 - 4.6675, -74.0520
-    - **Wok to Walk** - Cra. 12a #83-48 - 4.6673, -74.0532
+    - **Rafael** - Cl. 82 #12-18
+    - **El Bandido** - Cl. 83 #12-19
+    - **Siete Sopas** - Cra. 13 #83-50
+    - **Wok to Walk** - Cra. 12a #83-48
 
   • **LA CANDELARIA:**
-    - **La Puerta Falsa** - Cl. 11 #6-50 - 4.5970, -74.0715
-    - **Pastelería Florida** - Cra. 7 #20-82 - 4.6115, -74.0710
-    - **Restaurante Club Colombia** - Cra. 7 #24-88 - 4.6145, -74.0700
+    - **La Puerta Falsa** - Cl. 11 #6-50
+    - **Pastelería Florida** - Cra. 7 #20-82
+    - **Restaurante Club Colombia** - Cra. 7 #24-88
 
   • **KENNEDY:**
-    - **Frisby** - Centro Comercial Plaza de las Américas - 4.6122, -74.1389
-    - **Crepes & Waffles** - Centro Comercial Plaza de las Américas - 4.6122, -74.1389
-    - **McDonald's** - Av. Boyacá con Calle 38 Sur - 4.6245, -74.1422
-    - **Asadero Los Paisas** - Cra. 78 #41b-05 - 4.6245, -74.1422
+    - **Frisby** - Centro Comercial Plaza de las Américas
+    - **Crepes & Waffles** - Centro Comercial Plaza de las Américas
+    - **McDonald's** - Av. Boyacá con Calle 38 Sur
+    - **Asadero Los Paisas** - Cra. 78 #41b-05
 
-  • **BOSA:**
-    - **El Corral** - Centro Comercial MetroBosa - 4.6230, -74.1850
-    - **Kokoriko** - Av. Bosa #72-50 - 4.6250, -74.1870
-    - **Pizza Hut** - Centro Comercial Plaza Central - 4.6280, -74.1820
-
-  • **SUBA:**
-    - **Andrés Carne de Res** - Centro Comercial Centro Suba - 4.7420, -74.0830
-    - **Frisby** - Calle 145 #118-50 - 4.7450, -74.0850
-    - **Burger King** - Av. Suba #120-50 - 4.7400, -74.0870
-
-  • **ENGATIVÁ:**
-    - **Crepes & Waffles** - Centro Comercial CentroMayor - 4.6420, -74.1120
-    - **El Corral** - Av. El Dorado #98-50 - 4.6450, -74.1150
-    - **El Rincón de la Abuela** - Cra. 78 #75-50 - 4.6480, -74.1180
-
-  • **FONTIBÓN:**
-    - **McDonald's** - Aeropuerto El Dorado - 4.7010, -74.1470
-    - **Juan Valdez Café** - Terminal de Transportes - 4.6980, -74.1420
-    - **Subway** - Av. El Dorado #102-50 - 4.6950, -74.1400
-
-  • **BARRIOS UNIDOS:**
-    - **Kokoriko** - Av. Ciudad de Cali #68-50 - 4.6820, -74.0920
-    - **Pizza Hut** - Cra. 68 #75-50 - 4.6850, -74.0950
-    - **Frisby** - Cl. 75 #68-50 - 4.6880, -74.0980
-
-  🍽️ **TIPOS DE COMIDA POR BARRIO:**
-
-  • **Zonas Norte (Usaquén, Chapinero):**
-    - Gourmet, internacional, fusión, experiencias premium
-    - Ejemplos: Harry Sasson, Rafael, El Cielo
-
-  • **Zonas Centro (La Candelaria):**
-    - Tradicional colombiana, históricos, turísticos
-    - Ejemplos: La Puerta Falsa, Pastelería Florida
-
-  • **Zonas Sur (Kennedy, Bosa):**
-    - Comida rápida, familiar, económica, colombiana popular
-    - Ejemplos: Frisby, Kokoriko, asaderos locales
-
-  • **Zonas Occidente (Engativá, Fontibón):**
-    - Ejecutiva, rápida, aeroportuaria, cadena
-    - Ejemplos: McDonald's, Subway, Juan Valdez
-
-  💰 **RANGOS DE PRECIO REALISTAS:**
-  • BAJO ($10,000 - $25,000): Comida rápida, mercados, locales económicos
-  • MEDIO ($25,000 - $60,000): Restaurantes familiares, cadenas establecidas
-  • ALTO ($60,000+): Gourmet, experiencias premium, restaurantes de autor
+  ⚠️ **REGLAS ESTRICTAS PARA COORDENADAS:**
+  1. SOLO usar las coordenadas de la base de datos anterior
+  2. NO inventar coordenadas nuevas
+  3. Si mencionas un barrio, usar SUS coordenadas específicas
+  4. Las coordenadas deben estar dentro del rango de Bogotá (lat: 4.5-4.8, lng: -74.2 a -74.0)
 
   🎯 **CUANDO TE PREGUNTEN POR UN BARRIO ESPECÍFICO:**
-  1. Identifica la zona (Norte, Sur, Centro, Occidente)
+  1. Identifica el barrio y usa SUS coordenadas de la base de datos
   2. Selecciona 3-5 restaurantes REALES de esa zona
   3. Proporciona nombres reales y direcciones aproximadas
-  4. Incluye coordenadas GPS de la zona
+  4. Usa SOLO las coordenadas del barrio de la base de datos
   5. Describe el tipo de experiencia que ofrece cada lugar
 
-  📌 **EJEMPLO DE RESPUESTA PARA "KENNEDY":**
+  📌 **EJEMPLO CORRECTO PARA "KENNEDY":**
 
   ***Restaurantes en Kennedy***
 
@@ -180,13 +222,6 @@ const ChatIA = () => {
   - ***Coordenadas:*** 4.6122, -74.1389
   - *Especialidad:* Crepes dulces y salados con ingredientes frescos 🥗
 
-  🍽️ **Asadero Los Paisas**
-  - ***Tipo:*** Colombiana (parrilla) 🥩
-  - **Precio:** Medio ($30,000 - $50,000)
-  - **Dirección:** Carrera 78 con Calle 41 Sur
-  - ***Coordenadas:*** 4.6245, -74.1422
-  - *Especialidad:* Carnes a la parrilla y picadas colombianas 🇨🇴
-
   ⚠️ **SI NO CONOCES EL BARRIO:**
   "Conozco principalmente los barrios más representativos de Bogotá. ¿Te refieres a alguna de estas zonas?
   • Norte: Usaquén, Chapinero, Suba
@@ -194,14 +229,7 @@ const ChatIA = () => {
   • Sur: Kennedy, Bosa, Tunjuelito
   • Occidente: Engativá, Fontibón, Puente Aranda
 
-  ¿Cuál de estas te queda más cerca? 🗺️"
-
-  🎉 **RECUERDA:**
-  - Usar nombres REALES de restaurantes
-  - Coordenadas aproximadas pero realistas del barrio
-  - Direcciones generales (centros comerciales, avenidas principales)
-  - Tipos de comida acordes a la zona
-  - Precios realistas para el área`;
+  ¿Cuál de estas te queda más cerca? 🗺️"`;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -300,8 +328,10 @@ const ChatIA = () => {
 
         const coordPattern = /Coordenadas:\s*([-\d.]+),\s*([-\d.]+)/gi;
         const namePattern = /🍽️\s*([^\n-]+)/i;
+        const typePattern = /Tipo:\s*([^\n]+)/i;
+        const pricePattern = /Precio:\s*([^\n]+)/i;
         const addressPattern = /Dirección:\s*([^\n]+)/i;
-        const websitePattern = /Sitio web:\s*([^\n]+)/i;
+        const descriptionPattern = /Especialidad:\s*([^\n]+)/i;
 
         const sections = cleanContent.split(/(?=🍽️)/);
 
@@ -309,19 +339,30 @@ const ChatIA = () => {
           const coordMatch = coordPattern.exec(section);
           if (coordMatch) {
             const nameMatch = section.match(namePattern);
+            const typeMatch = section.match(typePattern);
+            const priceMatch = section.match(pricePattern);
             const addressMatch = section.match(addressPattern);
-            const websiteMatch = section.match(websitePattern);
+            const descriptionMatch = section.match(descriptionPattern);
 
             const lat = parseFloat(coordMatch[1]);
             const lng = parseFloat(coordMatch[2]);
 
+            // Validar que las coordenadas estén dentro de Bogotá
             if (lat >= 4.5 && lat <= 4.8 && lng >= -74.2 && lng <= -74.0) {
+              const randomImage = restaurantImages[Math.floor(Math.random() * restaurantImages.length)];
+              const randomRating = parseFloat((4 + Math.random() * 1).toFixed(1));
+              
               restaurants.push({
                 name: nameMatch ? nameMatch[1].trim() : "Restaurante Recomendado",
                 lat,
                 lng,
                 address: addressMatch ? addressMatch[1].trim() : undefined,
-                website: websiteMatch ? websiteMatch[1].trim() : undefined
+                type: typeMatch ? typeMatch[1].trim() : "Comida variada",
+                price: priceMatch ? priceMatch[1].trim() : "$$",
+                rating: randomRating,
+                description: descriptionMatch ? descriptionMatch[1].trim() : "Excelente restaurante recomendado por Sabor Capital",
+                image: randomImage,
+                openingHours: "11:00 AM - 10:00 PM"
               });
             }
           }
@@ -338,8 +379,9 @@ const ChatIA = () => {
           if (extracted.length > 0) {
             setRestaurants(extracted);
             if (map && extracted[0]) {
+              // Usar las coordenadas extraídas correctamente
               map.panTo({ lat: extracted[0].lat, lng: extracted[0].lng });
-              map.setZoom(13);
+              map.setZoom(14);
             }
           }
         }
@@ -403,6 +445,52 @@ const ChatIA = () => {
     }
   };
 
+  const onMapLoad = (mapInstance: google.maps.Map) => {
+    setMap(mapInstance);
+    setIsMapLoaded(true);
+  };
+
+  const getPriceLevel = (price: string) => {
+    const priceCount = (price.match(/\$/g) || []).length;
+    return Array.from({ length: 4 }, (_, i) => (
+      <DollarSign 
+        key={i} 
+        className={`h-3 w-3 ${i < priceCount ? 'text-green-600 fill-green-600' : 'text-gray-300'}`}
+      />
+    ));
+  };
+
+  const handleRestaurantClick = (restaurant: Restaurant) => {
+    console.log("Restaurante clickeado:", restaurant);
+    setSelectedRestaurant(restaurant);
+    
+    if (map && restaurant.lat && restaurant.lng) {
+      // Validar que las coordenadas sean números válidos
+      if (!isNaN(restaurant.lat) && !isNaN(restaurant.lng)) {
+        map.panTo({ 
+          lat: restaurant.lat, 
+          lng: restaurant.lng 
+        });
+        map.setZoom(16);
+        
+        // Forzar la actualización del InfoWindow
+        setTimeout(() => {
+          setSelectedRestaurant(null);
+          setTimeout(() => {
+            setSelectedRestaurant(restaurant);
+          }, 50);
+        }, 100);
+      } else {
+        console.error("Coordenadas inválidas:", restaurant.lat, restaurant.lng);
+        toast({
+          title: "Error",
+          description: "Las coordenadas del restaurante no son válidas",
+          variant: "destructive"
+        });
+      }
+    }
+  };
+
   return (
     <div className="flex flex-col h-full bg-background">
       <div className="flex-1 overflow-y-auto">
@@ -453,7 +541,8 @@ const ChatIA = () => {
           </div>
 
           {restaurants.length > 0 && (
-            <div className="mt-8 mb-6">
+            <div className="mt-8 mb-6 space-y-6">
+              {/* Mapa */}
               <div className="bg-card rounded-lg border border-border p-4">
                 <div className="flex items-center gap-2 mb-4">
                   <MapPin className="h-5 w-5 text-primary" />
@@ -461,52 +550,59 @@ const ChatIA = () => {
                 </div>
                 
                 <div className="relative rounded-lg overflow-hidden">
-                  <LoadScript googleMapsApiKey={GOOGLE_MAPS_API_KEY}>
+                  <LoadScript 
+                    googleMapsApiKey={GOOGLE_MAPS_API_KEY}
+                    onLoad={() => setIsMapLoaded(true)}
+                  >
                     <GoogleMap
                       mapContainerStyle={mapContainerStyle}
                       center={restaurants[0] ? { lat: restaurants[0].lat, lng: restaurants[0].lng } : defaultCenter}
                       zoom={13}
-                      onLoad={(mapInstance) => setMap(mapInstance)}
+                      onLoad={onMapLoad}
                       options={{
                         disableDefaultUI: true,
                         zoomControl: false,
                       }}
                     >
-                      {restaurants.map((restaurant, index) => (
+                      {isMapLoaded && restaurants.map((restaurant, index) => (
                         <Marker
                           key={index}
                           position={{ lat: restaurant.lat, lng: restaurant.lng }}
-                          onClick={() => setSelectedRestaurant(restaurant)}
-                          icon={{
-                            path: google.maps.SymbolPath.CIRCLE,
-                            fillColor: 'hsl(12 88% 58%)',
-                            fillOpacity: 1,
-                            strokeColor: 'hsl(0 0% 100%)',
-                            strokeWeight: 3,
-                            scale: 10,
-                          }}
+                          onClick={() => handleRestaurantClick(restaurant)}
+                          icon={restaurantIcon}
                         />
                       ))}
 
-                      {selectedRestaurant && (
+                      {isMapLoaded && selectedRestaurant && (
                         <InfoWindow
                           position={{ lat: selectedRestaurant.lat, lng: selectedRestaurant.lng }}
                           onCloseClick={() => setSelectedRestaurant(null)}
                         >
-                          <div className="p-2">
+                          <div className="p-2 max-w-xs">
                             <h4 className="font-semibold text-sm mb-1">{selectedRestaurant.name}</h4>
-                            {selectedRestaurant.address && (
-                              <p className="text-xs text-gray-600 mb-1">{selectedRestaurant.address}</p>
+                            {selectedRestaurant.type && (
+                              <Badge variant="secondary" className="text-xs mb-2">
+                                {selectedRestaurant.type}
+                              </Badge>
                             )}
-                            {selectedRestaurant.website && (
-                              <a
-                                href={selectedRestaurant.website}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-xs text-primary hover:underline flex items-center gap-1"
-                              >
-                                Sitio web <ExternalLink className="h-3 w-3" />
-                              </a>
+                            {selectedRestaurant.address && (
+                              <p className="text-xs text-gray-600 mb-2">{selectedRestaurant.address}</p>
+                            )}
+                            <div className="flex items-center gap-4 text-xs text-gray-500 mb-2">
+                              {selectedRestaurant.rating && (
+                                <div className="flex items-center gap-1">
+                                  <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />
+                                  <span>{selectedRestaurant.rating}</span>
+                                </div>
+                              )}
+                              {selectedRestaurant.price && (
+                                <div className="flex items-center gap-1">
+                                  {getPriceLevel(selectedRestaurant.price)}
+                                </div>
+                              )}
+                            </div>
+                            {selectedRestaurant.description && (
+                              <p className="text-xs text-gray-600 mb-2">{selectedRestaurant.description}</p>
                             )}
                           </div>
                         </InfoWindow>
@@ -537,6 +633,73 @@ const ChatIA = () => {
                       <Navigation className="h-5 w-5" />
                     </Button>
                   </div>
+                </div>
+              </div>
+
+              {/* Lista de Restaurantes - Nuevo Diseño */}
+              <div className="bg-card rounded-lg border border-border p-4">
+                <div className="flex items-center gap-2 mb-4">
+                  <Sparkles className="h-5 w-5 text-primary" />
+                  <h3 className="font-semibold text-lg">Restaurantes Recomendados</h3>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {restaurants.map((restaurant, index) => (
+                    <Card 
+                      key={index} 
+                      className={`cursor-pointer transition-all hover:shadow-lg border-2 ${
+                        selectedRestaurant?.name === restaurant.name 
+                          ? 'border-primary ring-2 ring-primary/20' 
+                          : 'border-border'
+                      }`}
+                      onClick={() => handleRestaurantClick(restaurant)}
+                    >
+                      <CardContent className="p-0">
+                        <div className="flex">
+                          <img 
+                            src={restaurant.image} 
+                            alt={restaurant.name}
+                            className="w-24 h-24 object-cover rounded-l-lg"
+                          />
+                          <div className="flex-1 p-3">
+                            <div className="flex items-start justify-between mb-2">
+                              <h4 className="font-semibold text-sm leading-tight">{restaurant.name}</h4>
+                              {restaurant.rating && (
+                                <div className="flex items-center gap-1 bg-muted px-2 py-1 rounded-full">
+                                  <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />
+                                  <span className="text-xs font-medium">{restaurant.rating}</span>
+                                </div>
+                              )}
+                            </div>
+                            
+                            {restaurant.type && (
+                              <Badge variant="secondary" className="text-xs mb-2">
+                                {restaurant.type}
+                              </Badge>
+                            )}
+                            
+                            <div className="flex items-center justify-between text-xs text-muted-foreground">
+                              <div className="flex items-center gap-1">
+                                {restaurant.price && getPriceLevel(restaurant.price)}
+                              </div>
+                              {restaurant.openingHours && (
+                                <div className="flex items-center gap-1">
+                                  <Clock className="h-3 w-3" />
+                                  <span>{restaurant.openingHours}</span>
+                                </div>
+                              )}
+                            </div>
+                            
+                            {restaurant.description && (
+                              <p className="text-xs text-muted-foreground mt-2 line-clamp-2">
+                                {restaurant.description}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
               </div>
             </div>

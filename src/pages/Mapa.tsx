@@ -20,6 +20,23 @@ const defaultCenter = {
   lng: -74.0817
 };
 
+// Íconos SVG codificados como strings
+const restaurantIcon = {
+  url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+      <circle cx="16" cy="16" r="10" fill="hsl(12, 88%, 58%)" stroke="white" stroke-width="3"/>
+    </svg>
+  `)}`
+};
+
+const userLocationIcon = {
+  url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28">
+      <circle cx="14" cy="14" r="8" fill="hsl(142, 48%, 45%)" stroke="white" stroke-width="4"/>
+    </svg>
+  `)}`
+};
+
 const mockRestaurantes = [
   {
     id: 1,
@@ -79,6 +96,7 @@ export default function Mapa() {
   const [selectedRestaurant, setSelectedRestaurant] = useState<typeof mockRestaurantes[0] | null>(null);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   const filteredRestaurants = mockRestaurantes.filter((restaurant) =>
     restaurant.nombre.toLowerCase().includes(mapSearchQuery.toLowerCase()) ||
@@ -120,6 +138,11 @@ export default function Mapa() {
       map.panTo({ lat: restaurant.lat, lng: restaurant.lng });
       map.setZoom(16);
     }
+  };
+
+  const onLoad = (mapInstance: google.maps.Map) => {
+    setMap(mapInstance);
+    setIsLoaded(true);
   };
 
   return (
@@ -214,7 +237,7 @@ export default function Mapa() {
         </ScrollArea>
 
         <div className="p-4 border-t border-border">
-          <Button className="w-full" onClick={() => navigate("/chatia")}>
+          <Button className="w-full" onClick={() => navigate("/chat-ia")}>
             🤖 Recomiéndame algo
           </Button>
         </div>
@@ -233,35 +256,30 @@ export default function Mapa() {
           </div>
         </div>
 
-        <LoadScript googleMapsApiKey={GOOGLE_MAPS_API_KEY}>
+        <LoadScript 
+          googleMapsApiKey={GOOGLE_MAPS_API_KEY}
+          onLoad={() => setIsLoaded(true)}
+        >
           <GoogleMap
             mapContainerStyle={mapContainerStyle}
             center={defaultCenter}
             zoom={13}
-            onLoad={(mapInstance) => setMap(mapInstance)}
+            onLoad={onLoad}
             options={{
               disableDefaultUI: true,
               zoomControl: false,
             }}
           >
-            {filteredRestaurants.map((restaurant) => (
+            {isLoaded && filteredRestaurants.map((restaurant) => (
               <Marker
                 key={restaurant.id}
                 position={{ lat: restaurant.lat, lng: restaurant.lng }}
                 onClick={() => setSelectedRestaurant(restaurant)}
-                icon={{
-                  url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
-                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
-                      <circle cx="16" cy="16" r="10" fill="hsl(12, 88%, 58%)" stroke="white" stroke-width="3"/>
-                    </svg>
-                  `)}`,
-                  scaledSize: new window.google.maps.Size(32, 32),
-                  anchor: new window.google.maps.Point(16, 16),
-                }}
+                icon={restaurantIcon}
               />
             ))}
 
-            {selectedRestaurant && (
+            {isLoaded && selectedRestaurant && (
               <InfoWindow
                 position={{ lat: selectedRestaurant.lat, lng: selectedRestaurant.lng }}
                 onCloseClick={() => setSelectedRestaurant(null)}
@@ -281,18 +299,10 @@ export default function Mapa() {
               </InfoWindow>
             )}
 
-            {userLocation && (
+            {isLoaded && userLocation && (
               <Marker 
                 position={userLocation}
-                icon={{
-                  url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
-                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28">
-                      <circle cx="14" cy="14" r="8" fill="hsl(142, 48%, 45%)" stroke="white" stroke-width="4"/>
-                    </svg>
-                  `)}`,
-                  scaledSize: new window.google.maps.Size(28, 28),
-                  anchor: new window.google.maps.Point(14, 14),
-                }}
+                icon={userLocationIcon}
               />
             )}
           </GoogleMap>

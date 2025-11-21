@@ -43,7 +43,6 @@ const App = () => (
             <Route path="/historial/resultados" element={<HistorialResultados />} />
             <Route path="/perfil" element={<Perfil />} />
             <Route path="/configuracion" element={<Configuracion />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </MainLayout>
