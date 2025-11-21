@@ -2,3 +2,6 @@ project_id = "ozladdazcubyvmgdpyop"
 
 [functions.chat]
 verify_jwt = false
+
+[functions.places-search]
+verify_jwt = false

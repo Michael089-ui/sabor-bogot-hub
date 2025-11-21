@@ -1,9 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { detectRestaurantQuery, extractSearchParams } from './_helpers.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -14,6 +17,66 @@ serve(async (req) => {
   try {
     const { messages, systemPrompt } = await req.json();
     const GOOGLE_GEMINI_API_KEY = Deno.env.get('GOOGLE_GEMINI_API_KEY');
+    
+    console.log('Processing chat request with', messages.length, 'messages');
+
+    // Detect if this is a restaurant search query
+    const lastUserMessage = messages[messages.length - 1];
+    const isRestaurantQuery = lastUserMessage?.role === 'user' && 
+      detectRestaurantQuery(lastUserMessage.content);
+
+    let enrichedSystemPrompt = systemPrompt;
+
+    // If it's a restaurant query, call Places API first
+    if (isRestaurantQuery && SUPABASE_URL) {
+      console.log('🔍 Detected restaurant query, calling Places API...');
+      
+      const searchParams = extractSearchParams(lastUserMessage.content);
+      
+      try {
+        const placesResponse = await fetch(
+          `${SUPABASE_URL}/functions/v1/places-search`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              query: searchParams.query,
+              neighborhood: searchParams.neighborhood
+            })
+          }
+        );
+
+        if (placesResponse.ok) {
+          const placesData = await placesResponse.json();
+          
+          if (placesData.restaurants && placesData.restaurants.length > 0) {
+            console.log('✅ Got', placesData.restaurants.length, 'real restaurants from Places API');
+            
+            // Enrich system prompt with real data
+            enrichedSystemPrompt = `${systemPrompt}
+
+**DATOS REALES DE GOOGLE PLACES API:**
+Usa ÚNICAMENTE los siguientes restaurantes reales de Google Places. NO inventes datos.
+
+${JSON.stringify(placesData.restaurants, null, 2)}
+
+**INSTRUCCIONES CRÍTICAS:**
+1. Usa SOLO los restaurantes de la lista anterior (datos verificados de Google Places)
+2. Menciona los ratings reales, horarios y precios exactos
+3. DEBES incluir las coordenadas EXACTAS (lat, lng) de cada restaurante en tu respuesta
+4. Mantén el formato de respuesta con la estructura: Nombre | Lat,Lng | Rating | Precio
+5. Añade descripciones personalizadas y útiles basadas en los datos reales
+6. Si un restaurante está cerrado, menciónalo
+7. Incluye el número de reseñas si está disponible`;
+          }
+        }
+      } catch (error) {
+        console.error('Error calling Places API:', error);
+        // Continue with regular Gemini response if Places API fails
+      }
+    }
 
     if (!GOOGLE_GEMINI_API_KEY) {
       console.error('GOOGLE_GEMINI_API_KEY not configured');
@@ -42,10 +105,10 @@ serve(async (req) => {
       }
     };
 
-    // Add system instruction if provided
-    if (systemPrompt) {
+    // Add system instruction (enriched with Places data if available)
+    if (enrichedSystemPrompt) {
       requestBody.systemInstruction = {
-        parts: [{ text: systemPrompt }]
+        parts: [{ text: enrichedSystemPrompt }]
       };
     }
 
