@@ -41,11 +41,11 @@ export const useAuth = () => {
     ubicacion: string;
   }) => {
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data: authData, error } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
         options: {
-          emailRedirectTo: `${window.location.origin}/`,
+          emailRedirectTo: `${window.location.origin}/dashboard`,
           data: {
             nombre: data.nombre,
             apellidos: data.apellidos,
@@ -66,7 +66,22 @@ export const useAuth = () => {
         return { error };
       }
 
-      toast.success('¡Registro exitoso! Revisa tu correo para confirmar tu cuenta.');
+      // Enviar correo de confirmación
+      if (authData.user) {
+        try {
+          await supabase.functions.invoke('send-confirmation-email', {
+            body: {
+              email: data.email,
+              nombre: data.nombre,
+              confirmationUrl: `${window.location.origin}/dashboard`,
+            },
+          });
+        } catch (emailError) {
+          console.error('Error sending confirmation email:', emailError);
+        }
+      }
+
+      toast.success('¡Registro exitoso! Revisa tu correo para confirmar tu cuenta antes de iniciar sesión.');
       navigate('/login');
       return { error: null };
     } catch (error: any) {
@@ -77,7 +92,7 @@ export const useAuth = () => {
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -85,10 +100,19 @@ export const useAuth = () => {
       if (error) {
         if (error.message.includes('Invalid login credentials')) {
           toast.error('Credenciales incorrectas');
+        } else if (error.message.includes('Email not confirmed')) {
+          toast.error('Por favor confirma tu correo electrónico antes de iniciar sesión');
         } else {
           toast.error(error.message);
         }
         return { error };
+      }
+
+      // Verificar si el email está confirmado
+      if (data.user && !data.user.email_confirmed_at) {
+        await supabase.auth.signOut();
+        toast.error('Debes confirmar tu correo electrónico antes de acceder. Revisa tu bandeja de entrada.');
+        return { error: new Error('Email not confirmed') };
       }
 
       toast.success('¡Bienvenido!');
