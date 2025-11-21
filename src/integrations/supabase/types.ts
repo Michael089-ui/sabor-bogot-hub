@@ -136,6 +136,69 @@ export type Database = {
           },
         ]
       }
+      restaurant_cache: {
+        Row: {
+          cached_at: string | null
+          expires_at: string | null
+          formatted_address: string | null
+          id: string
+          location: Json
+          name: string
+          neighborhood: string | null
+          open_now: boolean | null
+          opening_hours: Json | null
+          phone_number: string | null
+          photos: Json | null
+          place_id: string
+          price_level: string | null
+          rating: number | null
+          search_query: string | null
+          types: string[] | null
+          user_ratings_total: number | null
+          website: string | null
+        }
+        Insert: {
+          cached_at?: string | null
+          expires_at?: string | null
+          formatted_address?: string | null
+          id?: string
+          location: Json
+          name: string
+          neighborhood?: string | null
+          open_now?: boolean | null
+          opening_hours?: Json | null
+          phone_number?: string | null
+          photos?: Json | null
+          place_id: string
+          price_level?: string | null
+          rating?: number | null
+          search_query?: string | null
+          types?: string[] | null
+          user_ratings_total?: number | null
+          website?: string | null
+        }
+        Update: {
+          cached_at?: string | null
+          expires_at?: string | null
+          formatted_address?: string | null
+          id?: string
+          location?: Json
+          name?: string
+          neighborhood?: string | null
+          open_now?: boolean | null
+          opening_hours?: Json | null
+          phone_number?: string | null
+          photos?: Json | null
+          place_id?: string
+          price_level?: string | null
+          rating?: number | null
+          search_query?: string | null
+          types?: string[] | null
+          user_ratings_total?: number | null
+          website?: string | null
+        }
+        Relationships: []
+      }
       resultado_busqueda: {
         Row: {
           direccion: string | null

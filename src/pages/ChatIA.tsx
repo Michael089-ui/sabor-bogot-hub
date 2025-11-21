@@ -48,13 +48,17 @@ interface Restaurant {
   lat: number;
   lng: number;
   address?: string;
-  website?: string;
   type?: string;
   price?: string;
   rating?: number;
   description?: string;
   image?: string;
-  openingHours?: string;
+  openingHours?: string | string[];
+  phone?: string;
+  website?: string;
+  openNow?: boolean;
+  userRatingsTotal?: number;
+  placeId?: string;
 }
 
 const ChatIA = () => {
@@ -321,6 +325,51 @@ const ChatIA = () => {
 
       const extractRestaurants = (content: string): Restaurant[] => {
         const restaurants: Restaurant[] = [];
+        
+        // Try to extract Places API metadata first (hidden in HTML comments)
+        const placesDataMatch = content.match(/<!--PLACES_DATA:(.*?)-->/s);
+        if (placesDataMatch) {
+          try {
+            const placesData = JSON.parse(placesDataMatch[1]);
+            console.log('📍 Extracted', placesData.length, 'restaurants from Places API metadata');
+            
+            return placesData.map((place: any) => {
+              const convertPriceLevel = (priceLevel: string): string => {
+                const priceLevelMap: { [key: string]: string } = {
+                  'PRICE_LEVEL_FREE': '$',
+                  'PRICE_LEVEL_INEXPENSIVE': '$',
+                  'PRICE_LEVEL_MODERATE': '$$',
+                  'PRICE_LEVEL_EXPENSIVE': '$$$',
+                  'PRICE_LEVEL_VERY_EXPENSIVE': '$$$$',
+                  'PRICE_LEVEL_UNSPECIFIED': '$$'
+                };
+                return priceLevelMap[priceLevel] || '$$';
+              };
+
+              return {
+                placeId: place.place_id,
+                name: place.name,
+                lat: place.location.lat,
+                lng: place.location.lng,
+                rating: place.rating || 0,
+                price: convertPriceLevel(place.price_level),
+                type: place.types?.[0]?.replace(/_/g, ' ') || 'restaurant',
+                address: place.formatted_address,
+                phone: place.phone_number,
+                website: place.website,
+                openNow: place.open_now,
+                openingHours: place.opening_hours,
+                image: place.photos?.[0] || restaurantImages[0],
+                userRatingsTotal: place.user_ratings_total || 0,
+                description: `Restaurante con ${place.rating || 0} estrellas y ${place.user_ratings_total || 0} reseñas`
+              };
+            });
+          } catch (error) {
+            console.error('Error parsing Places API data:', error);
+          }
+        }
+
+        // Fallback: Extract from text format (Gemini's response)
         const cleanContent = content
           .replace(/\*\*\*/g, '')
           .replace(/\*\*/g, '')
@@ -649,53 +698,106 @@ const ChatIA = () => {
                       key={index} 
                       className={`cursor-pointer transition-all hover:shadow-lg border-2 ${
                         selectedRestaurant?.name === restaurant.name 
-                          ? 'border-primary ring-2 ring-primary/20' 
-                          : 'border-border'
+                          ? 'border-primary shadow-xl' 
+                          : 'border-border hover:border-primary/50'
                       }`}
                       onClick={() => handleRestaurantClick(restaurant)}
                     >
-                      <CardContent className="p-0">
-                        <div className="flex">
-                          <img 
-                            src={restaurant.image} 
-                            alt={restaurant.name}
-                            className="w-24 h-24 object-cover rounded-l-lg"
-                          />
-                          <div className="flex-1 p-3">
-                            <div className="flex items-start justify-between mb-2">
-                              <h4 className="font-semibold text-sm leading-tight">{restaurant.name}</h4>
-                              {restaurant.rating && (
-                                <div className="flex items-center gap-1 bg-muted px-2 py-1 rounded-full">
-                                  <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />
-                                  <span className="text-xs font-medium">{restaurant.rating}</span>
-                                </div>
-                              )}
+                      <div className="relative h-40 overflow-hidden rounded-t-lg">
+                        <img 
+                          src={restaurant.image} 
+                          alt={restaurant.name}
+                          className="w-full h-full object-cover"
+                        />
+                        {restaurant.openNow !== undefined && (
+                          <Badge 
+                            variant={restaurant.openNow ? "default" : "destructive"}
+                            className="absolute top-2 right-2"
+                          >
+                            {restaurant.openNow ? '🟢 Abierto' : '🔴 Cerrado'}
+                          </Badge>
+                        )}
+                      </div>
+                      
+                      <CardContent className="p-4">
+                        <h4 className="font-bold text-lg mb-2">{restaurant.name}</h4>
+                        
+                        {restaurant.type && (
+                          <Badge variant="secondary" className="mb-2 text-xs">
+                            {restaurant.type}
+                          </Badge>
+                        )}
+
+                        <div className="space-y-2 text-sm">
+                          {restaurant.address && (
+                            <div className="flex items-start gap-2 text-muted-foreground">
+                              <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                              <span className="line-clamp-2">{restaurant.address}</span>
                             </div>
-                            
-                            {restaurant.type && (
-                              <Badge variant="secondary" className="text-xs mb-2">
-                                {restaurant.type}
-                              </Badge>
-                            )}
-                            
-                            <div className="flex items-center justify-between text-xs text-muted-foreground">
+                          )}
+
+                          <div className="flex items-center gap-3">
+                            {restaurant.rating && (
                               <div className="flex items-center gap-1">
-                                {restaurant.price && getPriceLevel(restaurant.price)}
+                                <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                                <span className="font-semibold">{restaurant.rating.toFixed(1)}</span>
+                                {restaurant.userRatingsTotal && (
+                                  <span className="text-muted-foreground text-xs">
+                                    ({restaurant.userRatingsTotal})
+                                  </span>
+                                )}
                               </div>
-                              {restaurant.openingHours && (
-                                <div className="flex items-center gap-1">
-                                  <Clock className="h-3 w-3" />
-                                  <span>{restaurant.openingHours}</span>
-                                </div>
-                              )}
-                            </div>
-                            
-                            {restaurant.description && (
-                              <p className="text-xs text-muted-foreground mt-2 line-clamp-2">
-                                {restaurant.description}
-                              </p>
+                            )}
+
+                            {restaurant.price && (
+                              <div className="flex items-center gap-1">
+                                {getPriceLevel(restaurant.price)}
+                              </div>
                             )}
                           </div>
+
+                          {restaurant.openingHours && (
+                            <div className="flex items-start gap-2 text-muted-foreground">
+                              <Clock className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                              <span className="text-xs">
+                                {typeof restaurant.openingHours === 'string' 
+                                  ? restaurant.openingHours 
+                                  : restaurant.openingHours[0]}
+                              </span>
+                            </div>
+                          )}
+
+                          {(restaurant.website || restaurant.phone) && (
+                            <div className="flex gap-2 mt-3">
+                              {restaurant.website && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="flex-1"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    window.open(restaurant.website, '_blank');
+                                  }}
+                                >
+                                  <ExternalLink className="h-3 w-3 mr-1" />
+                                  Web
+                                </Button>
+                              )}
+                              {restaurant.phone && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="flex-1"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    window.open(`tel:${restaurant.phone}`, '_blank');
+                                  }}
+                                >
+                                  📞 Llamar
+                                </Button>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </CardContent>
                     </Card>
