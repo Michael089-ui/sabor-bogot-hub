@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { User, LogOut, Edit } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -16,49 +18,95 @@ import { useNavigate } from "react-router-dom";
 
 const Perfil = () => {
   const navigate = useNavigate();
+  const { user, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState("busquedas");
+  const [loading, setLoading] = useState(true);
+  const [userData, setUserData] = useState<any>(null);
+  const [busquedas, setBusquedas] = useState<any[]>([]);
+  const [resenas, setResenas] = useState<any[]>([]);
+  const [favoritos, setFavoritos] = useState<any[]>([]);
 
-  // Mock data - información del usuario
-  const usuario = {
-    nombre: "Camila Rodriguez",
-    email: "camila.rodriguez@email.com",
-    avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&auto=format&fit=crop",
-    preferencias: {
-      tipoComida: "tradicional",
-      presupuesto: "medio",
-      ubicacion: "chapinero"
+  useEffect(() => {
+    if (!user) {
+      navigate('/login');
+      return;
     }
-  };
 
-  // Mock data - historial
-  const busquedas = [
-    "Restaurante La Puerta Falsa",
-    "Ajiaco Santafereño",
-    "Empanadas de Cambray"
-  ];
+    const fetchUserData = async () => {
+      try {
+        // Obtener datos del usuario
+        const { data: userProfile, error: userError } = await supabase
+          .from('usuario')
+          .select('*')
+          .eq('id', user.id)
+          .maybeSingle();
 
-  const resenas = [
-    "El Fogón de Doña Rosa - 5 estrellas",
-    "La Puerta Falsa - 4 estrellas",
-    "Andrés Carne de Res - 5 estrellas"
-  ];
+        if (userError) throw userError;
+        setUserData(userProfile);
 
-  const favoritos = [
-    "Leo Cocina y Cava",
-    "Criterion",
-    "Harry Sasson"
-  ];
+        // Obtener historial de búsquedas
+        const { data: searchHistory, error: searchError } = await supabase
+          .from('historial_busqueda')
+          .select('*')
+          .eq('id_usuario', user.id)
+          .order('fecha', { ascending: false })
+          .limit(10);
+
+        if (!searchError && searchHistory) {
+          setBusquedas(searchHistory);
+        }
+
+        // Obtener reseñas
+        const { data: reviews, error: reviewsError } = await supabase
+          .from('resena')
+          .select('*')
+          .eq('id_usuario', user.id)
+          .order('fecha_resena', { ascending: false })
+          .limit(10);
+
+        if (!reviewsError && reviews) {
+          setResenas(reviews);
+        }
+
+        // Obtener favoritos
+        const { data: favs, error: favsError } = await supabase
+          .from('favorito')
+          .select('*')
+          .eq('id_usuario', user.id)
+          .order('fecha_agregado', { ascending: false })
+          .limit(10);
+
+        if (!favsError && favs) {
+          setFavoritos(favs);
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserData();
+  }, [user, navigate]);
 
   const handleEditProfile = () => {
-    // TODO: Abrir modal o navegar a página de edición
     console.log("Editar perfil");
   };
 
-  const handleLogout = () => {
-    // TODO: Implementar logout con auth
-    console.log("Cerrar sesión");
-    navigate('/login');
+  const handleLogout = async () => {
+    await signOut();
   };
+
+  if (loading || !userData) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  const nombreCompleto = `${userData.nombre || ''} ${userData.apellidos || ''}`.trim() || 'Usuario';
+  const tipoComidaArray = userData.tipo_comida || [];
 
   return (
     <div className="min-h-full bg-background">
@@ -66,17 +114,17 @@ const Perfil = () => {
         {/* Avatar y Datos del Usuario */}
         <div className="flex flex-col items-center mb-8">
           <Avatar className="h-32 w-32 mb-4 border-4 border-primary/10">
-            <AvatarImage src={usuario.avatar} alt={usuario.nombre} />
+            <AvatarImage src={userData.foto_url || user?.user_metadata?.avatar_url} alt={nombreCompleto} />
             <AvatarFallback className="text-3xl bg-primary/10 text-primary">
-              {usuario.nombre.charAt(0)}
+              {nombreCompleto.charAt(0).toUpperCase()}
             </AvatarFallback>
           </Avatar>
           
           <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
-            {usuario.nombre}
+            {nombreCompleto}
           </h1>
           <p className="text-primary font-medium">
-            {usuario.email}
+            {userData.email || user?.email}
           </p>
         </div>
 
@@ -91,21 +139,11 @@ const Perfil = () => {
               {/* Tipo de comida */}
               <div className="space-y-2">
                 <Label htmlFor="tipo-comida" className="text-foreground font-medium">
-                  Tipo de comida
+                  Tipos de comida favoritos
                 </Label>
-                <Select defaultValue={usuario.preferencias.tipoComida}>
-                  <SelectTrigger id="tipo-comida">
-                    <SelectValue placeholder="Selecciona tipo de comida" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="tradicional">Tradicional Colombiana</SelectItem>
-                    <SelectItem value="italiana">Italiana</SelectItem>
-                    <SelectItem value="asiatica">Asiática</SelectItem>
-                    <SelectItem value="mexicana">Mexicana</SelectItem>
-                    <SelectItem value="vegetariana">Vegetariana</SelectItem>
-                    <SelectItem value="internacional">Internacional</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="text-sm text-muted-foreground">
+                  {tipoComidaArray.length > 0 ? tipoComidaArray.join(', ') : 'No especificado'}
+                </div>
               </div>
 
               {/* Presupuesto */}
@@ -113,17 +151,9 @@ const Perfil = () => {
                 <Label htmlFor="presupuesto" className="text-foreground font-medium">
                   Presupuesto
                 </Label>
-                <Select defaultValue={usuario.preferencias.presupuesto}>
-                  <SelectTrigger id="presupuesto">
-                    <SelectValue placeholder="Selecciona presupuesto" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="economico">$ - Económico</SelectItem>
-                    <SelectItem value="medio">$$ - Medio</SelectItem>
-                    <SelectItem value="alto">$$$ - Alto</SelectItem>
-                    <SelectItem value="premium">$$$$ - Premium</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="text-sm text-muted-foreground capitalize">
+                  {userData.presupuesto || 'No especificado'}
+                </div>
               </div>
 
               {/* Ubicación */}
@@ -131,20 +161,22 @@ const Perfil = () => {
                 <Label htmlFor="ubicacion" className="text-foreground font-medium">
                   Ubicación
                 </Label>
-                <Select defaultValue={usuario.preferencias.ubicacion}>
-                  <SelectTrigger id="ubicacion">
-                    <SelectValue placeholder="Selecciona ubicación" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="chapinero">Chapinero</SelectItem>
-                    <SelectItem value="usaquen">Usaquén</SelectItem>
-                    <SelectItem value="candelaria">La Candelaria</SelectItem>
-                    <SelectItem value="zona-rosa">Zona Rosa</SelectItem>
-                    <SelectItem value="zona-g">Zona G</SelectItem>
-                    <SelectItem value="centro">Centro</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="text-sm text-muted-foreground">
+                  {userData.ubicacion || 'No especificado'}
+                </div>
               </div>
+              
+              {/* Teléfono */}
+              {userData.telefono && (
+                <div className="space-y-2">
+                  <Label className="text-foreground font-medium">
+                    Teléfono
+                  </Label>
+                  <div className="text-sm text-muted-foreground">
+                    {userData.telefono}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -166,43 +198,75 @@ const Perfil = () => {
 
                 <TabsContent value="busquedas" className="mt-6">
                   <div className="space-y-3">
-                    {busquedas.map((busqueda, index) => (
-                      <div 
-                        key={index}
-                        className="py-3 border-b border-border last:border-0 text-foreground hover:text-primary cursor-pointer transition-colors"
-                        onClick={() => navigate('/historial-busquedas')}
-                      >
-                        {busqueda}
+                    {busquedas.length > 0 ? (
+                      busquedas.map((busqueda) => (
+                        <div 
+                          key={busqueda.id_busqueda}
+                          className="py-3 border-b border-border last:border-0 text-foreground hover:text-primary cursor-pointer transition-colors"
+                          onClick={() => navigate('/historial-busquedas')}
+                        >
+                          <div className="font-medium">{busqueda.query}</div>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {new Date(busqueda.fecha).toLocaleDateString('es-ES')}
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center text-muted-foreground py-6">
+                        No tienes búsquedas recientes
                       </div>
-                    ))}
+                    )}
                   </div>
                 </TabsContent>
 
                 <TabsContent value="resenas" className="mt-6">
                   <div className="space-y-3">
-                    {resenas.map((resena, index) => (
-                      <div 
-                        key={index}
-                        className="py-3 border-b border-border last:border-0 text-foreground hover:text-primary cursor-pointer transition-colors"
-                        onClick={() => navigate('/resenas')}
-                      >
-                        {resena}
+                    {resenas.length > 0 ? (
+                      resenas.map((resena) => (
+                        <div 
+                          key={resena.id_resena}
+                          className="py-3 border-b border-border last:border-0 text-foreground hover:text-primary cursor-pointer transition-colors"
+                          onClick={() => navigate('/resenas')}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="font-medium">{resena.place_id}</div>
+                            <div className="text-sm">⭐ {resena.calificacion}/5</div>
+                          </div>
+                          {resena.comentario && (
+                            <div className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                              {resena.comentario}
+                            </div>
+                          )}
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center text-muted-foreground py-6">
+                        No has dejado reseñas aún
                       </div>
-                    ))}
+                    )}
                   </div>
                 </TabsContent>
 
                 <TabsContent value="favoritos" className="mt-6">
                   <div className="space-y-3">
-                    {favoritos.map((favorito, index) => (
-                      <div 
-                        key={index}
-                        className="py-3 border-b border-border last:border-0 text-foreground hover:text-primary cursor-pointer transition-colors"
-                        onClick={() => navigate('/favoritos')}
-                      >
-                        {favorito}
+                    {favoritos.length > 0 ? (
+                      favoritos.map((favorito) => (
+                        <div 
+                          key={favorito.id_favorito}
+                          className="py-3 border-b border-border last:border-0 text-foreground hover:text-primary cursor-pointer transition-colors"
+                          onClick={() => navigate('/favoritos')}
+                        >
+                          <div className="font-medium">{favorito.place_id}</div>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {new Date(favorito.fecha_agregado).toLocaleDateString('es-ES')}
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center text-muted-foreground py-6">
+                        No tienes favoritos guardados
                       </div>
-                    ))}
+                    )}
                   </div>
                 </TabsContent>
               </Tabs>
