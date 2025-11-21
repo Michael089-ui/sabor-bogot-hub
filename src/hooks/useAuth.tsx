@@ -121,6 +121,28 @@ export const useAuth = () => {
     }
   };
 
+  const checkOnboardingStatus = async () => {
+    if (!user) return false;
+    
+    try {
+      const { data, error } = await supabase
+        .from('usuario')
+        .select('onboarding_completed')
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        console.error('Error checking onboarding status:', error);
+        return false;
+      }
+
+      return data?.onboarding_completed ?? false;
+    } catch (error) {
+      console.error('Error checking onboarding status:', error);
+      return false;
+    }
+  };
+
   const signOut = async () => {
     try {
       const { error } = await supabase.auth.signOut();
@@ -145,5 +167,6 @@ export const useAuth = () => {
     signIn,
     signInWithGoogle,
     signOut,
+    checkOnboardingStatus,
   };
 };
