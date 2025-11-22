@@ -106,22 +106,32 @@ export type Database = {
         Row: {
           fecha: string | null
           id_busqueda: string
+          id_conversacion: string | null
           id_usuario: string
           query: string
         }
         Insert: {
           fecha?: string | null
           id_busqueda?: string
+          id_conversacion?: string | null
           id_usuario: string
           query: string
         }
         Update: {
           fecha?: string | null
           id_busqueda?: string
+          id_conversacion?: string | null
           id_usuario?: string
           query?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "historial_busqueda_id_conversacion_fkey"
+            columns: ["id_conversacion"]
+            isOneToOne: false
+            referencedRelation: "chat_conversacion"
+            referencedColumns: ["id_conversacion"]
+          },
           {
             foreignKeyName: "historial_busqueda_id_usuario_fkey"
             columns: ["id_usuario"]
