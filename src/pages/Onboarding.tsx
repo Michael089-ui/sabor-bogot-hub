@@ -98,7 +98,9 @@ export default function Onboarding() {
       }
 
       toast.success("¡Perfil completado! Bienvenido a Sabor Capital");
-      navigate("/dashboard");
+      
+      // Forzar recarga para refrescar el estado del usuario
+      window.location.href = "/dashboard";
     } catch (error: any) {
       toast.error("Error al completar tu perfil");
       console.error("Error:", error);
