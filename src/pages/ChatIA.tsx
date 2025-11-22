@@ -184,6 +184,17 @@ const ChatIA = () => {
         if (convError) throw convError;
         conversationId = newConv.id_conversacion;
         setCurrentConversationId(conversationId);
+
+        // Crear entrada en historial_busqueda vinculada a esta conversación
+        const { error: histError } = await supabase
+          .from('historial_busqueda')
+          .insert({
+            id_usuario: user.id,
+            query: userMsg.content,
+            id_conversacion: conversationId
+          });
+
+        if (histError) console.error('Error creating search history:', histError);
       }
 
       // Guardar ambos mensajes
