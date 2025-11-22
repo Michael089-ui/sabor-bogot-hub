@@ -86,27 +86,38 @@ const Perfil = () => {
 
     const fetchUserData = async () => {
       try {
-        // Obtener datos del usuario
+        // Obtener datos del usuario desde la tabla usuario
         const { data: userProfile, error: userError } = await supabase
-          .from('usuario')
-          .select('*')
-          .eq('id', user.id)
+          .from("usuario")
+          .select("*")
+          .eq("id", user.id)
           .maybeSingle();
 
         if (userError) throw userError;
-        setUserData(userProfile);
+
+        // Si no existe registro en usuario, construimos uno básico con los datos de auth
+        const baseProfile = userProfile || {
+          id: user.id,
+          nombre: user.user_metadata?.nombre || user.email?.split("@")[0] || "Usuario",
+          apellidos: user.user_metadata?.apellidos || "",
+          email: user.email,
+          telefono: user.user_metadata?.telefono || "",
+          tipo_comida: [],
+          presupuesto: "",
+          ubicacion: "",
+        };
+
+        setUserData(baseProfile);
 
         // Actualizar valores del formulario
-        if (userProfile) {
-          form.reset({
-            nombre: userProfile.nombre || "",
-            apellidos: userProfile.apellidos || "",
-            telefono: userProfile.telefono || "",
-            ubicacion: userProfile.ubicacion || "",
-            presupuesto: userProfile.presupuesto || "",
-            tipo_comida: userProfile.tipo_comida || [],
-          });
-        }
+        form.reset({
+          nombre: baseProfile.nombre || "",
+          apellidos: baseProfile.apellidos || "",
+          telefono: baseProfile.telefono || "",
+          ubicacion: baseProfile.ubicacion || "",
+          presupuesto: baseProfile.presupuesto || "",
+          tipo_comida: baseProfile.tipo_comida || [],
+        });
 
         // Obtener historial de búsquedas
         const { data: searchHistory, error: searchError } = await supabase
@@ -212,10 +223,18 @@ const Perfil = () => {
     await signOut();
   };
 
-  if (loading || !userData) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (!userData) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-muted-foreground">No se pudo cargar la información del perfil.</p>
       </div>
     );
   }
