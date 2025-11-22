@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { GoogleMap, LoadScript, Marker, InfoWindow } from "@react-google-maps/api";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { useLocation } from "react-router-dom";
 
 const cardStyles = `
   .restaurant-card {
@@ -72,6 +73,7 @@ interface Restaurant {
 }
 
 const ChatIA = () => {
+  const location = useLocation();
   const [inputMessage, setInputMessage] = useState("");
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -87,6 +89,24 @@ const ChatIA = () => {
   const [isMapLoaded, setIsMapLoaded] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  // Cargar conversación desde historial
+  useEffect(() => {
+    if (location.state?.loadConversation && location.state?.initialQuery) {
+      const query = location.state.initialQuery;
+      setInputMessage(query);
+      
+      toast({
+        title: "Conversación cargada",
+        description: "Puedes continuar desde donde lo dejaste"
+      });
+      
+      // Enviar automáticamente la consulta
+      setTimeout(() => {
+        handleSendMessage();
+      }, 500);
+    }
+  }, [location.state]);
 
   const quickSuggestions = [
     "🍴 Restaurantes románticos en Bogotá",

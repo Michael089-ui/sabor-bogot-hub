@@ -1,4 +1,4 @@
-import { Search, Clock, ExternalLink, Trash2 } from "lucide-react";
+import { Search, Clock, ExternalLink, Trash2, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,12 +11,72 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { supabase } from "@/integrations/supabase/client";
+import { useEffect, useState } from "react";
+import { useToast } from "@/hooks/use-toast";
+
+interface Busqueda {
+  id_busqueda: string;
+  query: string;
+  fecha: string;
+  tipo: "Chat IA" | "Búsqueda";
+  resultados: number;
+  messages?: any[];
+}
 
 const HistorialBusquedas = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const [busquedas, setBusquedas] = useState<Busqueda[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Mock data - historial de búsquedas del usuario
-  const busquedas = [
+  useEffect(() => {
+    fetchHistorial();
+  }, []);
+
+  const fetchHistorial = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('historial_busqueda')
+        .select(`
+          id_busqueda,
+          query,
+          fecha,
+          resultado_busqueda (
+            id_resultado
+          )
+        `)
+        .eq('id_usuario', user.id)
+        .order('fecha', { ascending: false });
+
+      if (error) throw error;
+
+      const formattedData: Busqueda[] = (data || []).map((item: any) => ({
+        id_busqueda: item.id_busqueda,
+        query: item.query,
+        fecha: new Date(item.fecha).toLocaleString('es-CO'),
+        tipo: "Chat IA",
+        resultados: item.resultado_busqueda?.length || 0,
+        messages: []
+      }));
+
+      setBusquedas(formattedData);
+    } catch (error) {
+      console.error('Error fetching historial:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo cargar el historial",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const busquedasMock = [
     {
       id: 1,
       consulta: "¿Dónde comer arepas baratas en Chapinero?",
@@ -61,20 +121,72 @@ const HistorialBusquedas = () => {
     },
   ];
 
-  const handleViewResults = (id: number) => {
-    // TODO: Conectar con las tablas busqueda y resultado_busqueda
-    console.log("Ver resultados de búsqueda:", id);
-    navigate('/restaurantes');
+  const handleViewResults = (id_busqueda: string) => {
+    navigate('/restaurantes', { state: { searchId: id_busqueda } });
   };
 
-  const handleDeleteSearch = (id: number) => {
-    // TODO: Conectar con la tabla busqueda
-    console.log("Eliminar búsqueda:", id);
+  const handleLoadConversation = (busqueda: Busqueda) => {
+    // Navegar al chat con la conversación cargada
+    navigate('/chatia', { 
+      state: { 
+        loadConversation: true,
+        searchId: busqueda.id_busqueda,
+        initialQuery: busqueda.query
+      } 
+    });
   };
 
-  const handleClearHistory = () => {
-    // TODO: Conectar con la tabla busqueda
-    console.log("Limpiar historial completo");
+  const handleDeleteSearch = async (id_busqueda: string) => {
+    try {
+      const { error } = await supabase
+        .from('historial_busqueda')
+        .delete()
+        .eq('id_busqueda', id_busqueda);
+
+      if (error) throw error;
+
+      toast({
+        title: "Búsqueda eliminada",
+        description: "La búsqueda se eliminó correctamente"
+      });
+
+      fetchHistorial();
+    } catch (error) {
+      console.error('Error deleting search:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar la búsqueda",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleClearHistory = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { error } = await supabase
+        .from('historial_busqueda')
+        .delete()
+        .eq('id_usuario', user.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Historial limpiado",
+        description: "Todo el historial se eliminó correctamente"
+      });
+
+      fetchHistorial();
+    } catch (error) {
+      console.error('Error clearing history:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo limpiar el historial",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -109,7 +221,11 @@ const HistorialBusquedas = () => {
 
       {/* Content */}
       <div className="max-w-7xl mx-auto px-6 py-8">
-        {busquedas.length > 0 ? (
+        {isLoading ? (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">Cargando historial...</p>
+          </div>
+        ) : busquedas.length > 0 ? (
           <>
             {/* Stats Card */}
             <Card className="mb-8 bg-muted/50">
@@ -149,11 +265,11 @@ const HistorialBusquedas = () => {
                 </TableHeader>
                 <TableBody>
                   {busquedas.map((busqueda) => (
-                    <TableRow key={busqueda.id}>
+                    <TableRow key={busqueda.id_busqueda}>
                       <TableCell className="font-medium">
                         <div className="flex items-start gap-2">
                           <Search className="h-4 w-4 text-muted-foreground mt-1 flex-shrink-0" />
-                          <span className="text-foreground">{busqueda.consulta}</span>
+                          <span className="text-foreground">{busqueda.query}</span>
                         </div>
                       </TableCell>
                       <TableCell>
@@ -171,10 +287,21 @@ const HistorialBusquedas = () => {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
+                          {busqueda.tipo === "Chat IA" && (
+                            <Button
+                              variant="default"
+                              size="sm"
+                              onClick={() => handleLoadConversation(busqueda)}
+                              className="gap-2"
+                            >
+                              <MessageSquare className="h-4 w-4" />
+                              Cargar Chat
+                            </Button>
+                          )}
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleViewResults(busqueda.id)}
+                            onClick={() => handleViewResults(busqueda.id_busqueda)}
                             className="gap-2"
                           >
                             <ExternalLink className="h-4 w-4" />
@@ -183,7 +310,7 @@ const HistorialBusquedas = () => {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleDeleteSearch(busqueda.id)}
+                            onClick={() => handleDeleteSearch(busqueda.id_busqueda)}
                           >
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
@@ -198,13 +325,13 @@ const HistorialBusquedas = () => {
             {/* Vista de Mobile - Cards */}
             <div className="md:hidden space-y-4">
               {busquedas.map((busqueda) => (
-                <Card key={busqueda.id}>
+                <Card key={busqueda.id_busqueda}>
                   <CardContent className="p-4">
                     <div className="space-y-3">
                       <div className="flex items-start gap-2">
                         <Search className="h-4 w-4 text-muted-foreground mt-1 flex-shrink-0" />
                         <p className="font-medium text-foreground flex-1">
-                          {busqueda.consulta}
+                          {busqueda.query}
                         </p>
                       </div>
                       
@@ -220,23 +347,36 @@ const HistorialBusquedas = () => {
                         </span>
                       </div>
 
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleViewResults(busqueda.id)}
-                          className="flex-1 gap-2"
-                        >
-                          <ExternalLink className="h-4 w-4" />
-                          Ver Resultados
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteSearch(busqueda.id)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+                      <div className="flex flex-col gap-2">
+                        {busqueda.tipo === "Chat IA" && (
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => handleLoadConversation(busqueda)}
+                            className="w-full gap-2"
+                          >
+                            <MessageSquare className="h-4 w-4" />
+                            Cargar Chat
+                          </Button>
+                        )}
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleViewResults(busqueda.id_busqueda)}
+                            className="flex-1 gap-2"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                            Ver Resultados
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteSearch(busqueda.id_busqueda)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </CardContent>
