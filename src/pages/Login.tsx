@@ -3,6 +3,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useAuth } from "@/hooks/useAuth";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -10,14 +20,17 @@ import { loginSchema, LoginFormData } from "@/lib/validations";
 import { useEffect, useState } from "react";
 
 const Login = () => {
-  const { signIn, signInWithGoogle, user } = useAuth();
+  const { signIn, signInWithGoogle, user, resendConfirmationEmail } = useAuth();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const [showResendDialog, setShowResendDialog] = useState(false);
+  const [resendEmail, setResendEmail] = useState("");
 
   const {
     register,
     handleSubmit,
     formState: { errors },
+    getValues,
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
   });
@@ -30,14 +43,27 @@ const Login = () => {
 
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
-    await signIn(data.email, data.password);
+    const result = await signIn(data.email, data.password);
     setIsLoading(false);
+    
+    if (result.error?.message?.includes('Email not confirmed')) {
+      setResendEmail(data.email);
+      setShowResendDialog(true);
+    }
   };
 
   const handleGoogleLogin = async () => {
     setIsLoading(true);
     await signInWithGoogle();
     setIsLoading(false);
+  };
+
+  const handleResendConfirmation = async () => {
+    const email = resendEmail || getValues('email');
+    if (email) {
+      await resendConfirmationEmail(email);
+      setShowResendDialog(false);
+    }
   };
 
   return (
@@ -152,16 +178,52 @@ const Login = () => {
                 Acceder con Google
               </Button>
 
-              <div className="text-center text-sm text-muted-foreground">
-                ¿No tienes cuenta?{" "}
-                <Link to="/registro" className="text-primary hover:underline font-medium">
-                  Crear cuenta
-                </Link>
+              <div className="text-center text-sm text-muted-foreground space-y-2">
+                <p>
+                  ¿No tienes cuenta?{" "}
+                  <Link to="/registro" className="text-primary hover:underline font-medium">
+                    Crear cuenta
+                  </Link>
+                </p>
+                <p>
+                  ¿No recibiste el correo de confirmación?{" "}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const email = getValues('email');
+                      if (email) {
+                        setResendEmail(email);
+                        setShowResendDialog(true);
+                      }
+                    }}
+                    className="text-primary hover:underline font-medium"
+                  >
+                    Reenviar correo
+                  </button>
+                </p>
               </div>
             </CardContent>
           </Card>
         </div>
       </main>
+
+      <AlertDialog open={showResendDialog} onOpenChange={setShowResendDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reenviar correo de confirmación</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se enviará un nuevo correo de confirmación a <strong>{resendEmail}</strong>. 
+              Por favor revisa tu bandeja de entrada y carpeta de spam.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleResendConfirmation}>
+              Reenviar correo
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

@@ -41,7 +41,7 @@ export const useAuth = () => {
     ubicacion: string;
   }) => {
     try {
-      const { data: authData, error } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
         options: {
@@ -66,26 +66,34 @@ export const useAuth = () => {
         return { error };
       }
 
-      // Enviar correo de confirmación
-      if (authData.user) {
-        try {
-          await supabase.functions.invoke('send-confirmation-email', {
-            body: {
-              email: data.email,
-              nombre: data.nombre,
-              confirmationUrl: `${window.location.origin}/dashboard`,
-            },
-          });
-        } catch (emailError) {
-          console.error('Error sending confirmation email:', emailError);
-        }
-      }
-
       toast.success('¡Registro exitoso! Revisa tu correo para confirmar tu cuenta antes de iniciar sesión.');
       navigate('/login');
       return { error: null };
     } catch (error: any) {
       toast.error('Error al registrarse');
+      return { error };
+    }
+  };
+
+  const resendConfirmationEmail = async (email: string) => {
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/dashboard`,
+        },
+      });
+
+      if (error) {
+        toast.error(error.message);
+        return { error };
+      }
+
+      toast.success('Correo de confirmación reenviado. Revisa tu bandeja de entrada.');
+      return { error: null };
+    } catch (error: any) {
+      toast.error('Error al reenviar el correo');
       return { error };
     }
   };
@@ -192,5 +200,6 @@ export const useAuth = () => {
     signInWithGoogle,
     signOut,
     checkOnboardingStatus,
+    resendConfirmationEmail,
   };
 };
