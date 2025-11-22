@@ -14,17 +14,69 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+
+const profileSchema = z.object({
+  nombre: z.string().min(1, "El nombre es requerido").max(100),
+  apellidos: z.string().max(100).optional(),
+  telefono: z.string().max(20).optional(),
+  ubicacion: z.string().max(200).optional(),
+  presupuesto: z.string().optional(),
+  tipo_comida: z.array(z.string()).optional(),
+});
+
+type ProfileFormData = z.infer<typeof profileSchema>;
+
+const preferences = [
+  "Mexicana", "Italiana", "Colombiana", "China", "Japonesa",
+  "Vegana", "Vegetariana", "Parrilla", "Mariscos", "Postres"
+];
 
 const Perfil = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("busquedas");
   const [loading, setLoading] = useState(true);
   const [userData, setUserData] = useState<any>(null);
   const [busquedas, setBusquedas] = useState<any[]>([]);
   const [resenas, setResenas] = useState<any[]>([]);
   const [favoritos, setFavoritos] = useState<any[]>([]);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const form = useForm<ProfileFormData>({
+    resolver: zodResolver(profileSchema),
+    defaultValues: {
+      nombre: "",
+      apellidos: "",
+      telefono: "",
+      ubicacion: "",
+      presupuesto: "",
+      tipo_comida: [],
+    },
+  });
 
   useEffect(() => {
     if (!user) {
@@ -43,6 +95,18 @@ const Perfil = () => {
 
         if (userError) throw userError;
         setUserData(userProfile);
+
+        // Actualizar valores del formulario
+        if (userProfile) {
+          form.reset({
+            nombre: userProfile.nombre || "",
+            apellidos: userProfile.apellidos || "",
+            telefono: userProfile.telefono || "",
+            ubicacion: userProfile.ubicacion || "",
+            presupuesto: userProfile.presupuesto || "",
+            tipo_comida: userProfile.tipo_comida || [],
+          });
+        }
 
         // Obtener historial de búsquedas
         const { data: searchHistory, error: searchError } = await supabase
@@ -90,7 +154,58 @@ const Perfil = () => {
   }, [user, navigate]);
 
   const handleEditProfile = () => {
-    console.log("Editar perfil");
+    setIsEditDialogOpen(true);
+  };
+
+  const togglePreference = (preference: string) => {
+    const currentPreferences = form.getValues("tipo_comida") || [];
+    const newPreferences = currentPreferences.includes(preference)
+      ? currentPreferences.filter((p) => p !== preference)
+      : [...currentPreferences, preference];
+    form.setValue("tipo_comida", newPreferences);
+  };
+
+  const onSubmit = async (data: ProfileFormData) => {
+    if (!user) return;
+
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from("usuario")
+        .update({
+          nombre: data.nombre,
+          apellidos: data.apellidos,
+          telefono: data.telefono,
+          ubicacion: data.ubicacion,
+          presupuesto: data.presupuesto,
+          tipo_comida: data.tipo_comida,
+        })
+        .eq("id", user.id);
+
+      if (error) throw error;
+
+      // Actualizar datos locales
+      setUserData({
+        ...userData,
+        ...data,
+      });
+
+      toast({
+        title: "Perfil actualizado",
+        description: "Tus datos se han guardado correctamente",
+      });
+
+      setIsEditDialogOpen(false);
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar el perfil",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleLogout = async () => {
@@ -294,6 +409,138 @@ const Perfil = () => {
           </Button>
         </div>
       </div>
+
+      {/* Diálogo de Edición */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Editar perfil</DialogTitle>
+          </DialogHeader>
+
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="nombre"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nombre</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Tu nombre" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="apellidos"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Apellidos</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Tus apellidos" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="telefono"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Teléfono</FormLabel>
+                    <FormControl>
+                      <Input placeholder="+57 123 456 7890" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="ubicacion"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Ubicación</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Tu ubicación" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="presupuesto"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Presupuesto</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecciona tu presupuesto" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="económico">Económico ($)</SelectItem>
+                        <SelectItem value="moderado">Moderado ($$)</SelectItem>
+                        <SelectItem value="alto">Alto ($$$)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="tipo_comida"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tipos de comida favoritos</FormLabel>
+                    <div className="grid grid-cols-2 gap-2 mt-2">
+                      {preferences.map((preference) => {
+                        const isSelected = (field.value || []).includes(preference);
+                        return (
+                          <Badge
+                            key={preference}
+                            variant={isSelected ? "default" : "outline"}
+                            className="cursor-pointer justify-center py-2 hover:bg-primary/80 transition-colors"
+                            onClick={() => togglePreference(preference)}
+                          >
+                            {preference}
+                          </Badge>
+                        );
+                      })}
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsEditDialogOpen(false)}
+                  disabled={isSubmitting}
+                >
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? "Guardando..." : "Guardar cambios"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
