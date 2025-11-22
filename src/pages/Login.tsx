@@ -45,10 +45,13 @@ const Login = () => {
     setIsLoading(true);
     const result = await signIn(data.email, data.password);
     setIsLoading(false);
-    
+
     if (result.error?.message?.includes('Email not confirmed')) {
       setResendEmail(data.email);
       setShowResendDialog(true);
+    } else if (!result.error) {
+      // Navegar solo si no hay error
+      navigate('/dashboard');
     }
   };
 
@@ -212,7 +215,7 @@ const Login = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Reenviar correo de confirmación</AlertDialogTitle>
             <AlertDialogDescription>
-              Se enviará un nuevo correo de confirmación a <strong>{resendEmail}</strong>. 
+              Se enviará un nuevo correo de confirmación a <strong>{resendEmail}</strong>.
               Por favor revisa tu bandeja de entrada y carpeta de spam.
             </AlertDialogDescription>
           </AlertDialogHeader>

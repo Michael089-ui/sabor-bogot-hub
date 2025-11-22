@@ -1,19 +1,18 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
-import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
 
   useEffect(() => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.email);
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
@@ -22,6 +21,7 @@ export const useAuth = () => {
 
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Initial session check:', session?.user?.email);
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
@@ -67,7 +67,6 @@ export const useAuth = () => {
       }
 
       toast.success('¡Registro exitoso! Revisa tu correo para confirmar tu cuenta antes de iniciar sesión.');
-      navigate('/login');
       return { error: null };
     } catch (error: any) {
       toast.error('Error al registrarse');
@@ -124,8 +123,7 @@ export const useAuth = () => {
       }
 
       toast.success('¡Bienvenido!');
-      navigate('/dashboard');
-      return { error: null };
+      return { error: null, user: data.user };
     } catch (error: any) {
       toast.error('Error al iniciar sesión');
       return { error };
@@ -183,7 +181,6 @@ export const useAuth = () => {
         return { error };
       }
       toast.success('Sesión cerrada');
-      navigate('/login');
       return { error: null };
     } catch (error: any) {
       toast.error('Error al cerrar sesión');

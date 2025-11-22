@@ -18,6 +18,8 @@ import Resenas from "./pages/Resenas";
 import HistorialBusquedas from "./pages/HistorialBusquedas";
 import HistorialResultados from "./pages/HistorialResultados";
 import Perfil from "./pages/Perfil";
+import PerfilDebug from "./pages/PerfilDebug";
+import PerfilSimplificadoV2 from "./pages/PerfilSimplificadoV2";
 import Configuracion from "./pages/Configuracion";
 import NotFound from "./pages/NotFound";
 import { OnboardingRedirect } from "./components/OnboardingRedirect";
@@ -31,26 +33,26 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          {/* Public routes without MainLayout */}
           <Route path="/login" element={<Login />} />
           <Route path="/registro" element={<Registro />} />
-          
-          {/* Onboarding route - protected but without MainLayout */}
           <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
-          
-          {/* Protected routes with MainLayout */}
-          <Route path="/" element={<MainLayout><ProtectedRoute><OnboardingRedirect><Dashboard /></OnboardingRedirect></ProtectedRoute></MainLayout>} />
-          <Route path="/dashboard" element={<MainLayout><ProtectedRoute><OnboardingRedirect><Dashboard /></OnboardingRedirect></ProtectedRoute></MainLayout>} />
-          <Route path="/chat-ia" element={<MainLayout><ProtectedRoute><OnboardingRedirect><ChatIA /></OnboardingRedirect></ProtectedRoute></MainLayout>} />
-          <Route path="/mapa" element={<MainLayout><ProtectedRoute><OnboardingRedirect><Mapa /></OnboardingRedirect></ProtectedRoute></MainLayout>} />
-          <Route path="/restaurantes" element={<MainLayout><ProtectedRoute><OnboardingRedirect><Restaurantes /></OnboardingRedirect></ProtectedRoute></MainLayout>} />
-          <Route path="/restaurantes/:id" element={<MainLayout><ProtectedRoute><OnboardingRedirect><RestauranteDetalle /></OnboardingRedirect></ProtectedRoute></MainLayout>} />
-          <Route path="/favoritos" element={<MainLayout><ProtectedRoute><OnboardingRedirect><Favoritos /></OnboardingRedirect></ProtectedRoute></MainLayout>} />
-          <Route path="/resenas" element={<MainLayout><ProtectedRoute><OnboardingRedirect><Resenas /></OnboardingRedirect></ProtectedRoute></MainLayout>} />
-          <Route path="/historial/busquedas" element={<MainLayout><ProtectedRoute><OnboardingRedirect><HistorialBusquedas /></OnboardingRedirect></ProtectedRoute></MainLayout>} />
-          <Route path="/historial/resultados" element={<MainLayout><ProtectedRoute><OnboardingRedirect><HistorialResultados /></OnboardingRedirect></ProtectedRoute></MainLayout>} />
-          <Route path="/perfil" element={<MainLayout><ProtectedRoute><OnboardingRedirect><Perfil /></OnboardingRedirect></ProtectedRoute></MainLayout>} />
-          <Route path="/configuracion" element={<MainLayout><ProtectedRoute><OnboardingRedirect><Configuracion /></OnboardingRedirect></ProtectedRoute></MainLayout>} />
+
+          {/* TODAS las rutas sin OnboardingRedirect */}
+          <Route path="/" element={<MainLayout><ProtectedRoute><Dashboard /></ProtectedRoute></MainLayout>} />
+          <Route path="/dashboard" element={<MainLayout><ProtectedRoute><Dashboard /></ProtectedRoute></MainLayout>} />
+          <Route path="/chat-ia" element={<MainLayout><ProtectedRoute><ChatIA /></ProtectedRoute></MainLayout>} />
+          <Route path="/mapa" element={<MainLayout><ProtectedRoute><Mapa /></ProtectedRoute></MainLayout>} />
+          <Route path="/restaurantes" element={<MainLayout><ProtectedRoute><Restaurantes /></ProtectedRoute></MainLayout>} />
+          <Route path="/restaurantes/:id" element={<MainLayout><ProtectedRoute><RestauranteDetalle /></ProtectedRoute></MainLayout>} />
+          <Route path="/favoritos" element={<MainLayout><ProtectedRoute><Favoritos /></ProtectedRoute></MainLayout>} />
+          <Route path="/resenas" element={<MainLayout><ProtectedRoute><Resenas /></ProtectedRoute></MainLayout>} />
+          <Route path="/historial/busquedas" element={<MainLayout><ProtectedRoute><HistorialBusquedas /></ProtectedRoute></MainLayout>} />
+          <Route path="/historial/resultados" element={<MainLayout><ProtectedRoute><HistorialResultados /></ProtectedRoute></MainLayout>} />
+          <Route path="/perfil" element={<MainLayout><ProtectedRoute><Perfil /></ProtectedRoute></MainLayout>} />
+          <Route path="/configuracion" element={<MainLayout><ProtectedRoute><Configuracion /></ProtectedRoute></MainLayout>} />
+          {/* <Route path="/perfil-debug" element={<ProtectedRoute><PerfilDebug /></ProtectedRoute>} />
+          <Route path="/perfil" element={<MainLayout><ProtectedRoute><PerfilSimplificadoV2 /></ProtectedRoute></MainLayout>} /> */}
+
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

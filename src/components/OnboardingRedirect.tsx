@@ -12,32 +12,56 @@ export const OnboardingRedirect = ({ children }: OnboardingRedirectProps) => {
   const location = useLocation();
   const [checking, setChecking] = useState(true);
 
-  // Rutas que no requieren onboarding completo
-  const exemptRoutes = ["/perfil", "/configuracion"];
+  console.log('OnboardingRedirect - Estado:', {
+    user: !!user,
+    authLoading,
+    location: location.pathname,
+    checking
+  });
 
   useEffect(() => {
-    const checkAndRedirect = async () => {
-      if (!authLoading && user) {
-        // Si estamos en una ruta exenta, no verificar onboarding
-        if (exemptRoutes.includes(location.pathname)) {
-          setChecking(false);
-          return;
-        }
-
-        const isCompleted = await checkOnboardingStatus();
-        if (!isCompleted) {
-          navigate("/onboarding");
-        }
+    // Si no hay usuario o todavía está cargando, no hacer nada
+    if (authLoading || !user) {
+      if (!authLoading && !user) {
         setChecking(false);
-      } else if (!authLoading) {
+      }
+      return;
+    }
+
+    const checkOnboarding = async () => {
+      console.log('Verificando onboarding para ruta:', location.pathname);
+      
+      // Rutas que NO requieren onboarding completado
+      const exemptRoutes = ["/perfil", "/configuracion", "/onboarding"];
+      
+      if (exemptRoutes.includes(location.pathname)) {
+        console.log('Ruta exenta, permitiendo acceso');
+        setChecking(false);
+        return;
+      }
+
+      try {
+        const isCompleted = await checkOnboardingStatus();
+        console.log('Onboarding completado?:', isCompleted);
+        
+        if (!isCompleted) {
+          console.log('Redirigiendo a onboarding');
+          navigate("/onboarding", { replace: true });
+        } else {
+          console.log('Onboarding OK, permitiendo acceso');
+          setChecking(false);
+        }
+      } catch (error) {
+        console.error('Error verificando onboarding:', error);
         setChecking(false);
       }
     };
 
-    checkAndRedirect();
-  }, [user, authLoading, checkOnboardingStatus, navigate, location.pathname]);
+    checkOnboarding();
+  }, [user, authLoading, location.pathname, checkOnboardingStatus, navigate]);
 
   if (authLoading || checking) {
+    console.log('Mostrando loading spinner');
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
@@ -45,5 +69,6 @@ export const OnboardingRedirect = ({ children }: OnboardingRedirectProps) => {
     );
   }
 
+  console.log('Renderizando children para:', location.pathname);
   return <>{children}</>;
 };

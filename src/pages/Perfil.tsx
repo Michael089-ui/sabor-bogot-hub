@@ -55,7 +55,7 @@ const preferences = [
 
 const Perfil = () => {
   const navigate = useNavigate();
-  const { user, signOut } = useAuth();
+  const { user, signOut, loading: authLoading } = useAuth(); // ← Agregar authLoading
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("busquedas");
   const [loading, setLoading] = useState(true);
@@ -79,13 +79,22 @@ const Perfil = () => {
   });
 
   useEffect(() => {
-    if (!user) {
-      navigate('/login');
+    console.log('🎯 Perfil - useEffect ejecutado', { 
+      user: user?.email, 
+      authLoading 
+    });
+    
+    // Esperar a que authLoading termine Y tener usuario
+    if (authLoading || !user) {
+      console.log('🎯 Perfil - Esperando autenticación...');
       return;
     }
 
     const fetchUserData = async () => {
       try {
+        console.log('🎯 Perfil - Iniciando fetchUserData');
+        setLoading(true);
+
         // Obtener datos del usuario desde la tabla usuario
         const { data: userProfile, error: userError } = await supabase
           .from("usuario")
@@ -102,14 +111,15 @@ const Perfil = () => {
           apellidos: user.user_metadata?.apellidos || "",
           email: user.email,
           telefono: user.user_metadata?.telefono || "",
-          tipo_comida: [],
-          presupuesto: "",
-          ubicacion: "",
+          tipo_comida: user.user_metadata?.tipo_comida?.split(',') || [],
+          presupuesto: user.user_metadata?.presupuesto || "",
+          ubicacion: user.user_metadata?.ubicacion || "",
         };
 
+        console.log('🎯 Perfil - Perfil base:', baseProfile);
         setUserData(baseProfile);
 
-        // Actualizar valores del formulario
+        // Actualizar valores del formulario SIN causar re-render
         form.reset({
           nombre: baseProfile.nombre || "",
           apellidos: baseProfile.apellidos || "",
@@ -154,15 +164,23 @@ const Perfil = () => {
         if (!favsError && favs) {
           setFavoritos(favs);
         }
+
+        console.log('🎯 Perfil - Datos cargados exitosamente');
       } catch (error) {
-        console.error('Error fetching user data:', error);
+        console.error('🎯 Perfil - Error fetching user data:', error);
+        toast({
+          title: "Error",
+          description: "No se pudieron cargar los datos del perfil",
+          variant: "destructive",
+        });
       } finally {
         setLoading(false);
+        console.log('🎯 Perfil - fetchUserData completado');
       }
     };
 
     fetchUserData();
-  }, [user, navigate]);
+  }, [user, authLoading, navigate]); // ← Agregar authLoading a las dependencias
 
   const handleEditProfile = () => {
     setIsEditDialogOpen(true);
@@ -183,15 +201,17 @@ const Perfil = () => {
     try {
       const { error } = await supabase
         .from("usuario")
-        .update({
+        .upsert({
+          id: user.id,
           nombre: data.nombre,
           apellidos: data.apellidos,
           telefono: data.telefono,
           ubicacion: data.ubicacion,
           presupuesto: data.presupuesto,
           tipo_comida: data.tipo_comida,
-        })
-        .eq("id", user.id);
+          email: user.email,
+          updated_at: new Date().toISOString(),
+        });
 
       if (error) throw error;
 
@@ -220,10 +240,21 @@ const Perfil = () => {
   };
 
   const handleLogout = async () => {
-    await signOut();
+    const { error } = await signOut();
+    if (!error) {
+      navigate('/login');
+    } else {
+      toast({
+        title: "Error",
+        description: "No se pudo cerrar sesión",
+        variant: "destructive",
+      });
+    }
   };
 
-  if (loading) {
+  // Mostrar loading si auth está cargando O el componente está cargando
+  if (authLoading || loading) {
+    console.log('🎯 Perfil - Mostrando loading', { authLoading, loading });
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
@@ -253,7 +284,7 @@ const Perfil = () => {
               {nombreCompleto.charAt(0).toUpperCase()}
             </AvatarFallback>
           </Avatar>
-          
+
           <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
             {nombreCompleto}
           </h1>
@@ -267,7 +298,7 @@ const Perfil = () => {
           <h2 className="text-xl font-bold text-foreground mb-4">
             Mis preferencias gastronómicas
           </h2>
-          
+
           <Card>
             <CardContent className="p-6 space-y-4">
               {/* Tipo de comida */}
@@ -299,7 +330,7 @@ const Perfil = () => {
                   {userData.ubicacion || 'No especificado'}
                 </div>
               </div>
-              
+
               {/* Teléfono */}
               {userData.telefono && (
                 <div className="space-y-2">
@@ -320,7 +351,7 @@ const Perfil = () => {
           <h2 className="text-xl font-bold text-foreground mb-4">
             Historial
           </h2>
-          
+
           <Card>
             <CardContent className="p-6">
               <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -334,10 +365,10 @@ const Perfil = () => {
                   <div className="space-y-3">
                     {busquedas.length > 0 ? (
                       busquedas.map((busqueda) => (
-                        <div 
+                        <div
                           key={busqueda.id_busqueda}
                           className="py-3 border-b border-border last:border-0 text-foreground hover:text-primary cursor-pointer transition-colors"
-                          onClick={() => navigate('/historial-busquedas')}
+                          onClick={() => navigate('/historial/busquedas')}
                         >
                           <div className="font-medium">{busqueda.query}</div>
                           <div className="text-xs text-muted-foreground mt-1">
@@ -357,7 +388,7 @@ const Perfil = () => {
                   <div className="space-y-3">
                     {resenas.length > 0 ? (
                       resenas.map((resena) => (
-                        <div 
+                        <div
                           key={resena.id_resena}
                           className="py-3 border-b border-border last:border-0 text-foreground hover:text-primary cursor-pointer transition-colors"
                           onClick={() => navigate('/resenas')}
@@ -385,7 +416,7 @@ const Perfil = () => {
                   <div className="space-y-3">
                     {favoritos.length > 0 ? (
                       favoritos.map((favorito) => (
-                        <div 
+                        <div
                           key={favorito.id_favorito}
                           className="py-3 border-b border-border last:border-0 text-foreground hover:text-primary cursor-pointer transition-colors"
                           onClick={() => navigate('/favoritos')}
@@ -410,16 +441,16 @@ const Perfil = () => {
 
         {/* Botones de Acción */}
         <div className="flex flex-col sm:flex-row gap-3">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             className="flex-1 gap-2"
             onClick={handleEditProfile}
           >
             <Edit className="h-4 w-4" />
             Editar perfil
           </Button>
-          <Button 
-            variant="destructive" 
+          <Button
+            variant="destructive"
             className="flex-1 gap-2"
             onClick={handleLogout}
           >
@@ -565,4 +596,3 @@ const Perfil = () => {
 };
 
 export default Perfil;
-
