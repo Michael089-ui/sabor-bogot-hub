@@ -15,7 +15,6 @@ import { toast } from "sonner";
 import { LogoSaborCapital } from "@/components/LogoSaborCapital";
 
 const onboardingSchema = z.object({
-  apellidos: z.string().min(2, "Los apellidos deben tener al menos 2 caracteres"),
   telefono: z.string().min(10, "El teléfono debe tener al menos 10 dígitos"),
   tipo_comida: z.array(z.string()).min(1, "Selecciona al menos una preferencia"),
   presupuesto: z.string().min(1, "Selecciona un presupuesto"),
@@ -29,6 +28,9 @@ export default function Onboarding() {
   const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
   const [selectedPreferences, setSelectedPreferences] = useState<string[]>([]);
+  
+  // Check if user came from Google OAuth
+  const isGoogleUser = user?.app_metadata?.provider === 'google';
 
   const {
     register,
@@ -81,7 +83,6 @@ export default function Onboarding() {
       const { error } = await supabase
         .from("usuario")
         .update({
-          apellidos: data.apellidos,
           telefono: data.telefono,
           tipo_comida: data.tipo_comida,
           presupuesto: data.presupuesto,
@@ -136,19 +137,6 @@ export default function Onboarding() {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="apellidos">Apellidos</Label>
-                  <Input
-                    id="apellidos"
-                    type="text"
-                    placeholder="García Rodríguez"
-                    {...register("apellidos")}
-                  />
-                  {errors.apellidos && (
-                    <p className="text-sm text-destructive">{errors.apellidos.message}</p>
-                  )}
-                </div>
-
                 <div className="space-y-2">
                   <Label htmlFor="telefono">Teléfono</Label>
                   <Input
