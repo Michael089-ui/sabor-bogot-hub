@@ -8,6 +8,7 @@ import { GoogleMap, LoadScript, Marker, InfoWindow } from "@react-google-maps/ap
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { useLocation } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 const cardStyles = `
   .restaurant-card {
@@ -72,6 +73,14 @@ interface Restaurant {
   placeId?: string;
 }
 
+interface ChatConversation {
+  id_conversacion: string;
+  id_usuario: string;
+  titulo: string;
+  fecha_creacion: string;
+  fecha_actualizacion: string;
+}
+
 const ChatIA = () => {
   const location = useLocation();
   const [inputMessage, setInputMessage] = useState("");
@@ -87,26 +96,119 @@ const ChatIA = () => {
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
   // Cargar conversación desde historial
   useEffect(() => {
-    if (location.state?.loadConversation && location.state?.initialQuery) {
-      const query = location.state.initialQuery;
-      setInputMessage(query);
-      
-      toast({
-        title: "Conversación cargada",
-        description: "Puedes continuar desde donde lo dejaste"
-      });
-      
-      // Enviar automáticamente la consulta
-      setTimeout(() => {
-        handleSendMessage();
-      }, 500);
-    }
+    const loadConversation = async () => {
+      if (location.state?.loadConversation && location.state?.searchId) {
+        try {
+          const { data: conversacion, error: convError } = await supabase
+            .from('chat_conversacion')
+            .select('*')
+            .eq('id_conversacion', location.state.searchId)
+            .maybeSingle();
+
+          if (convError) throw convError;
+
+          if (conversacion) {
+            const { data: mensajes, error: msgError } = await supabase
+              .from('chat_mensaje')
+              .select('*')
+              .eq('id_conversacion', conversacion.id_conversacion)
+              .order('timestamp', { ascending: true });
+
+            if (msgError) throw msgError;
+
+            if (mensajes && mensajes.length > 0) {
+              const loadedMessages: Message[] = mensajes.map(msg => ({
+                role: msg.role as "user" | "assistant",
+                content: msg.content,
+                timestamp: new Date(msg.timestamp).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
+              }));
+
+              setMessages(loadedMessages);
+              setCurrentConversationId(conversacion.id_conversacion);
+
+              toast({
+                title: "Conversación cargada",
+                description: `"${conversacion.titulo}" restaurada con ${mensajes.length} mensajes`
+              });
+            }
+          }
+        } catch (error) {
+          console.error('Error loading conversation:', error);
+          toast({
+            title: "Error",
+            description: "No se pudo cargar la conversación",
+            variant: "destructive"
+          });
+        }
+      } else if (location.state?.loadConversation && location.state?.initialQuery) {
+        // Opción alternativa: solo cargar query inicial
+        const query = location.state.initialQuery;
+        setInputMessage(query);
+
+        toast({
+          title: "Consulta cargada",
+          description: "Puedes continuar desde donde lo dejaste"
+        });
+      }
+    };
+
+    loadConversation();
   }, [location.state]);
+
+  const saveConversation = async (userMsg: Message, assistantMsg: Message) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      let conversationId = currentConversationId;
+
+      // Si no existe conversación, crear una nueva
+      if (!conversationId) {
+        const titulo = userMsg.content.substring(0, 100) + (userMsg.content.length > 100 ? '...' : '');
+        
+        const { data: newConv, error: convError } = await supabase
+          .from('chat_conversacion')
+          .insert({
+            id_usuario: user.id,
+            titulo: titulo
+          })
+          .select()
+          .single();
+
+        if (convError) throw convError;
+        conversationId = newConv.id_conversacion;
+        setCurrentConversationId(conversationId);
+      }
+
+      // Guardar ambos mensajes
+      const { error: msgError } = await supabase
+        .from('chat_mensaje')
+        .insert([
+          {
+            id_conversacion: conversationId,
+            role: userMsg.role,
+            content: userMsg.content
+          },
+          {
+            id_conversacion: conversationId,
+            role: assistantMsg.role,
+            content: assistantMsg.content
+          }
+        ]);
+
+      if (msgError) throw msgError;
+
+      console.log('✅ Conversación guardada:', conversationId);
+    } catch (error) {
+      console.error('Error saving conversation:', error);
+    }
+  };
 
   const quickSuggestions = [
     "🍴 Restaurantes románticos en Bogotá",
@@ -513,7 +615,12 @@ const ChatIA = () => {
       setMessages(prev => {
         const newMessages = [...prev];
         const lastMessage = newMessages[newMessages.length - 1];
+        const firstUserMessage = newMessages[newMessages.length - 2];
+        
         if (lastMessage.role === "assistant") {
+          // Guardar conversación completa
+          saveConversation(firstUserMessage, lastMessage);
+
           // Procesar las secciones de la respuesta completa
           const sections = processAssistantResponse(lastMessage.content);
           console.log('🗺️ Mapa:', sections.mapSection);

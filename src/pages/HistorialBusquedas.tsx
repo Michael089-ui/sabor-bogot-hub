@@ -126,12 +126,11 @@ const HistorialBusquedas = () => {
   };
 
   const handleLoadConversation = (busqueda: Busqueda) => {
-    // Navegar al chat con la conversación cargada
+    // Navegar al chat con el ID de conversación
     navigate('/chatia', { 
       state: { 
         loadConversation: true,
-        searchId: busqueda.id_busqueda,
-        initialQuery: busqueda.query
+        searchId: busqueda.id_busqueda
       } 
     });
   };
