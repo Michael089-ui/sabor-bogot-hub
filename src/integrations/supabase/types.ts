@@ -14,6 +14,65 @@ export type Database = {
   }
   public: {
     Tables: {
+      chat_conversacion: {
+        Row: {
+          fecha_actualizacion: string | null
+          fecha_creacion: string | null
+          id_conversacion: string
+          id_usuario: string
+          titulo: string | null
+        }
+        Insert: {
+          fecha_actualizacion?: string | null
+          fecha_creacion?: string | null
+          id_conversacion?: string
+          id_usuario: string
+          titulo?: string | null
+        }
+        Update: {
+          fecha_actualizacion?: string | null
+          fecha_creacion?: string | null
+          id_conversacion?: string
+          id_usuario?: string
+          titulo?: string | null
+        }
+        Relationships: []
+      }
+      chat_mensaje: {
+        Row: {
+          content: string
+          id_conversacion: string
+          id_mensaje: string
+          metadata: Json | null
+          role: string
+          timestamp: string | null
+        }
+        Insert: {
+          content: string
+          id_conversacion: string
+          id_mensaje?: string
+          metadata?: Json | null
+          role: string
+          timestamp?: string | null
+        }
+        Update: {
+          content?: string
+          id_conversacion?: string
+          id_mensaje?: string
+          metadata?: Json | null
+          role?: string
+          timestamp?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_mensaje_id_conversacion_fkey"
+            columns: ["id_conversacion"]
+            isOneToOne: false
+            referencedRelation: "chat_conversacion"
+            referencedColumns: ["id_conversacion"]
+          },
+        ]
+      }
       favorito: {
         Row: {
           fecha_agregado: string | null
