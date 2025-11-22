@@ -31,7 +31,7 @@ const Dashboard = () => {
     checkConnection();
   }, []);
 
-  // Mock data para recomendaciones
+  // Mock data para recomendaciones - insertar consultas de la base - extraer info de la API de reseñas e insertarlas a la bd para consulta
   const restaurantesRecomendados = [
     {
       id: 1,

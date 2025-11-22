@@ -29,7 +29,6 @@ export default function Onboarding() {
   const [loading, setLoading] = useState(false);
   const [selectedPreferences, setSelectedPreferences] = useState<string[]>([]);
   
-  // Check if user came from Google OAuth
   const isGoogleUser = user?.app_metadata?.provider === 'google';
 
   const {

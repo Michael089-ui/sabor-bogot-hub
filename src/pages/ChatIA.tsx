@@ -10,16 +10,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
-const cardStyles = `
-  .restaurant-card {
-    transition: all 0.3s ease;
-  }
-  .restaurant-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  }
-`;
-
 const GOOGLE_MAPS_API_KEY = "AIzaSyBer6JXdqunENnx3lqiLAszzqqREO8nGY0";
 
 const mapContainerStyle = {
@@ -36,15 +26,18 @@ const defaultCenter = {
 const restaurantIcon = {
   url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
     <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
-      <circle cx="16" cy="16" r="10" fill="hsl(12, 88%, 58%)" stroke="white" stroke-width="3"/>
+      <circle cx="16" cy="16" r="15" fill="hsl(12, 88%, 58%)" stroke="white" stroke-width="2"/>
+      <path fill="white" d="M12 12h2v8h-2zm6 0h2v8h-2zm-3 4v6h-2v-6h-2l3-4 3 4h-2z"/>
     </svg>
   `)}`
 };
 
 const userLocationIcon = {
   url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
-    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28">
-      <circle cx="14" cy="14" r="8" fill="hsl(142, 48%, 45%)" stroke="white" stroke-width="4"/>
+    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+      <circle cx="16" cy="16" r="14" fill="hsl(214, 89%, 52%)" stroke="white" stroke-width="2"/>
+      <circle cx="16" cy="16" r="6" fill="white"/>
+      <circle cx="16" cy="16" r="3" fill="hsl(214, 89%, 52%)"/>
     </svg>
   `)}`
 };
@@ -152,7 +145,7 @@ const ChatIA = () => {
             }
           }
         } catch (error) {
-          console.error('Error loading conversation:', error);
+          console.error('Error cargando conversación:', error);
           toast({
             title: "Error",
             description: "No se pudo cargar la conversación",
@@ -198,7 +191,7 @@ const ChatIA = () => {
             id_conversacion: conversationId
           });
 
-        if (histError) console.error('Error creating search history:', histError);
+        if (histError) console.error('Error creando historial de busqueda:', histError);
       }
 
       // Guardar ambos mensajes
@@ -221,7 +214,7 @@ const ChatIA = () => {
 
       console.log('✅ Conversación guardada:', conversationId);
     } catch (error) {
-      console.error('Error saving conversation:', error);
+      console.error('Error guardando conversación:', error);
     }
   };
 
@@ -444,7 +437,7 @@ const ChatIA = () => {
     if (placesDataMatch) {
       try {
         const placesData = JSON.parse(placesDataMatch[1]);
-        console.log('📍 Extracted', placesData.length, 'restaurants from Places API metadata');
+        /* console.log('📍 Extraer', placesData.length, 'restaurantes para Places API metadata'); */
 
         return placesData.map((place: any) => {
           const convertPriceLevel = (priceLevel: string): string => {
@@ -478,25 +471,21 @@ const ChatIA = () => {
           };
         });
       } catch (error) {
-        console.error('Error parsing Places API data:', error);
+        console.error('Error parseando Places API data:', error);
       }
     }
 
-    // Fallback: Extract from text format (Gemini's response)
-    console.log('🔄 Usando extracción de texto...');
     const cleanContent = content
       .replace(/\*\*\*/g, '')
       .replace(/\*\*/g, '')
       .replace(/\*/g, '');
 
-    // Patrones mejorados para extraer información
     const restaurantSections = cleanContent.split(/(?=🍽️\s*\*)/);
 
     console.log(`📄 Encontradas ${restaurantSections.length} secciones de restaurantes`);
 
     for (const section of restaurantSections) {
       try {
-        // Extraer nombre del restaurante (patrón más flexible)
         const nameMatch = section.match(/🍽️\s*\*{0,2}([^\n*-]+)/i);
         const coordMatch = section.match(/Coordenadas:\s*([-\d.]+),\s*([-\d.]+)/i);
 
@@ -621,7 +610,7 @@ const ChatIA = () => {
                 });
               }
             } catch (e) {
-              console.error('Error parsing SSE:', e);
+              console.error('Error parseando el SSE:', e); //Security Service Edge
             }
           }
         }
@@ -643,12 +632,12 @@ const ChatIA = () => {
           console.log('📝 Detalles:', sections.detailedResponse);
 
           // Extraer restaurantes de la respuesta
-          console.log('🔍 Extrayendo restaurantes del contenido...');
+          /* console.log('🔍 Extrayendo restaurantes del contenido...'); */
           const extracted = extractRestaurants(lastMessage.content);
-          console.log('📊 Restaurantes extraídos:', extracted);
+          /* console.log('📊 Restaurantes extraídos:', extracted); */
 
           if (extracted.length > 0) {
-            console.log('✅ Estableciendo restaurantes en el estado');
+            /* console.log('✅ Estableciendo restaurantes en el estado'); */
             setRestaurants(extracted);
             if (map && extracted[0]) {
               console.log('🗺️ Moviendo mapa a:', extracted[0].lat, extracted[0].lng);
@@ -656,7 +645,7 @@ const ChatIA = () => {
               map.setZoom(14);
             }
           } else {
-            console.log('❌ No se pudieron extraer restaurantes');
+            /* console.log('❌ No se pudieron extraer restaurantes'); */
             // Forzar algunos restaurantes de ejemplo para testing
             const sampleRestaurants: Restaurant[] = [
               {
@@ -692,7 +681,7 @@ const ChatIA = () => {
       });
 
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error('Error enviando el mensaje:', error);
       toast({
         title: "Error",
         description: "No se pudo enviar el mensaje. Por favor intenta de nuevo.",
@@ -737,7 +726,7 @@ const ChatIA = () => {
           map.setZoom(16);
         },
         (error) => {
-          console.error("Error getting location:", error);
+          console.error("Error obteniendo location:", error);
           toast({
             title: "Error",
             description: "No se pudo obtener tu ubicación",

@@ -20,7 +20,7 @@ const defaultCenter = {
   lng: -74.0817
 };
 
-// Íconos SVG codificados como strings
+// Íconos SVG codificados
 const restaurantIcon = {
   url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
     <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">

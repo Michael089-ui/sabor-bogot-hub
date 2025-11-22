@@ -114,7 +114,7 @@ const Registro = () => {
           </h1>
         </div>
 
-        {/* Registration Card */}
+        {/* Registro Card */}
         <Card className="max-w-2xl mx-auto shadow-lg border-border/50">
           <CardHeader className="space-y-1">
             <CardTitle className="text-3xl font-bold">Crea tu cuenta</CardTitle>

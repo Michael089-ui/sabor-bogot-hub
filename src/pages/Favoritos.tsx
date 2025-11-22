@@ -15,7 +15,7 @@ import {
 const Favoritos = () => {
   const navigate = useNavigate();
 
-  // Mock data - favoritos del usuario
+  // Mock data - favoritos del usuario - falta consultar API de reseñas para crear esto - no prioritario
   const favoritos = [
     {
       id: 1,

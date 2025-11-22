@@ -55,7 +55,7 @@ const preferences = [
 
 const Perfil = () => {
   const navigate = useNavigate();
-  const { user, signOut, loading: authLoading } = useAuth(); // ← Agregar authLoading
+  const { user, signOut, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("busquedas");
   const [loading, setLoading] = useState(true);
@@ -79,20 +79,19 @@ const Perfil = () => {
   });
 
   useEffect(() => {
-    console.log('🎯 Perfil - useEffect ejecutado', { 
-      user: user?.email, 
-      authLoading 
-    });
-    
-    // Esperar a que authLoading termine Y tener usuario
+    /* console.log('🎯 Perfil - useEffect ejecutado', {
+      user: user?.email,
+      authLoading
+    }); */
+
     if (authLoading || !user) {
-      console.log('🎯 Perfil - Esperando autenticación...');
+      /* console.log('🎯 Perfil - Esperando autenticación...'); */
       return;
     }
 
     const fetchUserData = async () => {
       try {
-        console.log('🎯 Perfil - Iniciando fetchUserData');
+        /* console.log('🎯 Perfil - Iniciando fetchUserData'); */
         setLoading(true);
 
         // Obtener datos del usuario desde la tabla usuario
@@ -104,22 +103,30 @@ const Perfil = () => {
 
         if (userError) throw userError;
 
-        // Si no existe registro en usuario, construimos uno básico con los datos de auth
-        const baseProfile = userProfile || {
-          id: user.id,
-          nombre: user.user_metadata?.nombre || user.email?.split("@")[0] || "Usuario",
-          apellidos: user.user_metadata?.apellidos || "",
-          email: user.email,
-          telefono: user.user_metadata?.telefono || "",
-          tipo_comida: user.user_metadata?.tipo_comida?.split(',') || [],
-          presupuesto: user.user_metadata?.presupuesto || "",
-          ubicacion: user.user_metadata?.ubicacion || "",
-        };
+        // Si no existe registro en usuario, crear uno básico
+        let baseProfile;
+        if (!userProfile) {
+          // Crear perfil inicial
+          const { data: newProfile, error: insertError } = await supabase
+            .from("usuario")
+            .insert({
+              id: user.id,
+              nombre: user.user_metadata?.nombre || user.email?.split("@")[0] || "Usuario",
+              email: user.email,
+            })
+            .select()
+            .single();
 
-        console.log('🎯 Perfil - Perfil base:', baseProfile);
+          if (insertError) throw insertError;
+          baseProfile = newProfile;
+        } else {
+          baseProfile = userProfile;
+        }
+
+        /* console.log('🎯 Perfil - Perfil cargado:', baseProfile); */
         setUserData(baseProfile);
 
-        // Actualizar valores del formulario SIN causar re-render
+        // Actualizar valores del formulario
         form.reset({
           nombre: baseProfile.nombre || "",
           apellidos: baseProfile.apellidos || "",
@@ -165,9 +172,9 @@ const Perfil = () => {
           setFavoritos(favs);
         }
 
-        console.log('🎯 Perfil - Datos cargados exitosamente');
+        /* console.log('🎯 Perfil - Datos cargados exitosamente'); */
       } catch (error) {
-        console.error('🎯 Perfil - Error fetching user data:', error);
+        /* console.error('🎯 Perfil - Error fetching user data:', error); */
         toast({
           title: "Error",
           description: "No se pudieron cargar los datos del perfil",
@@ -175,12 +182,11 @@ const Perfil = () => {
         });
       } finally {
         setLoading(false);
-        console.log('🎯 Perfil - fetchUserData completado');
       }
     };
 
     fetchUserData();
-  }, [user, authLoading, navigate]); // ← Agregar authLoading a las dependencias
+  }, [user, authLoading, navigate, form]);
 
   const handleEditProfile = () => {
     setIsEditDialogOpen(true);
@@ -199,39 +205,55 @@ const Perfil = () => {
 
     setIsSubmitting(true);
     try {
+      const updateData = {
+        id: user.id,
+        nombre: data.nombre,
+        apellidos: data.apellidos || null,
+        telefono: data.telefono || null,
+        ubicacion: data.ubicacion || null,
+        presupuesto: data.presupuesto || null,
+        tipo_comida: data.tipo_comida || [],
+        email: user.email,
+      };
+
+      /* console.log('🎯 Actualizando perfil con datos:', updateData); */
+
       const { error } = await supabase
         .from("usuario")
-        .upsert({
-          id: user.id,
-          nombre: data.nombre,
-          apellidos: data.apellidos,
-          telefono: data.telefono,
-          ubicacion: data.ubicacion,
-          presupuesto: data.presupuesto,
-          tipo_comida: data.tipo_comida,
-          email: user.email,
-          updated_at: new Date().toISOString(),
+        .upsert(updateData, {
+          onConflict: 'id'
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error de Supabase:', error);
+        throw error;
+      }
 
-      // Actualizar datos locales
-      setUserData({
-        ...userData,
-        ...data,
-      });
+      setUserData(prev => ({
+        ...prev,
+        ...updateData
+      }));
 
       toast({
-        title: "Perfil actualizado",
+        title: "✅ Perfil actualizado",
         description: "Tus datos se han guardado correctamente",
       });
 
       setIsEditDialogOpen(false);
-    } catch (error) {
-      console.error("Error updating profile:", error);
+
+    } catch (error: any) {
+      console.error("❌ Error actualizando perfil:", error);
+
+      let errorMessage = "No se pudo actualizar el perfil";
+      if (error.message?.includes('row-level security')) {
+        errorMessage = "Error de permisos. Verifica las políticas RLS de Supabase.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
       toast({
-        title: "Error",
-        description: "No se pudo actualizar el perfil",
+        title: "❌ Error",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -252,9 +274,8 @@ const Perfil = () => {
     }
   };
 
-  // Mostrar loading si auth está cargando O el componente está cargando
   if (authLoading || loading) {
-    console.log('🎯 Perfil - Mostrando loading', { authLoading, loading });
+    /* console.log('🎯 Perfil - Mostrando loading', { authLoading, loading }); */
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>

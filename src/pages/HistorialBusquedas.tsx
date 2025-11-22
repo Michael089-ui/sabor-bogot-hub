@@ -79,51 +79,6 @@ const HistorialBusquedas = () => {
     }
   };
 
-  const busquedasMock = [
-    {
-      id: 1,
-      consulta: "¿Dónde comer arepas baratas en Chapinero?",
-      fecha: "2025-01-15 14:30",
-      resultados: 8,
-      tipo: "Chat IA"
-    },
-    {
-      id: 2,
-      consulta: "Restaurantes románticos para cena",
-      fecha: "2025-01-14 19:45",
-      resultados: 12,
-      tipo: "Chat IA"
-    },
-    {
-      id: 3,
-      consulta: "Comida vegetariana cerca de la Universidad Nacional",
-      fecha: "2025-01-13 12:15",
-      resultados: 6,
-      tipo: "Chat IA"
-    },
-    {
-      id: 4,
-      consulta: "Mejores restaurantes de comida italiana",
-      fecha: "2025-01-12 20:00",
-      resultados: 15,
-      tipo: "Búsqueda"
-    },
-    {
-      id: 5,
-      consulta: "Lugares para desayunar en La Candelaria",
-      fecha: "2025-01-11 08:30",
-      resultados: 10,
-      tipo: "Chat IA"
-    },
-    {
-      id: 6,
-      consulta: "Restaurantes con terraza en Usaquén",
-      fecha: "2025-01-10 16:20",
-      resultados: 9,
-      tipo: "Búsqueda"
-    },
-  ];
-
   const handleViewResults = (id_busqueda: string) => {
     navigate('/restaurantes', { state: { searchId: id_busqueda } });
   };

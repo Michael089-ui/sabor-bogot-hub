@@ -4,7 +4,7 @@ const Configuracion = () => {
       <div className="text-center max-w-2xl">
         <h1 className="text-3xl font-bold text-foreground mb-4">Configuración</h1>
         <p className="text-muted-foreground">
-          Esta pantalla se generará a partir del wireframe de Stitch.
+          Acá debe estar el modo oscuro y demás modificaciones para gusto del usuario
         </p>
       </div>
     </div>
