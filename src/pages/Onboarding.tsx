@@ -82,14 +82,18 @@ export default function Onboarding() {
     try {
       const { error } = await supabase
         .from("usuario")
-        .update({
-          telefono: data.telefono,
-          tipo_comida: data.tipo_comida,
-          presupuesto: data.presupuesto,
-          ubicacion: data.ubicacion,
-          onboarding_completed: true,
-        })
-        .eq("id", user.id);
+        .upsert(
+          {
+            id: user.id,
+            email: user.email,
+            telefono: data.telefono,
+            tipo_comida: data.tipo_comida,
+            presupuesto: data.presupuesto,
+            ubicacion: data.ubicacion,
+            onboarding_completed: true,
+          },
+          { onConflict: "id" }
+        );
 
       if (error) {
         toast.error("Error al completar tu perfil");
