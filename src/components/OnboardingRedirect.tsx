@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 
 interface OnboardingRedirectProps {
@@ -9,11 +9,21 @@ interface OnboardingRedirectProps {
 export const OnboardingRedirect = ({ children }: OnboardingRedirectProps) => {
   const { user, loading: authLoading, checkOnboardingStatus } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [checking, setChecking] = useState(true);
+
+  // Rutas que no requieren onboarding completo
+  const exemptRoutes = ["/perfil", "/configuracion"];
 
   useEffect(() => {
     const checkAndRedirect = async () => {
       if (!authLoading && user) {
+        // Si estamos en una ruta exenta, no verificar onboarding
+        if (exemptRoutes.includes(location.pathname)) {
+          setChecking(false);
+          return;
+        }
+
         const isCompleted = await checkOnboardingStatus();
         if (!isCompleted) {
           navigate("/onboarding");
@@ -25,7 +35,7 @@ export const OnboardingRedirect = ({ children }: OnboardingRedirectProps) => {
     };
 
     checkAndRedirect();
-  }, [user, authLoading, checkOnboardingStatus, navigate]);
+  }, [user, authLoading, checkOnboardingStatus, navigate, location.pathname]);
 
   if (authLoading || checking) {
     return (
