@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Sparkles, ChevronDown } from "lucide-react";
+import { Sparkles, ChevronDown, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { RestauranteCard } from "@/components/RestauranteCard";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,89 +21,15 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-
-// Mock data para restaurantes
-const mockRestaurantes = [
-  {
-    id: 1,
-    nombre: "La Cocina de Sofía",
-    tipo: "Comida Colombiana",
-    calificacion: 4.5,
-    precio: "$$$",
-    imagen: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop"
-  },
-  {
-    id: 2,
-    nombre: "El Fogón de la Abuela",
-    tipo: "Comida Tradicional",
-    calificacion: 4.2,
-    precio: "$$",
-    imagen: "https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=400&h=300&fit=crop"
-  },
-  {
-    id: 3,
-    nombre: "Sabores del Pacífico",
-    tipo: "Mariscos",
-    calificacion: 4.7,
-    precio: "$$$$",
-    imagen: "https://images.unsplash.com/photo-1559339352-11d035aa65de?w=400&h=300&fit=crop"
-  },
-  {
-    id: 4,
-    nombre: "El Rincón Paisa",
-    tipo: "Comida Paisa",
-    calificacion: 4.0,
-    precio: "$$",
-    imagen: "https://images.unsplash.com/photo-1552566626-52f8b828add9?w=400&h=300&fit=crop"
-  },
-  {
-    id: 5,
-    nombre: "Ajiaco y Algo Más",
-    tipo: "Comida Bogotana",
-    calificacion: 4.3,
-    precio: "$$",
-    imagen: "https://images.unsplash.com/photo-1590846406792-0adc7f938f1d?w=400&h=300&fit=crop"
-  },
-  {
-    id: 6,
-    nombre: "Steakhouse Premium",
-    tipo: "Carnes",
-    calificacion: 4.8,
-    precio: "$$$$",
-    imagen: "https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=400&h=300&fit=crop"
-  },
-  {
-    id: 7,
-    nombre: "Pasta Italia",
-    tipo: "Italiana",
-    calificacion: 4.4,
-    precio: "$$$",
-    imagen: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400&h=300&fit=crop"
-  },
-  {
-    id: 8,
-    nombre: "Sushi Zen",
-    tipo: "Japonesa",
-    calificacion: 4.6,
-    precio: "$$$$",
-    imagen: "https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=400&h=300&fit=crop"
-  },
-  {
-    id: 9,
-    nombre: "Taquería El Sol",
-    tipo: "Mexicana",
-    calificacion: 4.1,
-    precio: "$$",
-    imagen: "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=400&h=300&fit=crop"
-  },
-];
+import { useRestaurants, getPhotoUrl, formatPriceLevel } from "@/hooks/useRestaurants";
 
 const Restaurantes = () => {
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
+  const { data: restaurantes, isLoading, error } = useRestaurants(20);
 
-  const handleRestauranteClick = (id: number) => {
-    navigate(`/restaurante-detalle`);
+  const handleRestauranteClick = (placeId: string) => {
+    navigate(`/restaurantes/${placeId}`);
   };
 
   return (
@@ -231,20 +158,53 @@ const Restaurantes = () => {
 
         {/* Grid de Restaurantes */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {mockRestaurantes.map((restaurante) => (
-            <div
-              key={restaurante.id}
-              onClick={() => handleRestauranteClick(restaurante.id)}
-            >
-              <RestauranteCard
-                nombre={restaurante.nombre}
-                imagen={restaurante.imagen}
-                calificacion={restaurante.calificacion}
-                precio={restaurante.precio}
-                tipo={restaurante.tipo}
-              />
+          {isLoading ? (
+            // Loading skeletons
+            Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="space-y-3">
+                <Skeleton className="h-40 w-full rounded-lg" />
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-4 w-1/2" />
+              </div>
+            ))
+          ) : error ? (
+            <div className="col-span-full text-center py-12">
+              <p className="text-muted-foreground">
+                Error al cargar restaurantes. Por favor intenta de nuevo.
+              </p>
             </div>
-          ))}
+          ) : !restaurantes || restaurantes.length === 0 ? (
+            <div className="col-span-full text-center py-12">
+              <p className="text-muted-foreground">
+                No se encontraron restaurantes. Intenta realizar una búsqueda primero.
+              </p>
+            </div>
+          ) : (
+            restaurantes.map((restaurante) => {
+              const photoUrl = restaurante.photos && restaurante.photos.length > 0
+                ? getPhotoUrl(restaurante.photos[0], 400)
+                : "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop";
+              
+              const tipo = restaurante.types && restaurante.types.length > 0
+                ? restaurante.types[0].replace(/_/g, " ")
+                : "Restaurante";
+
+              return (
+                <div
+                  key={restaurante.id}
+                  onClick={() => handleRestauranteClick(restaurante.place_id)}
+                >
+                  <RestauranteCard
+                    nombre={restaurante.name}
+                    imagen={photoUrl}
+                    calificacion={restaurante.rating || 0}
+                    precio={formatPriceLevel(restaurante.price_level)}
+                    tipo={tipo}
+                  />
+                </div>
+              );
+            })
+          )}
         </div>
 
         {/* Paginación */}
