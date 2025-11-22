@@ -103,12 +103,12 @@ const ChatIA = () => {
   // Cargar conversación desde historial
   useEffect(() => {
     const loadConversation = async () => {
-      if (location.state?.loadConversation && location.state?.searchId) {
+      if (location.state?.loadConversation && location.state?.conversationId) {
         try {
           const { data: conversacion, error: convError } = await supabase
             .from('chat_conversacion')
             .select('*')
-            .eq('id_conversacion', location.state.searchId)
+            .eq('id_conversacion', location.state.conversationId)
             .maybeSingle();
 
           if (convError) throw convError;
@@ -132,9 +132,22 @@ const ChatIA = () => {
               setMessages(loadedMessages);
               setCurrentConversationId(conversacion.id_conversacion);
 
+              // Extraer restaurantes de los mensajes del asistente para cargar el mapa
+              const allRestaurants: Restaurant[] = [];
+              mensajes.forEach(msg => {
+                if (msg.role === 'assistant') {
+                  const extractedRestaurants = extractRestaurants(msg.content);
+                  allRestaurants.push(...extractedRestaurants);
+                }
+              });
+
+              if (allRestaurants.length > 0) {
+                setRestaurants(allRestaurants);
+              }
+
               toast({
                 title: "Conversación cargada",
-                description: `"${conversacion.titulo}" restaurada con ${mensajes.length} mensajes`
+                description: `"${conversacion.titulo}" restaurada con ${mensajes.length} mensajes${allRestaurants.length > 0 ? ` y ${allRestaurants.length} restaurantes en el mapa` : ''}`
               });
             }
           }
@@ -146,15 +159,6 @@ const ChatIA = () => {
             variant: "destructive"
           });
         }
-      } else if (location.state?.loadConversation && location.state?.initialQuery) {
-        // Opción alternativa: solo cargar query inicial
-        const query = location.state.initialQuery;
-        setInputMessage(query);
-
-        toast({
-          title: "Consulta cargada",
-          description: "Puedes continuar desde donde lo dejaste"
-        });
       }
     };
 

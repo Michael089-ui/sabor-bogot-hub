@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 
 interface Busqueda {
   id_busqueda: string;
+  id_conversacion?: string;
   query: string;
   fecha: string;
   tipo: "Chat IA" | "Búsqueda";
@@ -43,6 +44,7 @@ const HistorialBusquedas = () => {
         .from('historial_busqueda')
         .select(`
           id_busqueda,
+          id_conversacion,
           query,
           fecha,
           resultado_busqueda (
@@ -56,6 +58,7 @@ const HistorialBusquedas = () => {
 
       const formattedData: Busqueda[] = (data || []).map((item: any) => ({
         id_busqueda: item.id_busqueda,
+        id_conversacion: item.id_conversacion,
         query: item.query,
         fecha: new Date(item.fecha).toLocaleString('es-CO'),
         tipo: "Chat IA",
@@ -126,11 +129,20 @@ const HistorialBusquedas = () => {
   };
 
   const handleLoadConversation = (busqueda: Busqueda) => {
+    if (!busqueda.id_conversacion) {
+      toast({
+        title: "Error",
+        description: "Esta conversación no tiene ID asociado",
+        variant: "destructive"
+      });
+      return;
+    }
+
     // Navegar al chat con el ID de conversación
-    navigate('/chatia', { 
+    navigate('/chat-ia', { 
       state: { 
         loadConversation: true,
-        searchId: busqueda.id_busqueda
+        conversationId: busqueda.id_conversacion
       } 
     });
   };
