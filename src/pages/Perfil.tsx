@@ -249,10 +249,20 @@ const Perfil = () => {
         throw error;
       }
 
-      setUserData(prev => ({
-        ...prev,
-        ...updateData
-      }));
+      // Recargar datos con relaciones para mostrar localidad y barrio
+      const { data: updatedProfile, error: fetchError } = await supabase
+        .from("usuario")
+        .select(`
+          *,
+          localidad:id_localidad(id_localidad, numero, nombre),
+          barrio:id_barrio(id_barrio, nombre)
+        `)
+        .eq("id", user.id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      setUserData(updatedProfile);
 
       toast({
         title: "✅ Perfil actualizado",
