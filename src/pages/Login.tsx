@@ -2,6 +2,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   AlertDialog,
@@ -25,6 +26,7 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showResendDialog, setShowResendDialog] = useState(false);
   const [resendEmail, setResendEmail] = useState("");
+  const [rememberMe, setRememberMe] = useState(true);
 
   const {
     register,
@@ -43,7 +45,7 @@ const Login = () => {
 
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
-    const result = await signIn(data.email, data.password);
+    const result = await signIn(data.email, data.password, rememberMe);
     setIsLoading(false);
 
     if (result.error?.message?.includes('Email not confirmed')) {
@@ -131,6 +133,20 @@ const Login = () => {
                   {errors.password && (
                     <p className="text-sm text-destructive">{errors.password.message}</p>
                   )}
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="remember"
+                    checked={rememberMe}
+                    onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+                  />
+                  <Label
+                    htmlFor="remember"
+                    className="text-sm font-normal cursor-pointer"
+                  >
+                    Recordarme
+                  </Label>
                 </div>
 
                 <Button className="w-full" size="lg" type="submit" disabled={isLoading}>
