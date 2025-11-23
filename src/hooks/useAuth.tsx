@@ -185,6 +185,44 @@ export const useAuth = () => {
     }
   };
 
+  const resetPassword = async (email: string) => {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+
+      if (error) {
+        toast.error(error.message);
+        return { error };
+      }
+
+      toast.success('Correo de recuperación enviado. Revisa tu bandeja de entrada.');
+      return { error: null };
+    } catch (error: any) {
+      toast.error('Error al enviar el correo de recuperación');
+      return { error };
+    }
+  };
+
+  const updatePassword = async (newPassword: string) => {
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (error) {
+        toast.error(error.message);
+        return { error };
+      }
+
+      toast.success('Contraseña actualizada exitosamente');
+      return { error: null };
+    } catch (error: any) {
+      toast.error('Error al actualizar la contraseña');
+      return { error };
+    }
+  };
+
   const signOut = async () => {
     try {
       // Limpiar preferencia de "recordarme"
@@ -213,5 +251,7 @@ export const useAuth = () => {
     signOut,
     checkOnboardingStatus,
     resendConfirmationEmail,
+    resetPassword,
+    updatePassword,
   };
 };
