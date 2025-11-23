@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { User, LogOut, Edit } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { useLocalidades, useBarriosPorLocalidad } from "@/hooks/useBarriosBogota";
+import { LocationCombobox } from "@/components/LocationCombobox";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -41,7 +43,8 @@ const profileSchema = z.object({
   nombre: z.string().min(1, "El nombre es requerido").max(100),
   apellidos: z.string().max(100).optional(),
   telefono: z.string().max(20).optional(),
-  ubicacion: z.string().max(200).optional(),
+  id_localidad: z.string().optional(),
+  id_barrio: z.string().optional(),
   presupuesto: z.string().optional(),
   tipo_comida: z.array(z.string()).optional(),
 });
@@ -65,6 +68,7 @@ const Perfil = () => {
   const [favoritos, setFavoritos] = useState<any[]>([]);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedLocalidadId, setSelectedLocalidadId] = useState<string | null>(null);
 
   const form = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
@@ -72,11 +76,16 @@ const Perfil = () => {
       nombre: "",
       apellidos: "",
       telefono: "",
-      ubicacion: "",
+      id_localidad: "",
+      id_barrio: "",
       presupuesto: "",
       tipo_comida: [],
     },
   });
+
+  // Cargar localidades y barrios
+  const { data: localidades = [], isLoading: loadingLocalidades } = useLocalidades();
+  const { data: barrios = [], isLoading: loadingBarrios } = useBarriosPorLocalidad(selectedLocalidadId);
 
   useEffect(() => {
     /* console.log('🎯 Perfil - useEffect ejecutado', {
@@ -94,10 +103,14 @@ const Perfil = () => {
         /* console.log('🎯 Perfil - Iniciando fetchUserData'); */
         setLoading(true);
 
-        // Obtener datos del usuario desde la tabla usuario
+        // Obtener datos del usuario desde la tabla usuario con datos relacionales
         const { data: userProfile, error: userError } = await supabase
           .from("usuario")
-          .select("*")
+          .select(`
+            *,
+            localidad:id_localidad(id_localidad, numero, nombre),
+            barrio:id_barrio(id_barrio, nombre)
+          `)
           .eq("id", user.id)
           .maybeSingle();
 
@@ -131,10 +144,16 @@ const Perfil = () => {
           nombre: baseProfile.nombre || "",
           apellidos: baseProfile.apellidos || "",
           telefono: baseProfile.telefono || "",
-          ubicacion: baseProfile.ubicacion || "",
+          id_localidad: baseProfile.id_localidad || "",
+          id_barrio: baseProfile.id_barrio || "",
           presupuesto: baseProfile.presupuesto || "",
           tipo_comida: baseProfile.tipo_comida || [],
         });
+
+        // Establecer localidad seleccionada para cargar barrios
+        if (baseProfile.id_localidad) {
+          setSelectedLocalidadId(baseProfile.id_localidad);
+        }
 
         // Obtener historial de búsquedas
         const { data: searchHistory, error: searchError } = await supabase
@@ -210,7 +229,8 @@ const Perfil = () => {
         nombre: data.nombre,
         apellidos: data.apellidos || null,
         telefono: data.telefono || null,
-        ubicacion: data.ubicacion || null,
+        id_localidad: data.id_localidad || null,
+        id_barrio: data.id_barrio || null,
         presupuesto: data.presupuesto || null,
         tipo_comida: data.tipo_comida || [],
         email: user.email,
@@ -348,7 +368,9 @@ const Perfil = () => {
                   Ubicación
                 </Label>
                 <div className="text-sm text-muted-foreground">
-                  {userData.ubicacion || 'No especificado'}
+                  {userData.localidad?.nombre && userData.barrio?.nombre
+                    ? `${userData.barrio.nombre}, ${userData.localidad.nombre}`
+                    : 'No especificado'}
                 </div>
               </div>
 
@@ -532,14 +554,61 @@ const Perfil = () => {
                 )}
               />
 
+              {/* Localidad */}
               <FormField
                 control={form.control}
-                name="ubicacion"
+                name="id_localidad"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Ubicación</FormLabel>
+                    <FormLabel>Localidad</FormLabel>
                     <FormControl>
-                      <Input placeholder="Tu ubicación" {...field} />
+                      <LocationCombobox
+                        options={localidades.map(l => ({
+                          value: l.id_localidad,
+                          label: `${l.numero}. ${l.nombre}`
+                        }))}
+                        value={field.value || ""}
+                        onValueChange={(value) => {
+                          field.onChange(value);
+                          setSelectedLocalidadId(value);
+                          // Limpiar barrio cuando se cambia localidad
+                          form.setValue('id_barrio', '');
+                        }}
+                        placeholder="Selecciona tu localidad"
+                        searchPlaceholder="Buscar localidad..."
+                        emptyText="No se encontró la localidad"
+                        disabled={loadingLocalidades}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Barrio */}
+              <FormField
+                control={form.control}
+                name="id_barrio"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Barrio</FormLabel>
+                    <FormControl>
+                      <LocationCombobox
+                        options={barrios.map(b => ({
+                          value: b.id_barrio,
+                          label: b.nombre
+                        }))}
+                        value={field.value || ""}
+                        onValueChange={field.onChange}
+                        placeholder={
+                          !selectedLocalidadId 
+                            ? "Primero selecciona una localidad" 
+                            : "Selecciona tu barrio"
+                        }
+                        searchPlaceholder="Buscar barrio..."
+                        emptyText="No se encontró el barrio"
+                        disabled={!selectedLocalidadId || loadingBarrios}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

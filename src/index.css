@@ -157,3 +157,9 @@ All colors MUST be HSL.
   background: transparent;
   border: none;
 }
+
+/* Estilos adicionales para comboboxes de ubicación */
+.popover-content-width-full {
+  width: var(--radix-popover-trigger-width);
+  max-height: var(--radix-popover-content-available-height);
+}
