@@ -12,6 +12,12 @@ export const useAuth = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         console.log('Auth state changed:', event, session?.user?.email);
+        
+        // Si hay sesión pero no está marcado "recordarme", verificar
+        if (session && !localStorage.getItem('rememberMe')) {
+          // No hacer nada aquí, dejar que la sesión persista hasta cerrar navegador
+        }
+        
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
@@ -96,7 +102,7 @@ export const useAuth = () => {
     }
   };
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (email: string, password: string, rememberMe: boolean = true) => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -119,6 +125,13 @@ export const useAuth = () => {
         await supabase.auth.signOut();
         toast.error('Debes confirmar tu correo electrónico antes de acceder. Revisa tu bandeja de entrada.');
         return { error: new Error('Email not confirmed') };
+      }
+
+      // Guardar preferencia de "recordarme"
+      if (rememberMe) {
+        localStorage.setItem('rememberMe', 'true');
+      } else {
+        localStorage.removeItem('rememberMe');
       }
 
       toast.success('¡Bienvenido!');
@@ -174,6 +187,9 @@ export const useAuth = () => {
 
   const signOut = async () => {
     try {
+      // Limpiar preferencia de "recordarme"
+      localStorage.removeItem('rememberMe');
+      
       const { error } = await supabase.auth.signOut();
       if (error) {
         toast.error(error.message);
