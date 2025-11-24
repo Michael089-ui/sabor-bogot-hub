@@ -194,13 +194,7 @@ const Restaurantes = () => {
                   key={restaurante.id}
                   onClick={() => handleRestauranteClick(restaurante.place_id)}
                 >
-                  <RestauranteCard
-                    nombre={restaurante.name}
-                    imagen={photoUrl}
-                    calificacion={restaurante.rating || 0}
-                    precio={formatPriceLevel(restaurante.price_level)}
-                    tipo={tipo}
-                  />
+                  <RestauranteCard restaurant={restaurante} />
                 </div>
               );
             })

@@ -18,56 +18,140 @@ const Favoritos = () => {
   // Mock data - favoritos del usuario - falta consultar API de reseñas para crear esto - no prioritario
   const favoritos = [
     {
-      id: 1,
-      nombre: "El Fogón de Doña Rosa",
-      imagen: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&auto=format&fit=crop",
-      calificacion: 4.5,
-      precio: "$$",
-      tipo: "Tradicional Colombiana"
+      id: "1",
+      place_id: "fav-1",
+      name: "El Fogón de Doña Rosa",
+      formatted_address: "Bogotá, Colombia",
+      neighborhood: "La Candelaria",
+      rating: 4.5,
+      user_ratings_total: 90,
+      price_level: "2",
+      photos: null,
+      location: null,
+      types: ["Tradicional Colombiana"],
+      open_now: true,
+      opening_hours: null,
+      phone_number: null,
+      website: null,
+      min_price: 25000,
+      max_price: 50000,
+      currency: "COP",
+      description: null,
+      cuisine: "Tradicional Colombiana"
     },
     {
-      id: 2,
-      nombre: "La Puerta Falsa",
-      imagen: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400&auto=format&fit=crop",
-      calificacion: 4.8,
-      precio: "$",
-      tipo: "Desayunos"
+      id: "2",
+      place_id: "fav-2",
+      name: "La Puerta Falsa",
+      formatted_address: "Bogotá, Colombia",
+      neighborhood: "La Candelaria",
+      rating: 4.8,
+      user_ratings_total: 150,
+      price_level: "1",
+      photos: null,
+      location: null,
+      types: ["Desayunos"],
+      open_now: true,
+      opening_hours: null,
+      phone_number: null,
+      website: null,
+      min_price: 10000,
+      max_price: 25000,
+      currency: "COP",
+      description: null,
+      cuisine: "Desayunos"
     },
     {
-      id: 3,
-      nombre: "Andrés Carne de Res",
-      imagen: "https://images.unsplash.com/photo-1544025162-d76694265947?w=400&auto=format&fit=crop",
-      calificacion: 4.6,
-      precio: "$$$",
-      tipo: "Parrilla"
+      id: "3",
+      place_id: "fav-3",
+      name: "Andrés Carne de Res",
+      formatted_address: "Chía, Cundinamarca",
+      neighborhood: "Chía",
+      rating: 4.6,
+      user_ratings_total: 200,
+      price_level: "3",
+      photos: null,
+      location: null,
+      types: ["Parrilla"],
+      open_now: true,
+      opening_hours: null,
+      phone_number: null,
+      website: null,
+      min_price: 50000,
+      max_price: 100000,
+      currency: "COP",
+      description: null,
+      cuisine: "Parrilla"
     },
     {
-      id: 4,
-      nombre: "Crepes & Waffles",
-      imagen: "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=400&auto=format&fit=crop",
-      calificacion: 4.3,
-      precio: "$$",
-      tipo: "Internacional"
+      id: "4",
+      place_id: "fav-4",
+      name: "Crepes & Waffles",
+      formatted_address: "Bogotá, Colombia",
+      neighborhood: "Zona Rosa",
+      rating: 4.3,
+      user_ratings_total: 180,
+      price_level: "2",
+      photos: null,
+      location: null,
+      types: ["Internacional"],
+      open_now: true,
+      opening_hours: null,
+      phone_number: null,
+      website: null,
+      min_price: 25000,
+      max_price: 50000,
+      currency: "COP",
+      description: null,
+      cuisine: "Internacional"
     },
     {
-      id: 5,
-      nombre: "Leo Cocina y Cava",
-      imagen: "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&auto=format&fit=crop",
-      calificacion: 4.9,
-      precio: "$$$$",
-      tipo: "Alta Cocina"
+      id: "5",
+      place_id: "fav-5",
+      name: "Leo Cocina y Cava",
+      formatted_address: "Bogotá, Colombia",
+      neighborhood: "Chapinero Alto",
+      rating: 4.9,
+      user_ratings_total: 220,
+      price_level: "4",
+      photos: null,
+      location: null,
+      types: ["Alta Cocina"],
+      open_now: true,
+      opening_hours: null,
+      phone_number: null,
+      website: null,
+      min_price: 150000,
+      max_price: 300000,
+      currency: "COP",
+      description: null,
+      cuisine: "Alta Cocina"
     },
     {
-      id: 6,
-      nombre: "Criterion",
-      imagen: "https://images.unsplash.com/photo-1550966871-3ed3cdb5ed0c?w=400&auto=format&fit=crop",
-      calificacion: 4.7,
-      precio: "$$$",
-      tipo: "Francesa"
-    },
+      id: "6",
+      place_id: "fav-6",
+      name: "Criterion",
+      formatted_address: "Bogotá, Colombia",
+      neighborhood: "Usaquén",
+      rating: 4.7,
+      user_ratings_total: 170,
+      price_level: "3",
+      photos: null,
+      location: null,
+      types: ["Francesa"],
+      open_now: true,
+      opening_hours: null,
+      phone_number: null,
+      website: null,
+      min_price: 80000,
+      max_price: 150000,
+      currency: "COP",
+      description: null,
+      cuisine: "Francesa"
+    }
   ];
 
-  const handleRemoveFavorite = (id: number) => {
+  const handleRemoveFavorite = (id: string) => {
     // TODO: Conectar con la tabla favorito
     console.log("Eliminar favorito:", id);
   };
@@ -117,11 +201,7 @@ const Favoritos = () => {
                 <div key={restaurante.id} className="relative group">
                   <div onClick={() => navigate('/restaurante-detalle')}>
                     <RestauranteCard
-                      nombre={restaurante.nombre}
-                      imagen={restaurante.imagen}
-                      calificacion={restaurante.calificacion}
-                      precio={restaurante.precio}
-                      tipo={restaurante.tipo}
+                      restaurant={restaurante}
                     />
                   </div>
                   

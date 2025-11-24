@@ -34,44 +34,114 @@ const Dashboard = () => {
   // Mock data para recomendaciones - insertar consultas de la base - extraer info de la API de reseñas e insertarlas a la bd para consulta
   const restaurantesRecomendados = [
     {
-      id: 1,
-      nombre: "La Cocina de Sofía",
-      imagen: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop",
-      calificacion: 4.8,
-      precio: "$$$",
-      tipo: "Comida Colombiana"
+      id: "1",
+      place_id: "mock-1",
+      name: "La Cocina de Sofía",
+      formatted_address: "Bogotá, Colombia",
+      neighborhood: "Chapinero",
+      rating: 4.8,
+      user_ratings_total: 120,
+      price_level: "3",
+      photos: null,
+      location: null,
+      types: ["Comida Colombiana"],
+      open_now: true,
+      opening_hours: null,
+      phone_number: null,
+      website: null,
+      min_price: 50000,
+      max_price: 100000,
+      currency: "COP",
+      description: null,
+      cuisine: "Comida Colombiana"
     },
     {
-      id: 2,
-      nombre: "El Fogón de la Abuela",
-      imagen: "https://images.unsplash.com/photo-1552566626-52f8b828add9?w=400&h=300&fit=crop",
-      calificacion: 4.5,
-      precio: "$$",
-      tipo: "Comida Tradicional"
+      id: "2",
+      place_id: "mock-2",
+      name: "El Fogón de la Abuela",
+      formatted_address: "Bogotá, Colombia",
+      neighborhood: "La Candelaria",
+      rating: 4.5,
+      user_ratings_total: 85,
+      price_level: "2",
+      photos: null,
+      location: null,
+      types: ["Comida Tradicional"],
+      open_now: true,
+      opening_hours: null,
+      phone_number: null,
+      website: null,
+      min_price: 25000,
+      max_price: 50000,
+      currency: "COP",
+      description: null,
+      cuisine: "Comida Tradicional"
     },
     {
-      id: 3,
-      nombre: "Sabores del Pacífico",
-      imagen: "https://images.unsplash.com/photo-1559339352-11d035aa65de?w=400&h=300&fit=crop",
-      calificacion: 4.7,
-      precio: "$$$$",
-      tipo: "Mariscos"
+      id: "3",
+      place_id: "mock-3",
+      name: "Sabores del Pacífico",
+      formatted_address: "Bogotá, Colombia",
+      neighborhood: "Zona T",
+      rating: 4.7,
+      user_ratings_total: 95,
+      price_level: "4",
+      photos: null,
+      location: null,
+      types: ["Mariscos"],
+      open_now: true,
+      opening_hours: null,
+      phone_number: null,
+      website: null,
+      min_price: 100000,
+      max_price: 200000,
+      currency: "COP",
+      description: null,
+      cuisine: "Mariscos"
     },
     {
-      id: 4,
-      nombre: "El Rincón Paisa",
-      imagen: "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=300&fit=crop",
-      calificacion: 4.6,
-      precio: "$$",
-      tipo: "Comida Paisa"
+      id: "4",
+      place_id: "mock-4",
+      name: "El Rincón Paisa",
+      formatted_address: "Bogotá, Colombia",
+      neighborhood: "Kennedy",
+      rating: 4.6,
+      user_ratings_total: 110,
+      price_level: "2",
+      photos: null,
+      location: null,
+      types: ["Comida Paisa"],
+      open_now: true,
+      opening_hours: null,
+      phone_number: null,
+      website: null,
+      min_price: 25000,
+      max_price: 50000,
+      currency: "COP",
+      description: null,
+      cuisine: "Comida Paisa"
     },
     {
-      id: 5,
-      nombre: "Ajiaco y Algo Más",
-      imagen: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400&h=300&fit=crop",
-      calificacion: 4.9,
-      precio: "$$$",
-      tipo: "Comida Bogotana"
+      id: "5",
+      place_id: "mock-5",
+      name: "Ajiaco y Algo Más",
+      formatted_address: "Bogotá, Colombia",
+      neighborhood: "Usaquén",
+      rating: 4.9,
+      user_ratings_total: 130,
+      price_level: "3",
+      photos: null,
+      location: null,
+      types: ["Comida Bogotana"],
+      open_now: true,
+      opening_hours: null,
+      phone_number: null,
+      website: null,
+      min_price: 50000,
+      max_price: 100000,
+      currency: "COP",
+      description: null,
+      cuisine: "Comida Bogotana"
     }
   ];
 
@@ -214,11 +284,8 @@ const Dashboard = () => {
           {restaurantesRecomendados.map((restaurante) => (
             <RestauranteCard
               key={restaurante.id}
-              nombre={restaurante.nombre}
-              imagen={restaurante.imagen}
-              calificacion={restaurante.calificacion}
-              precio={restaurante.precio}
-              tipo={restaurante.tipo}
+              restaurant={restaurante}
+              onClick={() => navigate('/restaurantes')}
             />
           ))}
         </div>

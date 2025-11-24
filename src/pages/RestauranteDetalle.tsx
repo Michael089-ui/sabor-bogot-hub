@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate, useParams } from "react-router-dom";
-import { useRestaurantDetail, getPhotoUrl, formatPriceLevel } from "@/hooks/useRestaurants";
+import { useRestaurantDetail, getPhotoUrl, getPriceInfo, formatCurrency } from "@/hooks/useRestaurants";
 
 const RestauranteDetalle = () => {
   const navigate = useNavigate();
@@ -68,6 +68,9 @@ const RestauranteDetalle = () => {
   const openingHoursText = restaurant.opening_hours && restaurant.opening_hours.weekday_text
     ? restaurant.opening_hours.weekday_text
     : null;
+
+  // Obtener información de precio
+  const priceInfo = getPriceInfo(restaurant);
 
   return (
     <div className="min-h-full bg-background">
@@ -154,9 +157,21 @@ const RestauranteDetalle = () => {
                 <Badge variant="secondary" className="mt-1">
                   <DollarSign className="h-3 w-3" />
                 </Badge>
-                <div>
+                <div className="flex-1">
                   <p className="text-sm text-muted-foreground mb-1">Precio</p>
-                  <p className="font-medium text-foreground">{formatPriceLevel(restaurant.price_level)}</p>
+                  <div className="space-y-1">
+                    <p className="font-medium text-foreground">
+                      {priceInfo.symbols} ({priceInfo.label})
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {priceInfo.range}
+                    </p>
+                    {restaurant.min_price && restaurant.max_price && (
+                      <p className="text-xs text-muted-foreground">
+                        Promedio: {formatCurrency(priceInfo.avgPrice)}/persona
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -255,6 +270,18 @@ const RestauranteDetalle = () => {
                   <p key={i} className="text-sm text-muted-foreground">{text}</p>
                 ))}
               </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Description */}
+        {restaurant.description && (
+          <Card className="mb-8">
+            <CardContent className="p-6">
+              <h2 className="text-xl font-bold text-foreground mb-4">Acerca de {restaurant.name}</h2>
+              <p className="text-muted-foreground leading-relaxed">
+                {restaurant.description}
+              </p>
             </CardContent>
           </Card>
         )}
