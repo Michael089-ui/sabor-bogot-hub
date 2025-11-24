@@ -302,7 +302,7 @@ const RestauranteDetalle = () => {
                     height="100%"
                     frameBorder="0"
                     style={{ border: 0 }}
-                    src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyAeFBja7x7CYXTHfZC1D8sZ8RI0RfRLwac&q=${restaurant.location.lat},${restaurant.location.lng}&zoom=16`}
+                    src={`https://www.google.com/maps/embed/v1/place?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&q=${restaurant.location.lat},${restaurant.location.lng}&zoom=16`}
                     allowFullScreen
                   />
                 ) : (
