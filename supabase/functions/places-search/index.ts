@@ -119,9 +119,8 @@ serve(async (req) => {
     // Transform and cache results
     const restaurants = await Promise.all(
       placesData.places.map(async (place: any) => {
-        const photoUrls = place.photos?.slice(0, 3).map((photo: any) => 
-          `https://places.googleapis.com/v1/${photo.name}/media?key=${GOOGLE_MAPS_API_KEY}&maxWidthPx=800`
-        ) || [];
+        // Guardar referencias de fotos, no URLs completas
+        const photoReferences = place.photos?.slice(0, 5).map((photo: any) => photo.name) || [];
 
         const restaurant = {
           place_id: place.id,
@@ -139,7 +138,7 @@ serve(async (req) => {
           website: place.websiteUri,
           opening_hours: place.currentOpeningHours?.weekdayDescriptions || null,
           open_now: place.currentOpeningHours?.openNow || false,
-          photos: photoUrls,
+          photos: photoReferences,
           search_query: query,
           neighborhood: neighborhood || extractNeighborhood(place.formattedAddress)
         };

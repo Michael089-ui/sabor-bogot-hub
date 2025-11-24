@@ -104,8 +104,18 @@ export const useRestaurantDetail = (placeId: string | undefined) => {
 };
 
 // Helper para obtener URL de foto de Google Places
-export const getPhotoUrl = (photoReference: string, maxWidth = 400) => {
-  const apiKey = "AIzaSyAeFBja7x7CYXTHfZC1D8sZ8RI0RfRLwac";
+export const getPhotoUrl = (photoReference: string, maxWidth = 800) => {
+  // Si ya es una URL completa, devolverla directamente
+  if (photoReference.startsWith('http')) {
+    return photoReference;
+  }
+  // Si es una referencia de Places API (New) format: places/PLACE_ID/photos/PHOTO_ID
+  if (photoReference.includes('places/')) {
+    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+    return `https://places.googleapis.com/v1/${photoReference}/media?key=${apiKey}&maxWidthPx=${maxWidth}`;
+  }
+  // Fallback para referencias antiguas
+  const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
   return `https://maps.googleapis.com/maps/api/place/photo?maxwidth=${maxWidth}&photo_reference=${photoReference}&key=${apiKey}`;
 };
 
