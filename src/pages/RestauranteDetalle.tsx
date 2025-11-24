@@ -5,11 +5,15 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate, useParams } from "react-router-dom";
 import { useRestaurantDetail, getPhotoUrl, getPriceInfo, formatCurrency } from "@/hooks/useRestaurants";
+import { GoogleMap, LoadScript, Marker, InfoWindow } from "@react-google-maps/api";
+import { useState } from "react";
 
 const RestauranteDetalle = () => {
   const navigate = useNavigate();
   const { id: placeId } = useParams<{ id: string }>();
   const { data: restaurant, isLoading, error } = useRestaurantDetail(placeId);
+  const [map, setMap] = useState<google.maps.Map | null>(null);
+  const [showInfoWindow, setShowInfoWindow] = useState(false);
 
   if (isLoading) {
     return (
@@ -297,14 +301,38 @@ const RestauranteDetalle = () => {
               
               <div className="relative h-80 bg-muted rounded-lg overflow-hidden mb-4">
                 {restaurant.location?.lat && restaurant.location?.lng ? (
-                  <iframe
-                    width="100%"
-                    height="100%"
-                    frameBorder="0"
-                    style={{ border: 0 }}
-                    src={`https://www.google.com/maps/embed/v1/place?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&q=${restaurant.location.lat},${restaurant.location.lng}&zoom=16`}
-                    allowFullScreen
-                  />
+                  <LoadScript googleMapsApiKey={import.meta.env.VITE_GOOGLE_MAPS_API_KEY}>
+                    <GoogleMap
+                      mapContainerStyle={{ width: '100%', height: '320px' }}
+                      center={{ lat: restaurant.location.lat, lng: restaurant.location.lng }}
+                      zoom={16}
+                      onLoad={(mapInstance) => setMap(mapInstance)}
+                      options={{
+                        zoomControl: true,
+                        streetViewControl: false,
+                        mapTypeControl: false,
+                        fullscreenControl: true,
+                      }}
+                    >
+                      <Marker
+                        position={{ lat: restaurant.location.lat, lng: restaurant.location.lng }}
+                        onClick={() => setShowInfoWindow(true)}
+                        title={restaurant.name}
+                      />
+                      
+                      {showInfoWindow && (
+                        <InfoWindow
+                          position={{ lat: restaurant.location.lat, lng: restaurant.location.lng }}
+                          onCloseClick={() => setShowInfoWindow(false)}
+                        >
+                          <div className="p-2">
+                            <h3 className="font-semibold text-sm">{restaurant.name}</h3>
+                            <p className="text-xs text-muted-foreground">{restaurant.formatted_address}</p>
+                          </div>
+                        </InfoWindow>
+                      )}
+                    </GoogleMap>
+                  </LoadScript>
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-muted/50">
                     <div className="text-center p-6">
