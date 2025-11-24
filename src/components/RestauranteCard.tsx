@@ -1,7 +1,7 @@
 import { Star, DollarSign } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { getPriceInfo } from "@/hooks/useRestaurants";
+import { getPriceInfo, getPhotoUrl } from "@/hooks/useRestaurants";
 
 interface Restaurant {
   id: string;
@@ -33,8 +33,8 @@ interface RestauranteCardProps {
 
 export function RestauranteCard({ restaurant, onClick }: RestauranteCardProps) {
   const priceInfo = getPriceInfo(restaurant);
-  const imageUrl = restaurant.photos?.[0] 
-    ? `https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400` 
+  const imageUrl = restaurant.photos && restaurant.photos.length > 0
+    ? getPhotoUrl(restaurant.photos[0], 400) 
     : 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400';
 
   return (
