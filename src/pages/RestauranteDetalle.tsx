@@ -295,33 +295,17 @@ const RestauranteDetalle = () => {
                 Ubicación
               </h2>
               
-              <div className="relative h-80 bg-muted rounded-lg overflow-hidden mb-4">
-                {restaurant.location?.lat && restaurant.location?.lng ? (
-                  <iframe
-                    width="100%"
-                    height="100%"
-                    frameBorder="0"
-                    style={{ border: 0 }}
-                    src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyAeFBja7x7CYXTHfZC1D8sZ8RI0RfRLwac&q=${restaurant.location.lat},${restaurant.location.lng}&zoom=16`}
-                    allowFullScreen
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-muted/50">
-                    <div className="text-center p-6">
-                      <MapPin className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-                      <p className="text-muted-foreground text-sm">
-                        Mapa no disponible
-                      </p>
-                    </div>
-                  </div>
-                )}
+              {/* Información de dirección */}
+              <div className="mb-4 p-4 bg-muted/50 rounded-lg">
+                <p className="text-sm font-medium text-foreground mb-1">Dirección:</p>
+                <p className="text-muted-foreground">{restaurant.formatted_address || "No disponible"}</p>
               </div>
 
-              {/* Fallback - Botón para abrir en Google Maps */}
-              <div className="flex flex-col sm:flex-row gap-3">
+              {/* Botones para abrir en Google Maps */}
+              <div className="grid sm:grid-cols-2 gap-3 mb-4">
                 <Button 
-                  variant="outline" 
-                  className="flex-1 gap-2"
+                  variant="default" 
+                  className="gap-2"
                   asChild
                 >
                   <a
@@ -329,14 +313,14 @@ const RestauranteDetalle = () => {
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    <ExternalLink className="h-4 w-4" />
-                    Abrir en Google Maps
+                    <MapPin className="h-4 w-4" />
+                    Ver ubicación en Google Maps
                   </a>
                 </Button>
                 
                 <Button 
                   variant="outline" 
-                  className="flex-1 gap-2"
+                  className="gap-2"
                   asChild
                 >
                   <a
@@ -344,17 +328,17 @@ const RestauranteDetalle = () => {
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    <MapPin className="h-4 w-4" />
+                    <ExternalLink className="h-4 w-4" />
                     Cómo llegar
                   </a>
                 </Button>
               </div>
 
-              {/* Nota sobre disponibilidad del mapa */}
-              <div className="mt-4 p-3 bg-muted rounded-lg flex items-start gap-2">
-                <AlertCircle className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                <p className="text-xs text-muted-foreground">
-                  Si el mapa no se visualiza correctamente, puedes usar los botones de arriba para ver la ubicación directamente en Google Maps.
+              {/* Nota informativa */}
+              <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-blue-600 dark:text-blue-400">
+                  Haz clic en "Ver ubicación en Google Maps" para ver el mapa completo y las indicaciones de cómo llegar.
                 </p>
               </div>
             </CardContent>
