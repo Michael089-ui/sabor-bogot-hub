@@ -104,19 +104,29 @@ export const useRestaurantDetail = (placeId: string | undefined) => {
 };
 
 // Helper para obtener URL de foto de Google Places
-export const getPhotoUrl = (photoReference: string, maxWidth = 800) => {
+export const getPhotoUrl = (photoReference: string | { photo_reference: string } | any, maxWidth = 800) => {
+  // Si es un objeto, extraer la propiedad photo_reference
+  let reference: string;
+  if (typeof photoReference === 'object' && photoReference !== null) {
+    reference = photoReference.photo_reference || photoReference.name || '';
+  } else {
+    reference = photoReference || '';
+  }
+
+  if (!reference) return '';
+
   // Si ya es una URL completa, devolverla directamente
-  if (photoReference.startsWith('http')) {
-    return photoReference;
+  if (reference.startsWith('http')) {
+    return reference;
   }
   // Si es una referencia de Places API (New) format: places/PLACE_ID/photos/PHOTO_ID
-  if (photoReference.includes('places/')) {
+  if (reference.includes('places/')) {
     const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-    return `https://places.googleapis.com/v1/${photoReference}/media?key=${apiKey}&maxWidthPx=${maxWidth}`;
+    return `https://places.googleapis.com/v1/${reference}/media?key=${apiKey}&maxWidthPx=${maxWidth}`;
   }
   // Fallback para referencias antiguas
   const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-  return `https://maps.googleapis.com/maps/api/place/photo?maxwidth=${maxWidth}&photo_reference=${photoReference}&key=${apiKey}`;
+  return `https://maps.googleapis.com/maps/api/place/photo?maxwidth=${maxWidth}&photo_reference=${reference}&key=${apiKey}`;
 };
 
 // Helper para formatear el precio
