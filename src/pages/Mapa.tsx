@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 
-const GOOGLE_MAPS_API_KEY = "AIzaSyBer6JXdqunENnx3lqiLAszzqqREO8nGY0";
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
 const mapContainerStyle = {
   width: '100%',
