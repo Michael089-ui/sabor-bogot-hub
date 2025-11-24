@@ -24,6 +24,7 @@ import Perfil from "./pages/Perfil";
 import PerfilDebug from "./pages/PerfilDebug";
 import PerfilSimplificadoV2 from "./pages/PerfilSimplificadoV2";
 import Configuracion from "./pages/Configuracion";
+import ImportRestaurants from "./pages/ImportRestaurants";
 import NotFound from "./pages/NotFound";
 import { OnboardingRedirect } from "./components/OnboardingRedirect";
 
@@ -56,9 +57,10 @@ const App = () => (
           <Route path="/historial/resultados" element={<MainLayout><ProtectedRoute><HistorialResultados /></ProtectedRoute></MainLayout>} />
           <Route path="/perfil" element={<MainLayout><ProtectedRoute><Perfil /></ProtectedRoute></MainLayout>} />
           <Route path="/configuracion" element={<MainLayout><ProtectedRoute><Configuracion /></ProtectedRoute></MainLayout>} />
+          <Route path="/admin/import" element={<MainLayout><ProtectedRoute><ImportRestaurants /></ProtectedRoute></MainLayout>} />
           {/* <Route path="/perfil-debug" element={<ProtectedRoute><PerfilDebug /></ProtectedRoute>} />
           <Route path="/perfil" element={<MainLayout><ProtectedRoute><PerfilSimplificadoV2 /></ProtectedRoute></MainLayout>} /> */}
-
+          
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
