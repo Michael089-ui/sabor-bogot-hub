@@ -19,10 +19,14 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { loginSchema, LoginFormData } from "@/lib/validations";
 import { useEffect, useState } from "react";
+import { useTheme } from "next-themes";
+import loginBgDark from "@/assets/login-bg-dark.png";
+import loginBgLight from "@/assets/login-bg-light.png";
 
 const Login = () => {
   const { signIn, signInWithGoogle, user, resendConfirmationEmail } = useAuth();
   const navigate = useNavigate();
+  const { theme } = useTheme();
   const [isLoading, setIsLoading] = useState(false);
   const [showResendDialog, setShowResendDialog] = useState(false);
   const [resendEmail, setResendEmail] = useState("");
@@ -71,10 +75,21 @@ const Login = () => {
     }
   };
 
+  const backgroundImage = theme === "dark" ? loginBgDark : loginBgLight;
+
   return (
-    <div className="min-h-screen bg-gradient-subtle flex flex-col">
+    <div 
+      className="min-h-screen flex flex-col relative"
+      style={{
+        backgroundImage: `url(${backgroundImage})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+      }}
+    >
+      <div className="absolute inset-0 bg-background/90 backdrop-blur-sm" />
       {/* Header */}
-      <header className="w-full px-6 py-4 flex items-center justify-between border-b border-border bg-background/80 backdrop-blur-sm">
+      <header className="w-full px-6 py-4 flex items-center justify-between border-b border-border bg-background/60 backdrop-blur-md relative z-10">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-primary rounded-md flex items-center justify-center">
             <span className="text-primary-foreground font-bold text-lg">S</span>
@@ -92,7 +107,7 @@ const Login = () => {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 flex items-center justify-center px-4 py-12">
+      <main className="flex-1 flex items-center justify-center px-4 py-12 relative z-10">
         <div className="w-full max-w-md space-y-8">
           {/* Hero Title */}
           <div className="text-center space-y-2">
