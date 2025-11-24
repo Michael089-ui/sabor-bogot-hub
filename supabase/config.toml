@@ -5,3 +5,15 @@ verify_jwt = false
 
 [functions.places-search]
 verify_jwt = false
+
+[functions.enrich-addresses]
+verify_jwt = false
+
+[functions.places-photo]
+verify_jwt = false
+
+[functions.discover-restaurants]
+verify_jwt = false
+
+[functions.enrich-with-ai]
+verify_jwt = false
