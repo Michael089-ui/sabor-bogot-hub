@@ -10,10 +10,14 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { registroSchema, RegistroFormData } from "@/lib/validations";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Eye, EyeOff } from "lucide-react";
+import { useTheme } from "next-themes";
+import loginBgDark from "@/assets/login-bg-dark.png";
+import loginBgLight from "@/assets/login-bg-light.png";
 
 const Registro = () => {
   const { signUp, signInWithGoogle, user } = useAuth();
   const navigate = useNavigate();
+  const { theme } = useTheme();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -83,10 +87,21 @@ const Registro = () => {
     setIsLoading(false);
   };
 
+  const backgroundImage = theme === "dark" ? loginBgDark : loginBgLight;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-accent/5">
+    <div 
+      className="min-h-screen relative"
+      style={{
+        backgroundImage: `url(${backgroundImage})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+      }}
+    >
+      <div className="absolute inset-0 bg-background/90 backdrop-blur-sm" />
       {/* Header */}
-      <header className="border-b border-border/40 bg-card/50 backdrop-blur-sm">
+      <header className="border-b border-border/40 bg-background/60 backdrop-blur-md relative z-10">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
@@ -106,7 +121,7 @@ const Registro = () => {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-12 max-w-6xl">
+      <main className="container mx-auto px-4 py-12 max-w-6xl relative z-10">
         {/* Hero Section */}
         <div className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4 bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent">
