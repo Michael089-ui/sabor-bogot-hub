@@ -1,4 +1,4 @@
-import { Heart, Star, Clock, MapPin, DollarSign, MessageSquare, ArrowLeft, Loader2, ExternalLink, Phone, Globe } from "lucide-react";
+import { Heart, Star, Clock, MapPin, DollarSign, MessageSquare, ArrowLeft, Loader2, ExternalLink, Phone, Globe, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -289,8 +289,13 @@ const RestauranteDetalle = () => {
         {/* Map Section */}
         {restaurant.location && (
           <Card className="mb-8">
-            <CardContent className="p-0">
-              <div className="relative h-80 bg-muted rounded-lg overflow-hidden">
+            <CardContent className="p-6">
+              <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
+                <MapPin className="h-5 w-5" />
+                Ubicación
+              </h2>
+              
+              <div className="relative h-80 bg-muted rounded-lg overflow-hidden mb-4">
                 <iframe
                   width="100%"
                   height="100%"
@@ -298,7 +303,52 @@ const RestauranteDetalle = () => {
                   style={{ border: 0 }}
                   src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyAeFBja7x7CYXTHfZC1D8sZ8RI0RfRLwac&q=place_id:${restaurant.place_id}`}
                   allowFullScreen
+                  onError={(e) => {
+                    const iframe = e.target as HTMLIFrameElement;
+                    iframe.style.display = 'none';
+                  }}
                 />
+              </div>
+
+              {/* Fallback - Botón para abrir en Google Maps */}
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button 
+                  variant="outline" 
+                  className="flex-1 gap-2"
+                  asChild
+                >
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(restaurant.formatted_address || restaurant.name)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    Abrir en Google Maps
+                  </a>
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  className="flex-1 gap-2"
+                  asChild
+                >
+                  <a
+                    href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(restaurant.formatted_address || restaurant.name)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <MapPin className="h-4 w-4" />
+                    Cómo llegar
+                  </a>
+                </Button>
+              </div>
+
+              {/* Nota sobre disponibilidad del mapa */}
+              <div className="mt-4 p-3 bg-muted rounded-lg flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-muted-foreground">
+                  Si el mapa no se visualiza correctamente, puedes usar los botones de arriba para ver la ubicación directamente en Google Maps.
+                </p>
               </div>
             </CardContent>
           </Card>
