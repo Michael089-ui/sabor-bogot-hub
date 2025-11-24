@@ -296,18 +296,25 @@ const RestauranteDetalle = () => {
               </h2>
               
               <div className="relative h-80 bg-muted rounded-lg overflow-hidden mb-4">
-                <iframe
-                  width="100%"
-                  height="100%"
-                  frameBorder="0"
-                  style={{ border: 0 }}
-                  src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyAeFBja7x7CYXTHfZC1D8sZ8RI0RfRLwac&q=place_id:${restaurant.place_id}`}
-                  allowFullScreen
-                  onError={(e) => {
-                    const iframe = e.target as HTMLIFrameElement;
-                    iframe.style.display = 'none';
-                  }}
-                />
+                {restaurant.location?.lat && restaurant.location?.lng ? (
+                  <iframe
+                    width="100%"
+                    height="100%"
+                    frameBorder="0"
+                    style={{ border: 0 }}
+                    src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyAeFBja7x7CYXTHfZC1D8sZ8RI0RfRLwac&q=${restaurant.location.lat},${restaurant.location.lng}&zoom=16`}
+                    allowFullScreen
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-muted/50">
+                    <div className="text-center p-6">
+                      <MapPin className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                      <p className="text-muted-foreground text-sm">
+                        Mapa no disponible
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Fallback - Botón para abrir en Google Maps */}
