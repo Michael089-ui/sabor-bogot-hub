@@ -34,15 +34,49 @@ export interface PriceInfo {
   avgPrice: number;
 }
 
-export const useRestaurants = (limit = 20) => {
+export interface RestaurantFilters {
+  cuisine?: string[];
+  priceLevel?: string[];
+  neighborhood?: string[];
+  minRating?: number;
+  openNow?: boolean;
+}
+
+export const useRestaurants = (limit?: number, filters?: RestaurantFilters) => {
   return useQuery({
-    queryKey: ["restaurants", limit],
+    queryKey: ["restaurants", limit, filters],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("restaurant_cache")
         .select("*")
-        .order("rating", { ascending: false, nullsFirst: false })
-        .limit(limit);
+        .order("rating", { ascending: false, nullsFirst: false });
+
+      // Aplicar filtros
+      if (filters?.cuisine && filters.cuisine.length > 0) {
+        query = query.or(filters.cuisine.map(c => `cuisine.ilike.%${c}%`).join(','));
+      }
+
+      if (filters?.priceLevel && filters.priceLevel.length > 0) {
+        query = query.in("price_level", filters.priceLevel);
+      }
+
+      if (filters?.neighborhood && filters.neighborhood.length > 0) {
+        query = query.in("neighborhood", filters.neighborhood);
+      }
+
+      if (filters?.minRating) {
+        query = query.gte("rating", filters.minRating);
+      }
+
+      if (filters?.openNow === true) {
+        query = query.eq("open_now", true);
+      }
+
+      if (limit) {
+        query = query.limit(limit);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       return data as Restaurant[];
