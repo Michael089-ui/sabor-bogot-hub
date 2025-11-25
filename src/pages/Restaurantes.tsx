@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Sparkles, ChevronDown, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -14,20 +14,10 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
-import { useRestaurants, getPhotoUrl, formatPriceLevel, RestaurantFilters } from "@/hooks/useRestaurants";
+import { useInfiniteRestaurants, formatPriceLevel, RestaurantFilters } from "@/hooks/useRestaurants";
 
 const Restaurantes = () => {
   const navigate = useNavigate();
-  const [currentPage, setCurrentPage] = useState(1);
   const [showRecommendationModal, setShowRecommendationModal] = useState(false);
   const [filters, setFilters] = useState<RestaurantFilters>({
     cuisine: [],
@@ -37,21 +27,43 @@ const Restaurantes = () => {
     openNow: undefined,
   });
 
-  const itemsPerPage = 12;
-  const { data: allRestaurants, isLoading, error } = useRestaurants(undefined, filters);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+  
+  const { 
+    data, 
+    isLoading, 
+    error, 
+    fetchNextPage, 
+    hasNextPage, 
+    isFetchingNextPage 
+  } = useInfiniteRestaurants(filters, 12);
 
-  // Paginación en el cliente
-  const paginatedRestaurants = useMemo(() => {
-    if (!allRestaurants) return [];
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    return allRestaurants.slice(startIndex, endIndex);
-  }, [allRestaurants, currentPage]);
+  // Flatten all pages into a single array
+  const allRestaurants = useMemo(() => {
+    return data?.pages.flatMap(page => page.data) || [];
+  }, [data]);
 
-  const totalPages = useMemo(() => {
-    if (!allRestaurants) return 0;
-    return Math.ceil(allRestaurants.length / itemsPerPage);
-  }, [allRestaurants]);
+  const totalCount = data?.pages[0]?.totalCount || 0;
+
+  // Intersection Observer para scroll infinito
+  useEffect(() => {
+    if (!loadMoreRef.current) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    observer.observe(loadMoreRef.current);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const handleRestauranteClick = (placeId: string) => {
     navigate(`/restaurantes/${placeId}`);
@@ -73,7 +85,6 @@ const Restaurantes = () => {
       
       return { ...prev, [filterType]: newArray };
     });
-    setCurrentPage(1);
   };
 
   const clearFilters = () => {
@@ -84,7 +95,6 @@ const Restaurantes = () => {
       minRating: undefined,
       openNow: undefined,
     });
-    setCurrentPage(1);
   };
 
   const activeFiltersCount = useMemo(() => {
@@ -298,7 +308,8 @@ const Restaurantes = () => {
           {/* Contador de resultados */}
           {!isLoading && allRestaurants && (
             <p className="text-sm text-muted-foreground px-1">
-              Mostrando {paginatedRestaurants.length} de {allRestaurants.length} restaurantes
+              Mostrando {allRestaurants.length} de {totalCount} restaurantes
+              {isFetchingNextPage && " (cargando más...)"}
             </p>
           )}
         </div>
@@ -323,91 +334,49 @@ const Restaurantes = () => {
           ) : !allRestaurants || allRestaurants.length === 0 ? (
             <div className="col-span-full text-center py-12">
               <p className="text-muted-foreground">
-                No se encontraron restaurantes. Intenta realizar una búsqueda primero.
+                {filters.cuisine?.length || filters.priceLevel?.length || filters.neighborhood?.length || filters.minRating || filters.openNow
+                  ? 'No se encontraron restaurantes con los filtros seleccionados.'
+                  : 'No se encontraron restaurantes. Intenta realizar una búsqueda primero.'}
               </p>
-            </div>
-          ) : paginatedRestaurants.length === 0 ? (
-            <div className="col-span-full text-center py-12">
-              <p className="text-muted-foreground">
-                No se encontraron restaurantes con los filtros seleccionados.
-              </p>
-              <Button variant="outline" onClick={clearFilters} className="mt-4">
-                Limpiar filtros
-              </Button>
+              {(filters.cuisine?.length || filters.priceLevel?.length || filters.neighborhood?.length || filters.minRating || filters.openNow) && (
+                <Button variant="outline" onClick={clearFilters} className="mt-4">
+                  Limpiar filtros
+                </Button>
+              )}
             </div>
           ) : (
-            paginatedRestaurants.map((restaurante) => {
-              const photoUrl = restaurante.photos && restaurante.photos.length > 0
-                ? getPhotoUrl(restaurante.photos[0], 400)
-                : "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop";
-              
-              const tipo = restaurante.types && restaurante.types.length > 0
-                ? restaurante.types[0].replace(/_/g, " ")
-                : "Restaurante";
-
-              return (
+            <>
+              {allRestaurants.map((restaurante) => (
                 <div
                   key={restaurante.id}
                   onClick={() => handleRestauranteClick(restaurante.place_id)}
                 >
                   <RestauranteCard restaurant={restaurante} />
                 </div>
-              );
-            })
+              ))}
+            </>
           )}
         </div>
 
-        {/* Paginación */}
-        {totalPages > 1 && (
-          <div className="py-8">
-            <Pagination>
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious 
-                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                    className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                  />
-                </PaginationItem>
-                
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                  let pageNumber;
-                  if (totalPages <= 5) {
-                    pageNumber = i + 1;
-                  } else if (currentPage <= 3) {
-                    pageNumber = i + 1;
-                  } else if (currentPage >= totalPages - 2) {
-                    pageNumber = totalPages - 4 + i;
-                  } else {
-                    pageNumber = currentPage - 2 + i;
-                  }
-                  
-                  return (
-                    <PaginationItem key={pageNumber}>
-                      <PaginationLink 
-                        onClick={() => setCurrentPage(pageNumber)}
-                        isActive={currentPage === pageNumber}
-                        className="cursor-pointer"
-                      >
-                        {pageNumber}
-                      </PaginationLink>
-                    </PaginationItem>
-                  );
-                })}
-                
-                {totalPages > 5 && currentPage < totalPages - 2 && (
-                  <PaginationItem>
-                    <PaginationEllipsis />
-                  </PaginationItem>
-                )}
-                
-                <PaginationItem>
-                  <PaginationNext 
-                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                    className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
+        {/* Loading indicator para scroll infinito */}
+        {isFetchingNextPage && (
+          <div className="flex justify-center items-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <span className="ml-2 text-muted-foreground">Cargando más restaurantes...</span>
+          </div>
+        )}
+
+        {/* Elemento invisible para activar la carga */}
+        {hasNextPage && !isFetchingNextPage && (
+          <div ref={loadMoreRef} className="h-20" />
+        )}
+
+        {/* Mensaje cuando ya no hay más resultados */}
+        {!hasNextPage && allRestaurants.length > 0 && (
+          <div className="text-center py-8">
+            <p className="text-muted-foreground text-sm">
+              Has visto todos los restaurantes disponibles ({totalCount} en total)
+            </p>
           </div>
         )}
       </div>

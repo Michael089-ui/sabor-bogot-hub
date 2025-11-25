@@ -1,6 +1,8 @@
+import { useState, useEffect, useRef } from "react";
 import { Star, DollarSign } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { getPriceInfo, getPhotoUrl } from "@/hooks/useRestaurants";
 
 interface Restaurant {
@@ -32,22 +34,66 @@ interface RestauranteCardProps {
 }
 
 export function RestauranteCard({ restaurant, onClick }: RestauranteCardProps) {
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [isInView, setIsInView] = useState(false);
+  const imgRef = useRef<HTMLDivElement>(null);
+  
   const priceInfo = getPriceInfo(restaurant);
   const imageUrl = restaurant.photos && restaurant.photos.length > 0
     ? getPhotoUrl(restaurant.photos[0], 400) 
     : 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400';
+
+  // Intersection Observer para lazy loading
+  useEffect(() => {
+    if (!imgRef.current) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setIsInView(true);
+            observer.disconnect();
+          }
+        });
+      },
+      {
+        rootMargin: '50px', // Cargar 50px antes de que sea visible
+        threshold: 0.01
+      }
+    );
+
+    observer.observe(imgRef.current);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
 
   return (
     <Card 
       className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer min-w-[280px]"
       onClick={onClick}
     >
-      <div className="relative h-40 overflow-hidden">
-        <img 
-          src={imageUrl}
-          alt={restaurant.name}
-          className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-        />
+      <div 
+        ref={imgRef}
+        className="relative h-40 overflow-hidden bg-muted"
+      >
+        {!isInView ? (
+          <Skeleton className="w-full h-full" />
+        ) : (
+          <>
+            {!isLoaded && <Skeleton className="w-full h-full absolute inset-0" />}
+            <img 
+              src={imageUrl}
+              alt={restaurant.name}
+              className={`w-full h-full object-cover hover:scale-105 transition-all duration-300 ${
+                isLoaded ? 'opacity-100' : 'opacity-0'
+              }`}
+              onLoad={() => setIsLoaded(true)}
+              loading="lazy"
+            />
+          </>
+        )}
       </div>
       <CardContent className="p-4">
         <h3 className="font-semibold text-foreground mb-2 line-clamp-1">{restaurant.name}</h3>
