@@ -94,22 +94,15 @@ const Perfil = () => {
   const { data: barrios = [], isLoading: loadingBarrios } = useBarriosPorLocalidad(selectedLocalidadId);
 
   useEffect(() => {
-    /* console.log('🎯 Perfil - useEffect ejecutado', {
-      user: user?.email,
-      authLoading
-    }); */
-
     if (authLoading || !user) {
-      /* console.log('🎯 Perfil - Esperando autenticación...'); */
       return;
     }
 
     const fetchUserData = async () => {
       try {
-        /* console.log('🎯 Perfil - Iniciando fetchUserData'); */
         setLoading(true);
 
-        // Obtener datos del usuario desde la tabla usuario con datos relacionales
+        // SOLO OBTENER datos del usuario - NO CREAR PERFIL
         const { data: userProfile, error: userError } = await supabase
           .from("usuario")
           .select(`
@@ -118,50 +111,36 @@ const Perfil = () => {
             barrio:id_barrio(id_barrio, nombre)
           `)
           .eq("id", user.id)
-          .maybeSingle();
+          .single();
 
-        if (userError) throw userError;
-
-        // Si no existe registro en usuario, crear uno básico
-        let baseProfile;
-        if (!userProfile) {
-          // Crear perfil inicial
-          const { data: newProfile, error: insertError } = await supabase
-            .from("usuario")
-            .insert({
-              id: user.id,
-              nombre: user.user_metadata?.nombre || user.email?.split("@")[0] || "Usuario",
-              email: user.email,
-            })
-            .select()
-            .single();
-
-          if (insertError) throw insertError;
-          baseProfile = newProfile;
-        } else {
-          baseProfile = userProfile;
+        if (userError) {
+          console.error('No se encontró perfil del usuario:', userError);
+          toast({
+            title: "Perfil no encontrado",
+            description: "Completa tu registro primero",
+            variant: "destructive",
+          });
+          navigate('/registro');
+          return;
         }
 
-        setUserData(baseProfile);
+        // El perfil existe, cargar datos
+        setUserData(userProfile);
 
         const formValues = {
-          nombre: baseProfile.nombre || "",
-          apellidos: baseProfile.apellidos || "",
-          telefono: baseProfile.telefono || "",
-          id_localidad: baseProfile.id_localidad || "",
-          id_barrio: baseProfile.id_barrio || "",
-          presupuesto: baseProfile.presupuesto || "",
-          tipo_comida: baseProfile.tipo_comida || [],
+          nombre: userProfile.nombre || "",
+          apellidos: userProfile.apellidos || "",
+          telefono: userProfile.telefono || "",
+          id_localidad: userProfile.id_localidad || "",
+          id_barrio: userProfile.id_barrio || "",
+          presupuesto: userProfile.presupuesto || "",
+          tipo_comida: userProfile.tipo_comida || [],
         };
 
-        // Actualizar valores del formulario
         form.reset(formValues);
 
-        // Establecer localidad seleccionada para cargar barrios
-        if (baseProfile.id_localidad) {
-          setSelectedLocalidadId(baseProfile.id_localidad);
-        } else {
-          setSelectedLocalidadId(null);
+        if (userProfile.id_localidad) {
+          setSelectedLocalidadId(userProfile.id_localidad);
         }
 
         // Obtener historial de búsquedas
@@ -187,7 +166,6 @@ const Perfil = () => {
         if (!reviewsError && reviews) {
           setResenas(reviews);
 
-          // Cargar nombres de restaurantes para las reseñas
           const placeIds = reviews.map(r => r.place_id);
           if (placeIds.length > 0) {
             const { data: restaurants } = await supabase
@@ -218,7 +196,6 @@ const Perfil = () => {
         if (!favsError && favs) {
           setFavoritos(favs);
 
-          // Cargar nombres de restaurantes para favoritos
           const favPlaceIds = favs.map(f => f.place_id);
           if (favPlaceIds.length > 0) {
             const { data: restaurants } = await supabase
@@ -238,9 +215,8 @@ const Perfil = () => {
           }
         }
 
-        console.log('🎯 Perfil - Datos cargados exitosamente');
       } catch (error) {
-        console.error('🎯 Perfil - Error fetching user data:', error);
+        console.error('Error cargando datos del perfil:', error);
         toast({
           title: "Error",
           description: "No se pudieron cargar los datos del perfil",
@@ -252,18 +228,7 @@ const Perfil = () => {
     };
 
     fetchUserData();
-  }, [user, authLoading, navigate, form]);
-
-  /* useEffect(() => {
-    console.log('🔍 Estado de localidades y barrios:', {
-      localidades,
-      loadingLocalidades,
-      selectedLocalidadId,
-      barrios: barrios?.slice(0, 3), // Solo mostrar primeros 3 para no saturar
-      loadingBarrios,
-      barriosCount: barrios?.length
-    });
-  }, [localidades, loadingLocalidades, selectedLocalidadId, barrios, loadingBarrios]); */
+  }, [user, authLoading, navigate, form, toast]);
 
   const handleEditProfile = () => {
     setIsEditDialogOpen(true);
