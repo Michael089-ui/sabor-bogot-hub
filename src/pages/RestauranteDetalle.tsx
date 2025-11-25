@@ -24,6 +24,9 @@ const RestauranteDetalle = () => {
   const [showInfoWindow, setShowInfoWindow] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
 
+  // Check if user came from chat
+  const fromChat = (location.state as any)?.fromChat;
+
   if (isLoading) {
     return (
       <div className="min-h-full bg-background">
@@ -93,7 +96,32 @@ const RestauranteDetalle = () => {
     ? communityReviews.reduce((sum, r) => sum + (r.calificacion || 0), 0) / communityReviews.length
     : 0;
 
-  const handleCreateReview = (data: { calificacion: number; comentario: string }) => {
+  return (
+    <div className="min-h-full bg-background">
+      {/* Back Button */}
+      <div className="border-b border-border bg-card px-6 py-4">
+        {fromChat ? (
+          <Button 
+            variant="ghost" 
+            onClick={() => navigate('/chat-ia')}
+            className="gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Volver a la conversación
+          </Button>
+        ) : (
+          <Button 
+            variant="ghost" 
+            onClick={() => navigate('/restaurantes')}
+            className="gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Volver a Restaurantes
+          </Button>
+        )}
+      </div>
+
+      {/* Hero Image */}
     if (!placeId) return;
     createReview.mutate(
       { place_id: placeId, calificacion: data.calificacion, comentario: data.comentario },
@@ -101,18 +129,32 @@ const RestauranteDetalle = () => {
     );
   };
 
+  // Check if user came from chat
+  const fromChat = location.state?.fromChat;
+
   return (
     <div className="min-h-full bg-background">
       {/* Back Button */}
       <div className="border-b border-border bg-card px-6 py-4">
-        <Button 
-          variant="ghost" 
-          onClick={() => navigate('/restaurantes')}
-          className="gap-2"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Volver a Restaurantes
-        </Button>
+        {fromChat ? (
+          <Button 
+            variant="ghost" 
+            onClick={() => navigate('/chat-ia')}
+            className="gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Volver a la conversación
+          </Button>
+        ) : (
+          <Button 
+            variant="ghost" 
+            onClick={() => navigate('/restaurantes')}
+            className="gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Volver a Restaurantes
+          </Button>
+        )}
       </div>
 
       {/* Hero Image */}

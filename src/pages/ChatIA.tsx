@@ -101,6 +101,32 @@ const ChatIA = () => {
   const { isFavorite, toggleFavorite } = useFavorites();
   const { data: userProfile } = useUserProfile();
 
+  // Guardar estado del chat en sessionStorage para preservarlo al navegar a detalles
+  useEffect(() => {
+    sessionStorage.setItem('chatIA_state', JSON.stringify({
+      messages,
+      restaurants,
+      currentConversationId
+    }));
+  }, [messages, restaurants, currentConversationId]);
+
+  // Restaurar estado del chat si existe
+  useEffect(() => {
+    const savedState = sessionStorage.getItem('chatIA_state');
+    if (savedState && !location.state?.loadConversation) {
+      try {
+        const state = JSON.parse(savedState);
+        if (state.messages && state.messages.length > 1) { // Solo restaurar si hay más que el mensaje inicial
+          setMessages(state.messages);
+          setRestaurants(state.restaurants || []);
+          setCurrentConversationId(state.currentConversationId);
+        }
+      } catch (error) {
+        console.error('Error restaurando estado del chat:', error);
+      }
+    }
+  }, []);
+
   // Enviar prompt inicial si existe
   useEffect(() => {
     if (location.state?.initialPrompt && inputMessage) {
@@ -1065,18 +1091,20 @@ Si el usuario te saluda o pregunta algo general como "hola", "qué recomiendas",
                               <Heart className={`h-4 w-4 ${isFavorite(restaurant.placeId || '') ? 'fill-current' : ''}`} />
                               {isFavorite(restaurant.placeId || '') ? 'Guardado' : 'Guardar'}
                             </Button>
-                            <Button
-                              size="default"
-                              variant="default"
-                              className="flex-1 h-10 text-sm gap-2"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                navigate(`/restaurantes/${restaurant.placeId}`);
-                              }}
-                            >
-                              <Eye className="h-4 w-4" />
-                              Ver detalle
-                            </Button>
+                             <Button
+                               size="default"
+                               variant="default"
+                               className="flex-1 h-10 text-sm gap-2"
+                               onClick={(e) => {
+                                 e.stopPropagation();
+                                 navigate(`/restaurantes/${restaurant.placeId}`, {
+                                   state: { fromChat: true }
+                                 });
+                               }}
+                             >
+                               <Eye className="h-4 w-4" />
+                               Ver detalle
+                             </Button>
                           </div>
 
                           {(restaurant.website || restaurant.phone) && (

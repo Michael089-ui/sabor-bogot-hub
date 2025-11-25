@@ -22,9 +22,7 @@ serve(async (req) => {
 
     // Detect if this is a restaurant search query
     const lastUserMessage = messages[messages.length - 1];
-    const isGeneralQuery = lastUserMessage?.role === 'user' && 
-      /\b(hola|hey|ayuda|recomienda|qué|que|buscar)\b/i.test(lastUserMessage.content) && 
-      !/\b(restaurante|comida|comer|pizza|sushi|italiana|mexicana)\b/i.test(lastUserMessage.content);
+    const isFirstMessage = messages.length === 1;
     
     const isRestaurantQuery = lastUserMessage?.role === 'user' && 
       detectRestaurantQuery(lastUserMessage.content);
@@ -32,9 +30,28 @@ serve(async (req) => {
     let enrichedSystemPrompt = systemPrompt;
     let restaurantMetadata: any[] = [];
     
-    // If it's a general query and user has preferences, suggest using them
-    if (isGeneralQuery && userPreferences && (userPreferences.tipo_comida?.length || userPreferences.presupuesto)) {
-      enrichedSystemPrompt += `\n\n**NOTA:** El usuario pregunta de forma general pero tiene preferencias guardadas. Pregúntale si quiere ver recomendaciones basadas en sus preferencias (${userPreferences.tipo_comida?.join(', ') || 'sus gustos'}) o algo diferente.`;
+    if (!GOOGLE_GEMINI_API_KEY) {
+      console.error('GOOGLE_GEMINI_API_KEY not configured');
+      return new Response(
+        JSON.stringify({ 
+          error: 'Servicio de IA no disponible',
+          details: 'La clave de API no está configurada. Por favor contacta al administrador.'
+        }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // For first message, ask about preferences
+    if (isFirstMessage && userPreferences && (userPreferences.tipo_comida?.length || userPreferences.presupuesto)) {
+      enrichedSystemPrompt += `\n\n**IMPORTANTE - PRIMER MENSAJE:** 
+      El usuario acaba de iniciar la conversación. Antes de hacer cualquier recomendación:
+      1. Salúdalo amigablemente
+      2. Pregúntale si prefiere recomendaciones basadas en sus preferencias guardadas (${userPreferences.tipo_comida?.join(', ') || 'sus gustos'}${userPreferences.presupuesto ? `, presupuesto: ${userPreferences.presupuesto}` : ''}) o si prefiere que le recomiendes algo diferente/general
+      3. NO hagas recomendaciones hasta que él responda
+      4. Mantén el mensaje corto y directo`;
+      
+      // Don't search for restaurants on first message
+      return await generateChatResponse(enrichedSystemPrompt, messages, GOOGLE_GEMINI_API_KEY, restaurantMetadata, corsHeaders);
     }
 
     // If it's a restaurant query, search in cache FIRST, then Places API
@@ -94,122 +111,7 @@ ${JSON.stringify(placesData.restaurants, null, 2)}
       }
     }
 
-    if (!GOOGLE_GEMINI_API_KEY) {
-      console.error('GOOGLE_GEMINI_API_KEY not configured');
-      return new Response(
-        JSON.stringify({ 
-          error: 'Servicio de IA no disponible',
-          details: 'La clave de API no está configurada. Por favor contacta al administrador.'
-        }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    console.log('Processing chat request with', messages.length, 'messages');
-
-    // Convert messages to Gemini format
-    const contents = messages.map((msg: any) => ({
-      role: msg.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: msg.content }]
-    }));
-
-    // Prepare request body with system instruction
-    const requestBody: any = {
-      contents,
-      generationConfig: {
-        temperature: 1.0,
-        topK: 40,
-        topP: 0.95,
-        maxOutputTokens: 2048,
-      }
-    };
-
-    // Add system instruction (enriched with Places data if available)
-    if (enrichedSystemPrompt) {
-      requestBody.systemInstruction = {
-        parts: [{ text: enrichedSystemPrompt }]
-      };
-    }
-
-    console.log('Sending request to Gemini with system instruction');
-
-    // Call Google Gemini API with streaming
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:streamGenerateContent?key=${GOOGLE_GEMINI_API_KEY}&alt=sse`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-      }
-    );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Gemini API error:', response.status, errorText);
-      
-      let errorMessage = 'El servicio de IA no está disponible en este momento';
-      if (response.status === 429) {
-        errorMessage = 'Demasiadas solicitudes. Por favor intenta en unos momentos.';
-      } else if (response.status === 403) {
-        errorMessage = 'Acceso denegado al servicio de IA. Verifica la configuración.';
-      } else if (response.status >= 500) {
-        errorMessage = 'El servicio de IA está experimentando problemas. Intenta más tarde.';
-      }
-      
-      return new Response(
-        JSON.stringify({ 
-          error: errorMessage,
-          details: `Error ${response.status}`,
-          retryable: response.status === 429 || response.status >= 500
-        }),
-        { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Create a new ReadableStream that injects metadata first
-    const { readable, writable } = new TransformStream();
-    const writer = writable.getWriter();
-    const encoder = new TextEncoder();
-
-    // Start streaming in the background
-    (async () => {
-      try {
-        // Send metadata first if we have restaurant data
-        if (restaurantMetadata.length > 0) {
-          const metadataEvent = `data: ${JSON.stringify({
-            type: 'metadata',
-            restaurants: restaurantMetadata
-          })}\n\n`;
-          await writer.write(encoder.encode(metadataEvent));
-        }
-
-        // Then stream the AI response
-        const reader = response.body?.getReader();
-        if (reader) {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            await writer.write(value);
-          }
-        }
-      } catch (error) {
-        console.error('Error streaming response:', error);
-      } finally {
-        writer.close();
-      }
-    })();
-
-    // Return the transformed stream
-    return new Response(readable, {
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-      },
-    });
+    return await generateChatResponse(enrichedSystemPrompt, messages, GOOGLE_GEMINI_API_KEY, restaurantMetadata, corsHeaders);
 
   } catch (error) {
     console.error('Chat error:', error);
@@ -229,3 +131,108 @@ ${JSON.stringify(placesData.restaurants, null, 2)}
     );
   }
 });
+
+async function generateChatResponse(systemPrompt: string, messages: any[], apiKey: string, restaurantMetadata: any[], corsHeaders: any) {
+  // Convert messages to Gemini format
+  const contents = messages.map((msg: any) => ({
+    role: msg.role === 'assistant' ? 'model' : 'user',
+    parts: [{ text: msg.content }]
+  }));
+
+  // Prepare request body with system instruction
+  const requestBody: any = {
+    contents,
+    generationConfig: {
+      temperature: 1.0,
+      topK: 40,
+      topP: 0.95,
+      maxOutputTokens: 2048,
+    }
+  };
+
+  // Add system instruction
+  if (systemPrompt) {
+    requestBody.systemInstruction = {
+      parts: [{ text: systemPrompt }]
+    };
+  }
+
+  console.log('Sending request to Gemini with system instruction');
+
+  // Call Google Gemini API with streaming
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:streamGenerateContent?key=${apiKey}&alt=sse`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Gemini API error:', response.status, errorText);
+    
+    let errorMessage = 'El servicio de IA no está disponible en este momento';
+    if (response.status === 429) {
+      errorMessage = 'Demasiadas solicitudes. Por favor intenta en unos momentos.';
+    } else if (response.status === 403) {
+      errorMessage = 'Acceso denegado al servicio de IA. Verifica la configuración.';
+    } else if (response.status >= 500) {
+      errorMessage = 'El servicio de IA está experimentando problemas. Intenta más tarde.';
+    }
+    
+    return new Response(
+      JSON.stringify({ 
+        error: errorMessage,
+        details: `Error ${response.status}`,
+        retryable: response.status === 429 || response.status >= 500
+      }),
+      { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  // Create a new ReadableStream that injects metadata first
+  const { readable, writable } = new TransformStream();
+  const writer = writable.getWriter();
+  const encoder = new TextEncoder();
+
+  // Start streaming in the background
+  (async () => {
+    try {
+      // Send metadata first if we have restaurant data
+      if (restaurantMetadata.length > 0) {
+        const metadataEvent = `data: ${JSON.stringify({
+          type: 'metadata',
+          restaurants: restaurantMetadata
+        })}\n\n`;
+        await writer.write(encoder.encode(metadataEvent));
+      }
+
+      // Then stream the AI response
+      const reader = response.body?.getReader();
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          await writer.write(value);
+        }
+      }
+    } catch (error) {
+      console.error('Error streaming response:', error);
+    } finally {
+      writer.close();
+    }
+  })();
+
+  return new Response(readable, {
+    headers: {
+      ...corsHeaders,
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+    },
+  });
+}
