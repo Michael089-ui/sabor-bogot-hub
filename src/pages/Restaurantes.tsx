@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { RestauranteCard } from "@/components/RestauranteCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { QuickRecommendationModal } from "@/components/QuickRecommendationModal";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,6 +28,7 @@ import { useRestaurants, getPhotoUrl, formatPriceLevel, RestaurantFilters } from
 const Restaurantes = () => {
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
+  const [showRecommendationModal, setShowRecommendationModal] = useState(false);
   const [filters, setFilters] = useState<RestaurantFilters>({
     cuisine: [],
     priceLevel: [],
@@ -107,7 +109,7 @@ const Restaurantes = () => {
             </p>
           </div>
           <Button
-            onClick={() => navigate("/chatia")}
+            onClick={() => setShowRecommendationModal(true)}
             className="gap-2"
             size="lg"
           >
@@ -409,6 +411,14 @@ const Restaurantes = () => {
           </div>
         )}
       </div>
+
+      {/* Modal de recomendación rápida */}
+      <QuickRecommendationModal
+        open={showRecommendationModal}
+        onOpenChange={setShowRecommendationModal}
+        restaurants={allRestaurants || []}
+        currentFilters={filters}
+      />
     </div>
   );
 };
