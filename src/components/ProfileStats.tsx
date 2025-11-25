@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Award, Search, Star, Heart, TrendingUp } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { useEffect, useState, useRef } from "react";
 
 interface ProfileStatsProps {
   busquedasCount: number;
@@ -10,7 +10,34 @@ interface ProfileStatsProps {
   tipoComidaPreferences: string[];
 }
 
-const COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))', 'hsl(var(--muted))'];
+const useScrollReveal = () => {
+  const [isVisible, setIsVisible] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (ref.current) {
+      observer.observe(ref.current);
+    }
+
+    return () => {
+      if (ref.current) {
+        observer.unobserve(ref.current);
+      }
+    };
+  }, []);
+
+  return { ref, isVisible };
+};
+
 
 export const ProfileStats = ({ 
   busquedasCount, 
@@ -18,6 +45,10 @@ export const ProfileStats = ({
   favoritosCount,
   tipoComidaPreferences 
 }: ProfileStatsProps) => {
+  
+  const { ref: statsRef, isVisible: statsVisible } = useScrollReveal();
+  const { ref: badgesRef, isVisible: badgesVisible } = useScrollReveal();
+  const { ref: prefsRef, isVisible: prefsVisible } = useScrollReveal();
   
   // Calcular badges ganados
   const badges = [
@@ -59,26 +90,22 @@ export const ProfileStats = ({
     }
   ];
 
-  // Datos para gráfico de actividad
-  const activityData = [
-    { name: 'Búsquedas', value: busquedasCount },
-    { name: 'Reseñas', value: resenasCount },
-    { name: 'Favoritos', value: favoritosCount },
-  ];
-
-  // Datos para gráfico de preferencias
-  const preferencesData = tipoComidaPreferences.slice(0, 4).map((pref, index) => ({
-    name: pref,
-    value: 1,
-  }));
-
   const earnedBadges = badges.filter(b => b.earned);
   const pendingBadges = badges.filter(b => !b.earned);
+
+  const maxValue = Math.max(busquedasCount, resenasCount, favoritosCount, 1);
 
   return (
     <div className="space-y-6">
       {/* Resumen de actividad */}
-      <Card>
+      <Card 
+        ref={statsRef} 
+        className={`transition-all duration-700 ${
+          statsVisible 
+            ? 'opacity-100 translate-y-0' 
+            : 'opacity-0 translate-y-8'
+        }`}
+      >
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="w-5 h-5" />
@@ -86,44 +113,88 @@ export const ProfileStats = ({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-3 gap-4 mb-6">
-            <div className="text-center p-4 bg-primary/5 rounded-lg">
-              <div className="text-3xl font-bold text-primary">{busquedasCount}</div>
-              <div className="text-sm text-muted-foreground mt-1">Búsquedas</div>
-            </div>
-            <div className="text-center p-4 bg-secondary/5 rounded-lg">
-              <div className="text-3xl font-bold text-secondary">{resenasCount}</div>
-              <div className="text-sm text-muted-foreground mt-1">Reseñas</div>
-            </div>
-            <div className="text-center p-4 bg-accent/5 rounded-lg">
-              <div className="text-3xl font-bold text-accent">{favoritosCount}</div>
-              <div className="text-sm text-muted-foreground mt-1">Favoritos</div>
-            </div>
-          </div>
-
-          {/* Gráfico de barras */}
-          {(busquedasCount > 0 || resenasCount > 0 || favoritosCount > 0) && (
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={activityData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" />
-                <YAxis stroke="hsl(var(--muted-foreground))" />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'hsl(var(--background))', 
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px'
+          <div className="grid grid-cols-3 gap-4">
+            {/* Búsquedas */}
+            <div 
+              className={`text-center p-6 bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl border border-primary/20 transition-all duration-500 delay-100 ${
+                statsVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
+              }`}
+            >
+              <div className="mb-3 inline-flex items-center justify-center w-12 h-12 bg-primary/20 rounded-full">
+                <Search className="w-6 h-6 text-primary" />
+              </div>
+              <div className="text-4xl font-bold text-primary mb-1">{busquedasCount}</div>
+              <div className="text-sm text-muted-foreground font-medium">Búsquedas</div>
+              {/* Barra de progreso */}
+              <div className="mt-3 h-1.5 bg-primary/10 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-primary transition-all duration-1000 ease-out"
+                  style={{ 
+                    width: statsVisible ? `${(busquedasCount / maxValue) * 100}%` : '0%',
+                    transitionDelay: '200ms'
                   }}
                 />
-                <Bar dataKey="value" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          )}
+              </div>
+            </div>
+
+            {/* Reseñas */}
+            <div 
+              className={`text-center p-6 bg-gradient-to-br from-secondary/10 to-secondary/5 rounded-xl border border-secondary/20 transition-all duration-500 delay-200 ${
+                statsVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
+              }`}
+            >
+              <div className="mb-3 inline-flex items-center justify-center w-12 h-12 bg-secondary/20 rounded-full">
+                <Star className="w-6 h-6 text-secondary" />
+              </div>
+              <div className="text-4xl font-bold text-secondary mb-1">{resenasCount}</div>
+              <div className="text-sm text-muted-foreground font-medium">Reseñas</div>
+              {/* Barra de progreso */}
+              <div className="mt-3 h-1.5 bg-secondary/10 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-secondary transition-all duration-1000 ease-out"
+                  style={{ 
+                    width: statsVisible ? `${(resenasCount / maxValue) * 100}%` : '0%',
+                    transitionDelay: '300ms'
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Favoritos */}
+            <div 
+              className={`text-center p-6 bg-gradient-to-br from-accent/10 to-accent/5 rounded-xl border border-accent/20 transition-all duration-500 delay-300 ${
+                statsVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
+              }`}
+            >
+              <div className="mb-3 inline-flex items-center justify-center w-12 h-12 bg-accent/20 rounded-full">
+                <Heart className="w-6 h-6 text-accent" />
+              </div>
+              <div className="text-4xl font-bold text-accent mb-1">{favoritosCount}</div>
+              <div className="text-sm text-muted-foreground font-medium">Favoritos</div>
+              {/* Barra de progreso */}
+              <div className="mt-3 h-1.5 bg-accent/10 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-accent transition-all duration-1000 ease-out"
+                  style={{ 
+                    width: statsVisible ? `${(favoritosCount / maxValue) * 100}%` : '0%',
+                    transitionDelay: '400ms'
+                  }}
+                />
+              </div>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
       {/* Badges/Logros */}
-      <Card>
+      <Card 
+        ref={badgesRef}
+        className={`transition-all duration-700 delay-200 ${
+          badgesVisible 
+            ? 'opacity-100 translate-y-0' 
+            : 'opacity-0 translate-y-8'
+        }`}
+      >
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Award className="w-5 h-5" />
@@ -199,8 +270,15 @@ export const ProfileStats = ({
       </Card>
 
       {/* Preferencias visuales */}
-      {preferencesData.length > 0 && (
-        <Card>
+      {tipoComidaPreferences.length > 0 && (
+        <Card 
+          ref={prefsRef}
+          className={`transition-all duration-700 delay-300 ${
+            prefsVisible 
+              ? 'opacity-100 translate-y-0' 
+              : 'opacity-0 translate-y-8'
+          }`}
+        >
           <CardHeader>
             <CardTitle>Tus Preferencias</CardTitle>
           </CardHeader>
