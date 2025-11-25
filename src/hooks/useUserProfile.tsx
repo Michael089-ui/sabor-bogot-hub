@@ -12,7 +12,7 @@ export const useUserProfile = () => {
 
       const { data, error } = await supabase
         .from('usuario')
-        .select('nombre, apellidos, foto_url, tipo_comida, presupuesto, ubicacion, id_barrio, id_localidad')
+        .select('nombre, apellidos, email, telefono, foto_url, tipo_comida, presupuesto, ubicacion, id_barrio, id_localidad')
         .eq('id', user.id)
         .single();
 
