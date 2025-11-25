@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useRestaurantDetail, getPhotoUrl, getPriceInfo, formatCurrency } from "@/hooks/useRestaurants";
 import { useRestaurantReviews, useCreateReview } from "@/hooks/useReviews";
 import { GoogleMap, LoadScript, Marker, InfoWindow } from "@react-google-maps/api";
@@ -15,6 +15,7 @@ import { ReviewModal } from "@/components/ReviewModal";
 
 const RestauranteDetalle = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { id: placeId } = useParams<{ id: string }>();
   const { data: restaurant, isLoading, error } = useRestaurantDetail(placeId);
   const { data: communityReviews } = useRestaurantReviews(placeId);
@@ -96,41 +97,13 @@ const RestauranteDetalle = () => {
     ? communityReviews.reduce((sum, r) => sum + (r.calificacion || 0), 0) / communityReviews.length
     : 0;
 
-  return (
-    <div className="min-h-full bg-background">
-      {/* Back Button */}
-      <div className="border-b border-border bg-card px-6 py-4">
-        {fromChat ? (
-          <Button 
-            variant="ghost" 
-            onClick={() => navigate('/chat-ia')}
-            className="gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Volver a la conversación
-          </Button>
-        ) : (
-          <Button 
-            variant="ghost" 
-            onClick={() => navigate('/restaurantes')}
-            className="gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Volver a Restaurantes
-          </Button>
-        )}
-      </div>
-
-      {/* Hero Image */}
+  const handleCreateReview = (data: { calificacion: number; comentario: string }) => {
     if (!placeId) return;
     createReview.mutate(
       { place_id: placeId, calificacion: data.calificacion, comentario: data.comentario },
       { onSuccess: () => setShowReviewModal(false) }
     );
   };
-
-  // Check if user came from chat
-  const fromChat = location.state?.fromChat;
 
   return (
     <div className="min-h-full bg-background">
