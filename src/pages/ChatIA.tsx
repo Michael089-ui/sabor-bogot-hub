@@ -110,7 +110,7 @@ const ChatIA = () => {
     }));
   }, [messages, restaurants, currentConversationId]);
 
-  // Restaurar estado del chat si existe
+  // Restaurar estado del chat si existe (solo al montar el componente)
   useEffect(() => {
     const savedState = sessionStorage.getItem('chatIA_state');
     if (savedState && !location.state?.loadConversation) {
@@ -120,12 +120,18 @@ const ChatIA = () => {
           setMessages(state.messages);
           setRestaurants(state.restaurants || []);
           setCurrentConversationId(state.currentConversationId);
+          console.log('✅ Estado del chat restaurado:', state.messages.length, 'mensajes');
         }
       } catch (error) {
         console.error('Error restaurando estado del chat:', error);
       }
     }
-  }, []);
+    
+    // Limpiar el flag de loadConversation después de usarlo
+    if (location.state?.loadConversation) {
+      window.history.replaceState({}, document.title);
+    }
+  }, []); // Solo ejecutar una vez al montar
 
   // Enviar prompt inicial si existe
   useEffect(() => {

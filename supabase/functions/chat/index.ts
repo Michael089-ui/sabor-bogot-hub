@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { detectRestaurantQuery, extractSearchParams } from './_helpers.ts';
+import { detectRestaurantQuery, detectPreferenceConfirmation, extractSearchParams } from './_helpers.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -23,6 +23,8 @@ serve(async (req) => {
     // Detect if this is a restaurant search query
     const lastUserMessage = messages[messages.length - 1];
     const isFirstMessage = messages.length === 1;
+    const isSecondMessage = messages.length === 3; // User's first response after bot greeting
+    const isPreferenceConfirmation = detectPreferenceConfirmation(lastUserMessage.content);
     
     const isRestaurantQuery = lastUserMessage?.role === 'user' && 
       detectRestaurantQuery(lastUserMessage.content);
@@ -54,11 +56,12 @@ serve(async (req) => {
       return await generateChatResponse(enrichedSystemPrompt, messages, GOOGLE_GEMINI_API_KEY, restaurantMetadata, corsHeaders);
     }
 
-    // If it's a restaurant query, search in cache FIRST, then Places API
-    if (isRestaurantQuery && SUPABASE_URL) {
+    // If user confirms preferences OR it's a restaurant query, search for restaurants
+    if ((isRestaurantQuery || (isSecondMessage && isPreferenceConfirmation)) && SUPABASE_URL) {
       console.log('🔍 Detected restaurant query, searching in database cache...');
       
-      const searchParams = extractSearchParams(lastUserMessage.content);
+      const searchParams = extractSearchParams(lastUserMessage.content, userPreferences);
+      console.log('🔍 Search params:', searchParams);
       
       try {
         // Call our optimized places-search which prioritizes cache
