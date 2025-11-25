@@ -96,9 +96,11 @@ serve(async (req) => {
       return mapping[query] || 'Restaurant';
     };
 
-    // Iterar por cada localidad y tipo de cocina
-    for (const localidad of localidades.slice(0, 10)) { // Limitar a 10 localidades por ejecución
-      for (const cuisineType of cuisineTypes.slice(0, 5)) { // 5 tipos de cocina por localidad
+    // Process ALL localities and cuisine types for massive coverage
+    console.log(`🚀 Starting massive population: ${localidades.length} localities × ${cuisineTypes.length} cuisine types`);
+    
+    for (const localidad of localidades) { // ALL 20 localities
+      for (const cuisineType of cuisineTypes) { // ALL 17 cuisine types
         try {
           const textQuery = `${cuisineType} in ${localidad.nombre}, Bogotá, Colombia`;
           
@@ -137,7 +139,7 @@ serve(async (req) => {
                     radius: 25000.0
                   }
                 },
-                maxResultCount: 10
+                maxResultCount: 20 // Maximum allowed by Google Places API
               })
             }
           );
@@ -212,8 +214,8 @@ serve(async (req) => {
             }
           }
 
-          // Pequeña pausa para no saturar la API
-          await new Promise(resolve => setTimeout(resolve, 100));
+          // Delay to avoid rate limiting (500ms between requests)
+          await new Promise(resolve => setTimeout(resolve, 500));
 
         } catch (error) {
           const errorMsg = error instanceof Error ? error.message : String(error);

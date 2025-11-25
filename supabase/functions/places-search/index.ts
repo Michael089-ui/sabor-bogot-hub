@@ -41,26 +41,59 @@ serve(async (req) => {
     // Initialize Supabase client
     const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
 
-    // Check cache first
-    if (neighborhood) {
-      const { data: cachedResults, error: cacheError } = await supabase
+    // PRIORITY 1: Check cache first - search broadly in restaurant_cache
+    let cachedResults = [];
+    
+    try {
+      // Build a comprehensive cache query
+      let cacheQuery = supabase
         .from('restaurant_cache')
         .select('*')
-        .ilike('search_query', `%${query}%`)
-        .eq('neighborhood', neighborhood)
-        .gt('expires_at', new Date().toISOString())
-        .limit(5);
-
-      if (!cacheError && cachedResults && cachedResults.length > 0) {
-        console.log('🎯 Cache HIT - Returning', cachedResults.length, 'cached results');
-        return new Response(
-          JSON.stringify({ restaurants: cachedResults, cached: true }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        .gt('expires_at', new Date().toISOString());
+      
+      // Filter by neighborhood if provided
+      if (neighborhood) {
+        cacheQuery = cacheQuery.ilike('neighborhood', `%${neighborhood}%`);
+      }
+      
+      // Search in multiple fields for better matching
+      const searchTerms = query.toLowerCase().split(' ').filter(t => t.length > 2);
+      if (searchTerms.length > 0) {
+        cacheQuery = cacheQuery.or(
+          searchTerms.map(term => 
+            `name.ilike.%${term}%,cuisine.ilike.%${term}%,formatted_address.ilike.%${term}%`
+          ).join(',')
         );
       }
+      
+      const { data, error } = await cacheQuery
+        .order('rating', { ascending: false })
+        .limit(20);
+
+      if (!error && data && data.length > 0) {
+        cachedResults = data;
+        console.log(`🎯 Cache HIT - Found ${cachedResults.length} cached restaurants`);
+        
+        // If we have enough cached results (5+), return immediately
+        if (cachedResults.length >= 5) {
+          return new Response(
+            JSON.stringify({ 
+              restaurants: cachedResults.slice(0, 10), 
+              cached: true,
+              source: 'database_cache'
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+      }
+    } catch (cacheError) {
+      console.error('Cache lookup error:', cacheError);
+      // Continue to Google API if cache fails
     }
 
-    console.log('📡 Cache MISS - Calling Google Places API (New)');
+    // PRIORITY 2: If cache has insufficient results, call Google Places API
+    console.log(`📡 Cache had ${cachedResults.length} results - Calling Google Places API for more`);
+
 
     // Build the text query - SIEMPRE incluir "Bogotá Colombia" para asegurar resultados locales
     const textQuery = neighborhood 
