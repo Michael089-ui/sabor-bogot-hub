@@ -41,6 +41,7 @@ import {
 import { ProfileStats } from "@/components/ProfileStats";
 import { ProfileCompleteness } from "@/components/ProfileCompleteness";
 import { PersonalizedRecommendations } from "@/components/PersonalizedRecommendations";
+import { AvatarUpload } from "@/components/AvatarUpload";
 
 const profileSchema = z.object({
   nombre: z.string().min(1, "El nombre es requerido").max(100),
@@ -327,19 +328,23 @@ const Perfil = () => {
   const nombreCompleto = `${userData.nombre || ''} ${userData.apellidos || ''}`.trim() || 'Usuario';
   const tipoComidaArray = userData.tipo_comida || [];
 
+  const handleAvatarUpdated = (newUrl: string) => {
+    setUserData((prev: any) => ({ ...prev, foto_url: newUrl }));
+  };
+
   return (
     <div className="min-h-full bg-background">
       <div className="max-w-6xl mx-auto px-6 py-12">
         {/* Avatar y Datos del Usuario */}
         <div className="flex flex-col items-center mb-8">
-          <Avatar className="h-32 w-32 mb-4 border-4 border-primary/10">
-            <AvatarImage src={userData.foto_url || user?.user_metadata?.avatar_url} alt={nombreCompleto} />
-            <AvatarFallback className="text-3xl bg-primary/10 text-primary">
-              {nombreCompleto.charAt(0).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
+          <AvatarUpload
+            currentAvatarUrl={userData.foto_url}
+            userName={nombreCompleto}
+            userId={user!.id}
+            onAvatarUpdated={handleAvatarUpdated}
+          />
 
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2 mt-4">
             {nombreCompleto}
           </h1>
           <p className="text-primary font-medium">
