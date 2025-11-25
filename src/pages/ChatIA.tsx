@@ -92,6 +92,8 @@ const ChatIA = () => {
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [isMapLoaded, setIsMapLoaded] = useState(false);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const RESTAURANTS_PER_PAGE = 6;
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { isFavorite, toggleFavorite } = useFavorites();
@@ -594,6 +596,7 @@ const ChatIA = () => {
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
+      let receivedRestaurants: Restaurant[] = [];
 
       while (true) {
         const { done, value } = await reader.read();
@@ -610,6 +613,52 @@ const ChatIA = () => {
 
             try {
               const parsed = JSON.parse(data);
+              
+              // Check if this is metadata
+              if (parsed.type === 'metadata' && parsed.restaurants) {
+                console.log('📦 Received metadata with', parsed.restaurants.length, 'restaurants');
+                
+                // Convert metadata to Restaurant objects
+                receivedRestaurants = parsed.restaurants.map((place: any) => {
+                  const convertPriceLevel = (priceLevel: string): string => {
+                    const priceLevelMap: { [key: string]: string } = {
+                      'PRICE_LEVEL_FREE': '$',
+                      'PRICE_LEVEL_INEXPENSIVE': '$',
+                      'PRICE_LEVEL_MODERATE': '$$',
+                      'PRICE_LEVEL_EXPENSIVE': '$$$',
+                      'PRICE_LEVEL_VERY_EXPENSIVE': '$$$$',
+                      'PRICE_LEVEL_UNSPECIFIED': '$$'
+                    };
+                    return priceLevelMap[priceLevel] || '$$';
+                  };
+
+                  return {
+                    placeId: place.place_id,
+                    name: place.name,
+                    lat: place.location.lat,
+                    lng: place.location.lng,
+                    rating: place.rating || 0,
+                    price: convertPriceLevel(place.price_level),
+                    type: place.types?.[0]?.replace(/_/g, ' ') || 'restaurant',
+                    address: place.formatted_address,
+                    phone: place.phone_number,
+                    website: place.website,
+                    openNow: place.open_now,
+                    openingHours: place.opening_hours,
+                    image: place.photos?.[0] || restaurantImages[Math.floor(Math.random() * restaurantImages.length)],
+                    userRatingsTotal: place.user_ratings_total || 0,
+                    description: `${place.name} - ${place.rating || 0} ⭐ (${place.user_ratings_total || 0} reseñas)`
+                  };
+                });
+                
+                // Set restaurants immediately
+                setRestaurants(receivedRestaurants);
+                setCurrentPage(1); // Reset to first page
+                console.log('✅ Set', receivedRestaurants.length, 'restaurants from metadata');
+                continue;
+              }
+
+              // Otherwise it's AI response text
               const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
 
               if (text) {
@@ -623,7 +672,7 @@ const ChatIA = () => {
                 });
               }
             } catch (e) {
-              console.error('Error parseando el SSE:', e); //Security Service Edge
+              console.error('Error parseando el SSE:', e);
             }
           }
         }
@@ -638,56 +687,11 @@ const ChatIA = () => {
           // Guardar conversación completa
           saveConversation(firstUserMessage, lastMessage);
 
-          // Procesar las secciones de la respuesta completa
-          const sections = processAssistantResponse(lastMessage.content);
-          console.log('🗺️ Mapa:', sections.mapSection);
-          console.log('🌟 Recomendaciones:', sections.recommendationsSection);
-          console.log('📝 Detalles:', sections.detailedResponse);
-
-          // Extraer restaurantes de la respuesta
-          /* console.log('🔍 Extrayendo restaurantes del contenido...'); */
-          const extracted = extractRestaurants(lastMessage.content);
-          /* console.log('📊 Restaurantes extraídos:', extracted); */
-
-          if (extracted.length > 0) {
-            /* console.log('✅ Estableciendo restaurantes en el estado'); */
-            setRestaurants(extracted);
-            if (map && extracted[0]) {
-              console.log('🗺️ Moviendo mapa a:', extracted[0].lat, extracted[0].lng);
-              map.panTo({ lat: extracted[0].lat, lng: extracted[0].lng });
-              map.setZoom(14);
-            }
-          } else {
-            /* console.log('❌ No se pudieron extraer restaurantes'); */
-            // Forzar algunos restaurantes de ejemplo para testing
-            const sampleRestaurants: Restaurant[] = [
-              {
-                name: "Andrés D.C.",
-                lat: 4.6932,
-                lng: -74.0337,
-                address: "Cra. 11a #93-52, Usaquén",
-                type: "Comida Colombiana",
-                price: "$$$",
-                rating: 4.3,
-                description: "Experiencia gastronómica única con música en vivo",
-                image: restaurantImages[0],
-                openingHours: "12:00 PM - 12:00 AM"
-              },
-              {
-                name: "Harry Sasson",
-                lat: 4.6482,
-                lng: -74.0632,
-                address: "Cra. 5 #69a-44, Chapinero",
-                type: "Fusión Internacional",
-                price: "$$$$",
-                rating: 4.7,
-                description: "Alta cocina con ingredientes colombianos",
-                image: restaurantImages[1],
-                openingHours: "6:00 PM - 11:00 PM"
-              }
-            ];
-            console.log('🔄 Usando restaurantes de ejemplo:', sampleRestaurants);
-            setRestaurants(sampleRestaurants);
+          // If we received restaurants from metadata, use those and center map
+          if (receivedRestaurants.length > 0 && map) {
+            console.log('🗺️ Centering map on first restaurant:', receivedRestaurants[0].name);
+            map.panTo({ lat: receivedRestaurants[0].lat, lng: receivedRestaurants[0].lng });
+            map.setZoom(14);
           }
         }
         return newMessages;
@@ -934,7 +938,9 @@ const ChatIA = () => {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {restaurants.map((restaurant, index) => (
+                  {restaurants
+                    .slice((currentPage - 1) * RESTAURANTS_PER_PAGE, currentPage * RESTAURANTS_PER_PAGE)
+                    .map((restaurant, index) => (
                     <Card
                       key={index}
                       className={`restaurant-card cursor-pointer transition-all hover:shadow-lg border-2 ${selectedRestaurant?.name === restaurant.name
@@ -1068,6 +1074,36 @@ const ChatIA = () => {
                     </Card>
                   ))}
                 </div>
+
+                {/* Paginación */}
+                {restaurants.length > RESTAURANTS_PER_PAGE && (
+                  <div className="flex justify-center items-center gap-4 mt-6 pt-6 border-t border-border">
+                    <Button
+                      variant="outline"
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                      className="gap-2"
+                    >
+                      ← Anterior
+                    </Button>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">
+                        Página {currentPage} de {Math.ceil(restaurants.length / RESTAURANTS_PER_PAGE)}
+                      </span>
+                      <Badge variant="secondary" className="text-xs">
+                        {restaurants.length} restaurantes
+                      </Badge>
+                    </div>
+                    <Button
+                      variant="outline"
+                      onClick={() => setCurrentPage(prev => Math.min(Math.ceil(restaurants.length / RESTAURANTS_PER_PAGE), prev + 1))}
+                      disabled={currentPage === Math.ceil(restaurants.length / RESTAURANTS_PER_PAGE)}
+                      className="gap-2"
+                    >
+                      Siguiente →
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           )}
