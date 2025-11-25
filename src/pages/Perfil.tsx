@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { User, LogOut, Edit } from "lucide-react";
+import { User, LogOut, Edit, Search, Star, Heart } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useLocalidades, useBarriosPorLocalidad } from "@/hooks/useBarriosBogota";
@@ -374,9 +374,9 @@ const Perfil = () => {
 
   return (
     <div className="min-h-full bg-background">
-      <div className="max-w-6xl mx-auto px-6 py-12">
-        {/* Avatar y Datos del Usuario */}
-        <div className="flex flex-col items-center mb-8">
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Header compacto con avatar y datos */}
+        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 mb-6 bg-gradient-to-r from-primary/5 via-secondary/5 to-accent/5 rounded-2xl p-6 border border-border/50">
           <AvatarUpload
             currentAvatarUrl={userData.foto_url}
             userName={nombreCompleto}
@@ -384,16 +384,57 @@ const Perfil = () => {
             onAvatarUpdated={handleAvatarUpdated}
           />
 
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2 mt-4">
-            {nombreCompleto}
-          </h1>
-          <p className="text-primary font-medium">
-            {userData.email || user?.email}
-          </p>
+          <div className="flex-1 text-center sm:text-left">
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-1">
+              {nombreCompleto}
+            </h1>
+            <p className="text-primary font-medium mb-3">
+              {userData.email || user?.email}
+            </p>
+            
+            {/* Badges rápidos */}
+            <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
+              <Badge variant="secondary" className="gap-1">
+                <Search className="w-3 h-3" />
+                {busquedas.length} búsquedas
+              </Badge>
+              <Badge variant="secondary" className="gap-1">
+                <Star className="w-3 h-3" />
+                {resenas.length} reseñas
+              </Badge>
+              <Badge variant="secondary" className="gap-1">
+                <Heart className="w-3 h-3" />
+                {favoritos.length} favoritos
+              </Badge>
+            </div>
+          </div>
+
+          {/* Botones de acción en el header */}
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2"
+              onClick={handleEditProfile}
+            >
+              <Edit className="h-4 w-4" />
+              Editar
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-2 text-destructive hover:text-destructive"
+              onClick={handleLogout}
+            >
+              <LogOut className="h-4 w-4" />
+              Salir
+            </Button>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          {/* Columna izquierda - Completitud */}
+        {/* Grid principal más compacto */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">
+          {/* Columna izquierda - Completitud (más estrecha) */}
           <div className="lg:col-span-1">
             <ProfileCompleteness 
               userData={userData}
@@ -401,8 +442,8 @@ const Perfil = () => {
             />
           </div>
 
-          {/* Columna derecha - Estadísticas */}
-          <div className="lg:col-span-2">
+          {/* Columna derecha - Estadísticas (más ancha) */}
+          <div className="lg:col-span-3">
             <ProfileStats
               busquedasCount={busquedas.length}
               resenasCount={resenas.length}
@@ -413,7 +454,7 @@ const Perfil = () => {
         </div>
 
         {/* Recomendaciones Personalizadas */}
-        <div className="mb-8">
+        <div className="mb-6">
           <PersonalizedRecommendations
             tipoComida={tipoComidaArray}
             presupuesto={userData.presupuesto}
@@ -421,75 +462,84 @@ const Perfil = () => {
           />
         </div>
 
-        {/* Preferencias Gastronómicas */}
-        <div className="mb-8">
-          <h2 className="text-xl font-bold text-foreground mb-4">
-            Mis preferencias gastronómicas
-          </h2>
-
-          <Card>
-            <CardContent className="p-6 space-y-4">
-              {/* Tipo de comida */}
-              <div className="space-y-2">
-                <Label htmlFor="tipo-comida" className="text-foreground font-medium">
-                  Tipos de comida favoritos
-                </Label>
-                <div className="text-sm text-muted-foreground">
-                  {tipoComidaArray.length > 0 ? tipoComidaArray.join(', ') : 'No especificado'}
-                </div>
-              </div>
-
-              {/* Presupuesto */}
-              <div className="space-y-2">
-                <Label htmlFor="presupuesto" className="text-foreground font-medium">
-                  Presupuesto
-                </Label>
-                <div className="text-sm text-muted-foreground capitalize">
-                  {userData.presupuesto || 'No especificado'}
-                </div>
-              </div>
-
-              {/* Ubicación */}
-              <div className="space-y-2">
-                <Label htmlFor="ubicacion" className="text-foreground font-medium">
-                  Ubicación
-                </Label>
-                <div className="text-sm text-muted-foreground">
-                  {userData.localidad?.nombre && userData.barrio?.nombre
-                    ? `${userData.barrio.nombre}, ${userData.localidad.nombre}`
-                    : 'No especificado'}
-                </div>
-              </div>
-
-              {/* Teléfono */}
-              {userData.telefono && (
-                <div className="space-y-2">
-                  <Label className="text-foreground font-medium">
-                    Teléfono
-                  </Label>
-                  <div className="text-sm text-muted-foreground">
-                    {userData.telefono}
+        {/* Sección combinada: Preferencias + Historial */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Preferencias Gastronómicas - Columna lateral */}
+          <div className="lg:col-span-1">
+            <Card className="h-full">
+              <CardContent className="p-6">
+                <h3 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
+                  <User className="w-5 h-5" />
+                  Mi Perfil
+                </h3>
+                
+                <div className="space-y-4">
+                  {/* Tipo de comida */}
+                  <div className="space-y-2">
+                    <Label className="text-foreground font-medium text-sm">
+                      Preferencias
+                    </Label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {tipoComidaArray.length > 0 ? (
+                        tipoComidaArray.map((tipo, idx) => (
+                          <Badge key={idx} variant="secondary" className="text-xs">
+                            {tipo}
+                          </Badge>
+                        ))
+                      ) : (
+                        <span className="text-sm text-muted-foreground">No especificado</span>
+                      )}
+                    </div>
                   </div>
+
+                  {/* Presupuesto */}
+                  <div className="space-y-2">
+                    <Label className="text-foreground font-medium text-sm">
+                      Presupuesto
+                    </Label>
+                    <div className="text-sm text-muted-foreground capitalize">
+                      {userData.presupuesto || 'No especificado'}
+                    </div>
+                  </div>
+
+                  {/* Ubicación */}
+                  <div className="space-y-2">
+                    <Label className="text-foreground font-medium text-sm">
+                      Ubicación
+                    </Label>
+                    <div className="text-sm text-muted-foreground">
+                      {userData.localidad?.nombre && userData.barrio?.nombre
+                        ? `${userData.barrio.nombre}, ${userData.localidad.nombre}`
+                        : 'No especificado'}
+                    </div>
+                  </div>
+
+                  {/* Teléfono */}
+                  {userData.telefono && (
+                    <div className="space-y-2">
+                      <Label className="text-foreground font-medium text-sm">
+                        Teléfono
+                      </Label>
+                      <div className="text-sm text-muted-foreground">
+                        {userData.telefono}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+              </CardContent>
+            </Card>
+          </div>
 
-        {/* Historial */}
-        <div className="mb-8">
-          <h2 className="text-xl font-bold text-foreground mb-4">
-            Historial
-          </h2>
-
-          <Card>
-            <CardContent className="p-6">
-              <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="w-full grid grid-cols-3">
-                  <TabsTrigger value="busquedas">Búsquedas</TabsTrigger>
-                  <TabsTrigger value="resenas">Reseñas</TabsTrigger>
-                  <TabsTrigger value="favoritos">Favoritos</TabsTrigger>
-                </TabsList>
+          {/* Historial - Columna principal */}
+          <div className="lg:col-span-2">
+            <Card className="h-full">
+              <CardContent className="p-6">
+                <Tabs value={activeTab} onValueChange={setActiveTab}>
+                  <TabsList className="w-full grid grid-cols-3 mb-4">
+                    <TabsTrigger value="busquedas">Búsquedas</TabsTrigger>
+                    <TabsTrigger value="resenas">Reseñas</TabsTrigger>
+                    <TabsTrigger value="favoritos">Favoritos</TabsTrigger>
+                  </TabsList>
 
                 <TabsContent value="busquedas" className="mt-6">
                   <div className="space-y-3">
@@ -597,27 +647,8 @@ const Perfil = () => {
             </CardContent>
           </Card>
         </div>
-
-        {/* Botones de Acción */}
-        <div className="flex flex-col sm:flex-row gap-3">
-          <Button
-            variant="outline"
-            className="flex-1 gap-2"
-            onClick={handleEditProfile}
-          >
-            <Edit className="h-4 w-4" />
-            Editar perfil
-          </Button>
-          <Button
-            variant="destructive"
-            className="flex-1 gap-2"
-            onClick={handleLogout}
-          >
-            <LogOut className="h-4 w-4" />
-            Cerrar sesión
-          </Button>
-        </div>
       </div>
+    </div>
 
       {/* Diálogo de Edición */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
