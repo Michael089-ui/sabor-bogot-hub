@@ -130,7 +130,7 @@ export const QuickRecommendationModal = ({
       contextualPrompt += " en fin de semana";
     }
 
-    navigate("/chatia", { state: { initialPrompt: contextualPrompt } });
+    navigate("/chat-ia", { state: { initialPrompt: contextualPrompt } });
     onOpenChange(false);
   };
 
