@@ -27,13 +27,14 @@ serve(async (req) => {
 
     let enrichedSystemPrompt = systemPrompt;
 
-    // If it's a restaurant query, call Places API first
+    // If it's a restaurant query, search in cache FIRST, then Places API
     if (isRestaurantQuery && SUPABASE_URL) {
-      console.log('🔍 Detected restaurant query, calling Places API...');
+      console.log('🔍 Detected restaurant query, searching in database cache...');
       
       const searchParams = extractSearchParams(lastUserMessage.content);
       
       try {
+        // Call our optimized places-search which prioritizes cache
         const placesResponse = await fetch(
           `${SUPABASE_URL}/functions/v1/places-search`,
           {
@@ -52,24 +53,27 @@ serve(async (req) => {
           const placesData = await placesResponse.json();
           
           if (placesData.restaurants && placesData.restaurants.length > 0) {
-            console.log('✅ Got', placesData.restaurants.length, 'real restaurants from Places API');
+            const source = placesData.cached ? 'caché local' : 'Google Places API';
+            console.log(`✅ Got ${placesData.restaurants.length} restaurants from ${source}`);
             
             // Enrich system prompt with real data
             enrichedSystemPrompt = `${systemPrompt}
 
-**DATOS REALES DE GOOGLE PLACES API:**
-Usa ÚNICAMENTE los siguientes restaurantes reales de Google Places. NO inventes datos.
+**DATOS REALES DE RESTAURANTES${placesData.cached ? ' (CACHÉ LOCAL)' : ' (GOOGLE PLACES API)'}:**
+Usa ÚNICAMENTE los siguientes restaurantes reales. NO inventes datos.
 
 ${JSON.stringify(placesData.restaurants, null, 2)}
 
 **INSTRUCCIONES CRÍTICAS:**
-1. Usa SOLO los restaurantes de la lista anterior (datos verificados de Google Places)
-2. Menciona los ratings reales, horarios y precios exactos
-3. DEBES incluir las coordenadas EXACTAS (lat, lng) de cada restaurante en tu respuesta
-4. Mantén el formato de respuesta con la estructura: Nombre | Lat,Lng | Rating | Precio
-5. Añade descripciones personalizadas y útiles basadas en los datos reales
-6. Si un restaurante está cerrado, menciónalo
-7. Incluye el número de reseñas si está disponible`;
+1. Usa SOLO los restaurantes de la lista anterior (datos verificados)
+2. TODOS estos restaurantes tienen place_id válidos - puedes enlazarlos con seguridad
+3. Menciona los ratings reales, horarios y precios exactos
+4. DEBES incluir las coordenadas EXACTAS (lat, lng) de cada restaurante en tu respuesta
+5. Mantén el formato de respuesta con la estructura: Nombre | place_id | Lat,Lng | Rating | Precio
+6. Añade descripciones personalizadas y útiles basadas en los datos reales
+7. Si un restaurante está cerrado, menciónalo
+8. Incluye el número de reseñas si está disponible
+9. Los usuarios pueden hacer clic en las tarjetas para ver más detalles, así que proporciona place_id correcto`;
           }
         }
       } catch (error) {
