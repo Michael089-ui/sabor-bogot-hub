@@ -12,12 +12,12 @@ export const useAuth = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         console.log('Auth state changed:', event, session?.user?.email);
-        
+
         // Si hay sesión pero no está marcado "recordarme", verificar
         if (session && !localStorage.getItem('rememberMe')) {
           // No hacer nada aquí, dejar que la sesión persista hasta cerrar navegador
         }
-        
+
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
@@ -47,11 +47,11 @@ export const useAuth = () => {
     id_barrio?: string;
   }) => {
     try {
-      const { error } = await supabase.auth.signUp({
+      //Registrar el usuario
+      const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
         options: {
-          emailRedirectTo: `${window.location.origin}/dashboard`,
           data: {
             nombre: data.nombre,
             apellidos: data.apellidos,
@@ -64,18 +64,57 @@ export const useAuth = () => {
         },
       });
 
-      if (error) {
-        if (error.message.includes('already registered')) {
+      if (signUpError) {
+        if (signUpError.message.includes('already registered')) {
           toast.error('Este correo ya está registrado');
         } else {
-          toast.error(error.message);
+          toast.error(signUpError.message);
         }
-        return { error };
+        return { error: signUpError };
       }
 
-      toast.success('¡Registro exitoso! Revisa tu correo para confirmar tu cuenta antes de iniciar sesión.');
-      return { error: null };
+      //Crear perfil en la tabla usuario
+      if (authData.user) {
+        const { error: profileError } = await supabase
+          .from('usuario')
+          .upsert({
+            id: authData.user.id,
+            email: data.email,
+            nombre: data.nombre,
+            apellidos: data.apellidos,
+            telefono: data.telefono,
+            tipo_comida: data.tipo_comida,
+            presupuesto: data.presupuesto,
+            id_localidad: data.id_localidad,
+            id_barrio: data.id_barrio,
+          }, {
+            onConflict: 'id'
+          });
+
+        if (profileError) {
+          console.error('Error creando perfil:', profileError);
+          toast.error('Error al crear el perfil');
+          return { error: profileError };
+        }
+      }
+
+      //Iniciar sesión automáticamente después del registro
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: data.password,
+      });
+
+      if (signInError) {
+        console.error('Error iniciando sesión después del registro:', signInError);
+        toast.success('¡Registro exitoso! Pero no pudimos iniciar sesión automáticamente.');
+        return { error: signInError };
+      }
+
+      toast.success('¡Cuenta creada y sesión iniciada!');
+      return { error: null, user: signInData.user };
+
     } catch (error: any) {
+      console.error('Error en registro:', error);
       toast.error('Error al registrarse');
       return { error };
     }
@@ -167,7 +206,7 @@ export const useAuth = () => {
 
   const checkOnboardingStatus = async () => {
     if (!user) return false;
-    
+
     try {
       const { data, error } = await supabase
         .from('usuario')
@@ -229,7 +268,7 @@ export const useAuth = () => {
     try {
       // Limpiar preferencia de "recordarme"
       localStorage.removeItem('rememberMe');
-      
+
       const { error } = await supabase.auth.signOut();
       if (error) {
         toast.error(error.message);
