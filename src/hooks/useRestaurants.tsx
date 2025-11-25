@@ -92,7 +92,8 @@ export const useRestaurants = (limit?: number, filters?: RestaurantFilters) => {
       }
 
       if (filters?.neighborhood && filters.neighborhood.length > 0) {
-        query = query.in("neighborhood", filters.neighborhood);
+        // Usar OR para buscar en cualquiera de los barrios seleccionados
+        query = query.or(filters.neighborhood.map(n => `neighborhood.eq.${n}`).join(','));
       }
 
       if (filters?.minRating) {
@@ -150,7 +151,8 @@ export const useInfiniteRestaurants = (filters?: RestaurantFilters, pageSize = 1
       }
 
       if (filters?.neighborhood && filters.neighborhood.length > 0) {
-        query = query.in("neighborhood", filters.neighborhood);
+        // Usar OR para buscar en cualquiera de los barrios seleccionados
+        query = query.or(filters.neighborhood.map(n => `neighborhood.eq.${n}`).join(','));
       }
 
       if (filters?.minRating) {

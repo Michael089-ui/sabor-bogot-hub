@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useInfiniteRestaurants, formatPriceLevel, RestaurantFilters } from "@/hooks/useRestaurants";
+import { useNeighborhoods, useCuisines, usePriceLevels } from "@/hooks/useNeighborhoods";
 
 const Restaurantes = () => {
   const navigate = useNavigate();
@@ -37,6 +38,11 @@ const Restaurantes = () => {
     hasNextPage, 
     isFetchingNextPage 
   } = useInfiniteRestaurants(filters, 12);
+
+  // Obtener opciones dinámicas de filtros
+  const { data: neighborhoods = [] } = useNeighborhoods();
+  const { data: cuisines = [] } = useCuisines();
+  const { data: priceLevels = [] } = usePriceLevels();
 
   // Flatten all pages into a single array
   const allRestaurants = useMemo(() => {
@@ -138,33 +144,29 @@ const Restaurantes = () => {
                   <ChevronDown className="h-3 w-3" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-48">
+              <DropdownMenuContent className="w-56 max-h-96 overflow-y-auto">
                 <DropdownMenuLabel>Seleccionar tipo</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuCheckboxItem 
-                  checked={filters.cuisine?.includes("Colombian")}
-                  onCheckedChange={() => toggleFilter("cuisine", "Colombian")}
-                >
-                  Colombiana
-                </DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem 
-                  checked={filters.cuisine?.includes("Italian")}
-                  onCheckedChange={() => toggleFilter("cuisine", "Italian")}
-                >
-                  Italiana
-                </DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem 
-                  checked={filters.cuisine?.includes("Asian")}
-                  onCheckedChange={() => toggleFilter("cuisine", "Asian")}
-                >
-                  Asiática
-                </DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem 
-                  checked={filters.cuisine?.includes("Steakhouse")}
-                  onCheckedChange={() => toggleFilter("cuisine", "Steakhouse")}
-                >
-                  Parrilla
-                </DropdownMenuCheckboxItem>
+                {cuisines.length === 0 ? (
+                  <div className="px-2 py-4 text-sm text-muted-foreground text-center">
+                    No hay tipos de cocina disponibles
+                  </div>
+                ) : (
+                  cuisines.map(cuisine => (
+                    <DropdownMenuCheckboxItem 
+                      key={cuisine.name}
+                      checked={filters.cuisine?.includes(cuisine.name)}
+                      onCheckedChange={() => toggleFilter("cuisine", cuisine.name)}
+                    >
+                      <div className="flex items-center justify-between w-full">
+                        <span>{cuisine.displayName}</span>
+                        <Badge variant="secondary" className="ml-2 text-xs">
+                          {cuisine.count}
+                        </Badge>
+                      </div>
+                    </DropdownMenuCheckboxItem>
+                  ))
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
 
@@ -175,33 +177,29 @@ const Restaurantes = () => {
                   <ChevronDown className="h-3 w-3" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-48">
+              <DropdownMenuContent className="w-56">
                 <DropdownMenuLabel>Rango de precio</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuCheckboxItem 
-                  checked={filters.priceLevel?.includes("1")}
-                  onCheckedChange={() => toggleFilter("priceLevel", "1")}
-                >
-                  $ (Económico)
-                </DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem 
-                  checked={filters.priceLevel?.includes("2")}
-                  onCheckedChange={() => toggleFilter("priceLevel", "2")}
-                >
-                  $$ (Moderado)
-                </DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem 
-                  checked={filters.priceLevel?.includes("3")}
-                  onCheckedChange={() => toggleFilter("priceLevel", "3")}
-                >
-                  $$$ (Caro)
-                </DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem 
-                  checked={filters.priceLevel?.includes("4")}
-                  onCheckedChange={() => toggleFilter("priceLevel", "4")}
-                >
-                  $$$$ (Muy caro)
-                </DropdownMenuCheckboxItem>
+                {priceLevels.length === 0 ? (
+                  <div className="px-2 py-4 text-sm text-muted-foreground text-center">
+                    No hay rangos de precio disponibles
+                  </div>
+                ) : (
+                  priceLevels.map(priceLevel => (
+                    <DropdownMenuCheckboxItem 
+                      key={priceLevel.level}
+                      checked={filters.priceLevel?.includes(priceLevel.level)}
+                      onCheckedChange={() => toggleFilter("priceLevel", priceLevel.level)}
+                    >
+                      <div className="flex items-center justify-between w-full">
+                        <span>{priceLevel.displayName}</span>
+                        <Badge variant="secondary" className="ml-2 text-xs">
+                          {priceLevel.count}
+                        </Badge>
+                      </div>
+                    </DropdownMenuCheckboxItem>
+                  ))
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
 
@@ -212,33 +210,29 @@ const Restaurantes = () => {
                   <ChevronDown className="h-3 w-3" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-48">
+              <DropdownMenuContent className="w-56 max-h-96 overflow-y-auto">
                 <DropdownMenuLabel>Zona</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuCheckboxItem 
-                  checked={filters.neighborhood?.includes("Chapinero Alto")}
-                  onCheckedChange={() => toggleFilter("neighborhood", "Chapinero Alto")}
-                >
-                  Chapinero Alto
-                </DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem 
-                  checked={filters.neighborhood?.includes("Zona G")}
-                  onCheckedChange={() => toggleFilter("neighborhood", "Zona G")}
-                >
-                  Zona G
-                </DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem 
-                  checked={filters.neighborhood?.includes("Usaquén")}
-                  onCheckedChange={() => toggleFilter("neighborhood", "Usaquén")}
-                >
-                  Usaquén
-                </DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem 
-                  checked={filters.neighborhood?.includes("La Candelaria")}
-                  onCheckedChange={() => toggleFilter("neighborhood", "La Candelaria")}
-                >
-                  La Candelaria
-                </DropdownMenuCheckboxItem>
+                {neighborhoods.length === 0 ? (
+                  <div className="px-2 py-4 text-sm text-muted-foreground text-center">
+                    No hay zonas disponibles
+                  </div>
+                ) : (
+                  neighborhoods.map(neighborhood => (
+                    <DropdownMenuCheckboxItem 
+                      key={neighborhood.name}
+                      checked={filters.neighborhood?.includes(neighborhood.name)}
+                      onCheckedChange={() => toggleFilter("neighborhood", neighborhood.name)}
+                    >
+                      <div className="flex items-center justify-between w-full">
+                        <span className="truncate max-w-[150px]">{neighborhood.name}</span>
+                        <Badge variant="secondary" className="ml-2 text-xs shrink-0">
+                          {neighborhood.count}
+                        </Badge>
+                      </div>
+                    </DropdownMenuCheckboxItem>
+                  ))
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
 
