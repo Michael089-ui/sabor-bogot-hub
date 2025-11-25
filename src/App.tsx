@@ -33,46 +33,46 @@ import { OnboardingRedirect } from "./components/OnboardingRedirect";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/registro" element={<Registro />} />
-          <Route path="/recuperar-contrasena" element={<RecuperarContrasena />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/admin/import" element={<ImportRestaurants />} />
-          <Route path="/admin/enrich-addresses" element={<EnrichAddresses />} />
-          <Route path="/admin/data-quality" element={<ProtectedRoute><DataQuality /></ProtectedRoute>} />
-          <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
+const App = () => {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/registro" element={<Registro />} />
+              <Route path="/recuperar-contrasena" element={<RecuperarContrasena />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/admin/import" element={<ImportRestaurants />} />
+              <Route path="/admin/enrich-addresses" element={<EnrichAddresses />} />
+              <Route path="/admin/data-quality" element={<ProtectedRoute><DataQuality /></ProtectedRoute>} />
+              <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
 
-          {/* TODAS las rutas sin OnboardingRedirect */}
-          <Route path="/" element={<MainLayout><ProtectedRoute><Dashboard /></ProtectedRoute></MainLayout>} />
-          <Route path="/dashboard" element={<MainLayout><ProtectedRoute><Dashboard /></ProtectedRoute></MainLayout>} />
-          <Route path="/chat-ia" element={<MainLayout><ProtectedRoute><ChatIA /></ProtectedRoute></MainLayout>} />
-          <Route path="/mapa" element={<MainLayout><ProtectedRoute><Mapa /></ProtectedRoute></MainLayout>} />
-          <Route path="/restaurantes" element={<MainLayout><ProtectedRoute><Restaurantes /></ProtectedRoute></MainLayout>} />
-          <Route path="/restaurantes/:id" element={<MainLayout><ProtectedRoute><RestauranteDetalle /></ProtectedRoute></MainLayout>} />
-          <Route path="/restaurantes/:id/estadisticas" element={<MainLayout><ProtectedRoute><EstadisticasRestaurante /></ProtectedRoute></MainLayout>} />
-          <Route path="/favoritos" element={<MainLayout><ProtectedRoute><Favoritos /></ProtectedRoute></MainLayout>} />
-          <Route path="/resenas" element={<MainLayout><ProtectedRoute><Resenas /></ProtectedRoute></MainLayout>} />
-          <Route path="/historial/busquedas" element={<MainLayout><ProtectedRoute><HistorialBusquedas /></ProtectedRoute></MainLayout>} />
-          <Route path="/historial/resultados" element={<MainLayout><ProtectedRoute><HistorialResultados /></ProtectedRoute></MainLayout>} />
-          <Route path="/perfil" element={<MainLayout><ProtectedRoute><Perfil /></ProtectedRoute></MainLayout>} />
-          <Route path="/configuracion" element={<MainLayout><ProtectedRoute><Configuracion /></ProtectedRoute></MainLayout>} />
-          {/* <Route path="/perfil-debug" element={<ProtectedRoute><PerfilDebug /></ProtectedRoute>} />
-          <Route path="/perfil" element={<MainLayout><ProtectedRoute><PerfilSimplificadoV2 /></ProtectedRoute></MainLayout>} /> */}
-          
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-    </ThemeProvider>
-  </QueryClientProvider>
-);
+              {/* TODAS las rutas sin OnboardingRedirect */}
+              <Route path="/" element={<MainLayout><ProtectedRoute><Dashboard /></ProtectedRoute></MainLayout>} />
+              <Route path="/dashboard" element={<MainLayout><ProtectedRoute><Dashboard /></ProtectedRoute></MainLayout>} />
+              <Route path="/chat-ia" element={<MainLayout><ProtectedRoute><ChatIA /></ProtectedRoute></MainLayout>} />
+              <Route path="/mapa" element={<MainLayout><ProtectedRoute><Mapa /></ProtectedRoute></MainLayout>} />
+              <Route path="/restaurantes" element={<MainLayout><ProtectedRoute><Restaurantes /></ProtectedRoute></MainLayout>} />
+              <Route path="/restaurantes/:id" element={<MainLayout><ProtectedRoute><RestauranteDetalle /></ProtectedRoute></MainLayout>} />
+              <Route path="/restaurantes/:id/estadisticas" element={<MainLayout><ProtectedRoute><EstadisticasRestaurante /></ProtectedRoute></MainLayout>} />
+              <Route path="/favoritos" element={<MainLayout><ProtectedRoute><Favoritos /></ProtectedRoute></MainLayout>} />
+              <Route path="/resenas" element={<MainLayout><ProtectedRoute><Resenas /></ProtectedRoute></MainLayout>} />
+              <Route path="/historial/busquedas" element={<MainLayout><ProtectedRoute><HistorialBusquedas /></ProtectedRoute></MainLayout>} />
+              <Route path="/historial/resultados" element={<MainLayout><ProtectedRoute><HistorialResultados /></ProtectedRoute></MainLayout>} />
+              <Route path="/perfil" element={<MainLayout><ProtectedRoute><Perfil /></ProtectedRoute></MainLayout>} />
+              <Route path="/configuracion" element={<MainLayout><ProtectedRoute><Configuracion /></ProtectedRoute></MainLayout>} />
+              
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
