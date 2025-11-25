@@ -1,39 +1,18 @@
-import { useState, useEffect } from "react";
-import { Search, Map, MessageSquare, Heart, Star, Sparkles, CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { useState } from "react";
+import { Search, Map, MessageSquare, Heart, Star, Sparkles, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { RestauranteCard } from "@/components/RestauranteCard";
 import { useNavigate } from "react-router-dom";
-import { testSupabaseConnection } from "@/tests/supabaseTest";
 import { useRestaurants } from "@/hooks/useRestaurants";
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
-  const [connectionStatus, setConnectionStatus] = useState<"loading" | "success" | "error">("loading");
-  const [connectionMessage, setConnectionMessage] = useState("");
-  const [connectionData, setConnectionData] = useState<any>(null);
   
   // Fetch real restaurants data
   const { data: restaurants, isLoading: loadingRestaurants } = useRestaurants(5);
-
-  useEffect(() => {
-    const checkConnection = async () => {
-      const result = await testSupabaseConnection();
-      
-      if (result.success) {
-        setConnectionStatus("success");
-        setConnectionMessage("Conexión a Supabase exitosa");
-        setConnectionData(result.data);
-      } else {
-        setConnectionStatus("error");
-        setConnectionMessage(result.error || "Error desconocido");
-      }
-    };
-
-    checkConnection();
-  }, []);
 
   // Get real restaurants from API
   const restaurantesRecomendados = restaurants || [];
@@ -79,51 +58,6 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-full">
-      {/* Prueba de Conexión Supabase */}
-      <section className="max-w-6xl mx-auto px-6 py-6">
-        <Card className={connectionStatus === "error" ? "border-red-500" : connectionStatus === "success" ? "border-green-500" : ""}>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              {connectionStatus === "loading" && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />}
-              {connectionStatus === "success" && <CheckCircle className="h-5 w-5 text-green-500" />}
-              {connectionStatus === "error" && <XCircle className="h-5 w-5 text-red-500" />}
-              Prueba de Conexión a Supabase
-            </CardTitle>
-            <CardDescription>
-              Estado de la conexión con la base de datos
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <p className="text-sm">
-                <strong>Estado:</strong> {connectionStatus === "loading" ? "Verificando..." : connectionStatus === "success" ? "✅ Exitosa" : "❌ Error"}
-              </p>
-              <p className="text-sm">
-                <strong>Mensaje:</strong> {connectionMessage}
-              </p>
-              {connectionData && (
-                <div className="mt-4">
-                  <p className="text-sm font-medium mb-2">Datos obtenidos:</p>
-                  <pre className="bg-muted p-3 rounded text-xs overflow-auto max-h-40">
-                    {JSON.stringify(connectionData, null, 2)}
-                  </pre>
-                </div>
-              )}
-              {connectionStatus === "success" && (!connectionData || connectionData.length === 0) && (
-                <p className="text-sm text-muted-foreground mt-2">
-                  ℹ️ La tabla 'usuario' está vacía. Esto es normal si aún no has registrado usuarios.
-                </p>
-              )}
-              {connectionStatus === "error" && (
-                <p className="text-sm text-muted-foreground mt-2">
-                  ⚠️ Verifica que las credenciales de Supabase en .env sean correctas y que la tabla 'usuario' exista.
-                </p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </section>
-
       {/* Hero Section - Buscador Principal */}
       <section className="bg-gradient-to-br from-primary/5 via-background to-accent/5 border-b border-border">
         <div className="max-w-6xl mx-auto px-6 py-12 md:py-16">

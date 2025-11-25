@@ -29,6 +29,7 @@ import ImportRestaurants from "./pages/ImportRestaurants";
 import EnrichAddresses from "./pages/EnrichAddresses";
 import DataQuality from "./pages/DataQuality";
 import AdminPopulate from "./pages/AdminPopulate";
+import SupabaseDebug from "./pages/SupabaseDebug";
 import NotFound from "./pages/NotFound";
 import { OnboardingRedirect } from "./components/OnboardingRedirect";
 
@@ -67,6 +68,9 @@ const App = () => {
               <Route path="/historial/resultados" element={<MainLayout><ProtectedRoute><HistorialResultados /></ProtectedRoute></MainLayout>} />
               <Route path="/perfil" element={<MainLayout><ProtectedRoute><Perfil /></ProtectedRoute></MainLayout>} />
               <Route path="/configuracion" element={<MainLayout><ProtectedRoute><Configuracion /></ProtectedRoute></MainLayout>} />
+              
+              {/* Debug route - hidden from navigation */}
+              <Route path="/debug/supabase" element={<ProtectedRoute><SupabaseDebug /></ProtectedRoute>} />
               
               <Route path="*" element={<NotFound />} />
             </Routes>
