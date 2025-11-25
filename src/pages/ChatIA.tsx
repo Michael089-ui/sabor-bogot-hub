@@ -1097,20 +1097,22 @@ Si el usuario te saluda o pregunta algo general como "hola", "qué recomiendas",
                               <Heart className={`h-4 w-4 ${isFavorite(restaurant.placeId || '') ? 'fill-current' : ''}`} />
                               {isFavorite(restaurant.placeId || '') ? 'Guardado' : 'Guardar'}
                             </Button>
-                             <Button
-                               size="default"
-                               variant="default"
-                               className="flex-1 h-10 text-sm gap-2"
-                               onClick={(e) => {
-                                 e.stopPropagation();
-                                 navigate(`/restaurantes/${restaurant.placeId}`, {
-                                   state: { fromChat: true }
-                                 });
-                               }}
-                             >
-                               <Eye className="h-4 w-4" />
-                               Ver detalle
-                             </Button>
+                            <Button
+                              size="default"
+                              variant="default"
+                              className="flex-1 h-10 text-sm gap-2"
+                              asChild
+                            >
+                              <a
+                                href={`/restaurantes/${restaurant.placeId}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <Eye className="h-4 w-4" />
+                                Ver detalle
+                              </a>
+                            </Button>
                           </div>
 
                           {(restaurant.website || restaurant.phone) && (
