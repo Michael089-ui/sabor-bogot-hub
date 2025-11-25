@@ -3,7 +3,7 @@ import { Sparkles, MapPin, DollarSign } from "lucide-react";
 import { useInfiniteRestaurants } from "@/hooks/useRestaurants";
 import { RestauranteCard } from "@/components/RestauranteCard";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 
 interface PersonalizedRecommendationsProps {
   tipoComida: string[];
@@ -11,11 +11,46 @@ interface PersonalizedRecommendationsProps {
   neighborhood: string | null;
 }
 
+// Mapeo de tipos de comida del usuario (español) a valores de la base de datos (inglés)
+const cuisineMapping: { [key: string]: string[] } = {
+  'Mexicana': ['Mexican'],
+  'Italiana': ['Italian', 'Italiana', 'Italian / Pizza'],
+  'Colombiana': ['Colombian', 'Contemporary Colombian', 'Colombian / Fine Dining', 'Colombian / Grill', 'Colombian / Steakhouse', 'Colombian / Amazonian', 'Market / Colombian'],
+  'China': ['Chinese'],
+  'Japonesa': ['Japanese', 'Japonesa', 'Japanese / Grill', 'Japanese / Ramen', 'Nikkei', 'Fusion / Izakaya'],
+  'Vegana': ['Vegetarian', 'Vegan', 'Brunch / Healthy'],
+  'Vegetariana': ['Vegetarian'],
+  'Parrilla': ['BBQ', 'Steakhouse', 'Colombian / Steakhouse', 'International / Grill', 'Mediterranean / Grill'],
+  'Mariscos': ['Seafood', 'Peruvian / Seafood'],
+  'Postres': ['Bakery', 'Bakery / Brunch', 'Cafe'],
+  'Mediterránea': ['Mediterranean', 'Mediterranean / Grill', 'Spanish'],
+  'Peruana': ['Peruvian', 'Peruvian / Seafood'],
+  'Americana': ['American', 'International'],
+  'Francesa': ['French'],
+  'Asiática': ['Asian', 'Fusion / Asian'],
+  'Árabe': ['Arabic', 'Middle Eastern']
+};
+
 const presupuestoToPriceLevel: { [key: string]: string[] } = {
-  'economico': ['1', 'PRICE_LEVEL_INEXPENSIVE'],
-  'moderado': ['2', 'PRICE_LEVEL_MODERATE'],
-  'alto': ['3', 'PRICE_LEVEL_EXPENSIVE'],
-  'premium': ['4', 'PRICE_LEVEL_VERY_EXPENSIVE']
+  'economico': ['1', 'PRICE_LEVEL_INEXPENSIVE', 'INEXPENSIVE'],
+  'moderado': ['2', 'PRICE_LEVEL_MODERATE', 'MODERATE'],
+  'alto': ['3', 'PRICE_LEVEL_EXPENSIVE', 'EXPENSIVE'],
+  'premium': ['4', 'PRICE_LEVEL_VERY_EXPENSIVE', 'VERY_EXPENSIVE']
+};
+
+// Función para convertir preferencias de usuario a valores de la base de datos
+const convertCuisinePreferences = (userPreferences: string[]): string[] => {
+  const dbCuisines: string[] = [];
+  userPreferences.forEach(pref => {
+    const mappedValues = cuisineMapping[pref];
+    if (mappedValues) {
+      dbCuisines.push(...mappedValues);
+    } else {
+      // Si no hay mapeo, usar el valor original
+      dbCuisines.push(pref);
+    }
+  });
+  return [...new Set(dbCuisines)]; // Eliminar duplicados
 };
 
 export const PersonalizedRecommendations = ({ 
@@ -23,13 +58,23 @@ export const PersonalizedRecommendations = ({
   presupuesto, 
   neighborhood 
 }: PersonalizedRecommendationsProps) => {
+  const [fallbackLevel, setFallbackLevel] = useState(0);
   
-  // Construir filtros basados en preferencias
-  const filters = {
-    cuisine: tipoComida.length > 0 ? tipoComida : undefined,
-    priceLevel: presupuesto ? presupuestoToPriceLevel[presupuesto.toLowerCase()] : undefined,
-    neighborhood: neighborhood ? [neighborhood] : undefined,
-  };
+  // Convertir tipos de comida del usuario a valores de la base de datos
+  const convertedCuisines = useMemo(() => {
+    return tipoComida.length > 0 ? convertCuisinePreferences(tipoComida) : undefined;
+  }, [tipoComida]);
+  
+  // Construir filtros basados en preferencias con fallback progresivo
+  const filters = useMemo(() => {
+    return {
+      cuisine: convertedCuisines,
+      priceLevel: fallbackLevel < 2 && presupuesto 
+        ? presupuestoToPriceLevel[presupuesto.toLowerCase()] 
+        : undefined,
+      neighborhood: fallbackLevel < 1 && neighborhood ? [neighborhood] : undefined,
+    };
+  }, [convertedCuisines, presupuesto, neighborhood, fallbackLevel]);
 
   const { data, isLoading } = useInfiniteRestaurants(filters, 6);
 
@@ -38,6 +83,13 @@ export const PersonalizedRecommendations = ({
     const allRestaurants = data?.pages.flatMap(page => page.data) || [];
     return allRestaurants.slice(0, 6);
   }, [data]);
+
+  // Implementar fallback progresivo si no hay resultados
+  useEffect(() => {
+    if (!isLoading && restaurants.length === 0 && fallbackLevel < 2) {
+      setFallbackLevel(prev => prev + 1);
+    }
+  }, [isLoading, restaurants.length, fallbackLevel]);
 
   if (!tipoComida.length && !presupuesto && !neighborhood) {
     return (
@@ -103,7 +155,13 @@ export const PersonalizedRecommendations = ({
         ) : (
           <div className="text-center text-muted-foreground py-8">
             <p>No encontramos restaurantes que coincidan con tus preferencias</p>
-            <p className="text-sm mt-2">Intenta ajustar tus filtros o explorar más opciones</p>
+            <p className="text-sm mt-2">
+              {fallbackLevel === 0 && neighborhood 
+                ? "No hay restaurantes en tu barrio con esas características"
+                : fallbackLevel === 1 && presupuesto
+                ? "Ampliamos la búsqueda a otras zonas sin resultados"
+                : "Intenta ajustar tus preferencias de tipo de comida"}
+            </p>
           </div>
         )}
       </CardContent>
