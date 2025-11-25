@@ -11,6 +11,41 @@ import { useRestaurants, getPhotoUrl, RestaurantFilters } from "@/hooks/useResta
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
+const CUISINE_TYPES = [
+  "Colombian",
+  "Asian",
+  "Italian",
+  "Steakhouse",
+  "Mexican",
+  "Japanese",
+  "Chinese",
+  "Mediterranean",
+  "French",
+  "American",
+  "Peruvian",
+  "Spanish",
+  "Thai",
+  "Indian",
+  "Vietnamese",
+  "Korean",
+  "Brazilian",
+];
+
+const getCuisineDisplay = (restaurant: any): string => {
+  const cuisine = restaurant.cuisine || restaurant.types?.[0]?.replace(/_/g, " ") || "";
+  
+  // Check if cuisine matches any predefined type (case insensitive)
+  const matchesPredefined = CUISINE_TYPES.some(
+    type => cuisine.toLowerCase().includes(type.toLowerCase())
+  );
+  
+  if (matchesPredefined || !cuisine) {
+    return cuisine || "Restaurante";
+  }
+  
+  return "Otro";
+};
+
 const mapContainerStyle = {
   width: '100%',
   height: '100%'
@@ -109,13 +144,26 @@ export default function Mapa() {
           <div className="flex gap-2">
             <Select onValueChange={(value) => setFilters(prev => ({ ...prev, cuisine: [value] }))}>
               <SelectTrigger className="flex-1">
-                <SelectValue placeholder="Tipo" />
+                <SelectValue placeholder="Tipo de comida" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="max-h-[300px]">
                 <SelectItem value="Colombian">Colombiana</SelectItem>
-                <SelectItem value="Asian">Asiática</SelectItem>
+                <SelectItem value="Mexican">Mexicana</SelectItem>
+                <SelectItem value="Peruvian">Peruana</SelectItem>
+                <SelectItem value="Brazilian">Brasileña</SelectItem>
                 <SelectItem value="Italian">Italiana</SelectItem>
+                <SelectItem value="French">Francesa</SelectItem>
+                <SelectItem value="Spanish">Española</SelectItem>
+                <SelectItem value="Mediterranean">Mediterránea</SelectItem>
+                <SelectItem value="American">Americana</SelectItem>
                 <SelectItem value="Steakhouse">Parrilla</SelectItem>
+                <SelectItem value="Asian">Asiática</SelectItem>
+                <SelectItem value="Japanese">Japonesa</SelectItem>
+                <SelectItem value="Chinese">China</SelectItem>
+                <SelectItem value="Thai">Tailandesa</SelectItem>
+                <SelectItem value="Vietnamese">Vietnamita</SelectItem>
+                <SelectItem value="Korean">Coreana</SelectItem>
+                <SelectItem value="Indian">India</SelectItem>
               </SelectContent>
             </Select>
             <Select onValueChange={(value) => setFilters(prev => ({ ...prev, priceLevel: [value] }))}>
@@ -192,7 +240,7 @@ export default function Mapa() {
                       <h3 className="font-semibold text-foreground mb-1">{restaurant.name}</h3>
                       <div className="flex items-center justify-between text-sm">
                         <Badge variant="secondary" className="text-xs">
-                          {restaurant.cuisine || restaurant.types?.[0]?.replace(/_/g, " ") || "Restaurante"}
+                          {getCuisineDisplay(restaurant)}
                         </Badge>
                         <div className="flex items-center gap-2">
                           <span className="text-yellow-500">⭐ {restaurant.rating?.toFixed(1) || 'N/A'}</span>
@@ -268,7 +316,7 @@ export default function Mapa() {
                   />
                   <h3 className="font-semibold text-sm mb-1">{selectedRestaurant.name}</h3>
                   <p className="text-xs text-muted-foreground mb-2">
-                    {selectedRestaurant.cuisine || selectedRestaurant.types?.[0]?.replace(/_/g, " ") || "Restaurante"}
+                    {getCuisineDisplay(selectedRestaurant)}
                   </p>
                   <div className="flex items-center justify-between text-xs mb-2">
                     <span className="text-yellow-500">⭐ {selectedRestaurant.rating?.toFixed(1) || 'N/A'}</span>
