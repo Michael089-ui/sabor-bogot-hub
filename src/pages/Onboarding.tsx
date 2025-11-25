@@ -13,12 +13,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { LogoSaborCapital } from "@/components/LogoSaborCapital";
+import { useLocalidades, useBarriosPorLocalidad } from "@/hooks/useBarriosBogota";
 
 const onboardingSchema = z.object({
   telefono: z.string().min(10, "El teléfono debe tener al menos 10 dígitos"),
   tipo_comida: z.array(z.string()).min(1, "Selecciona al menos una preferencia"),
   presupuesto: z.string().min(1, "Selecciona un presupuesto"),
-  ubicacion: z.string().min(3, "La ubicación debe tener al menos 3 caracteres"),
+  id_localidad: z.string().min(1, "Selecciona una localidad"),
+  id_barrio: z.string().min(1, "Selecciona un barrio"),
 });
 
 type OnboardingFormData = z.infer<typeof onboardingSchema>;
@@ -28,13 +30,18 @@ export default function Onboarding() {
   const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
   const [selectedPreferences, setSelectedPreferences] = useState<string[]>([]);
+  const [selectedLocalidad, setSelectedLocalidad] = useState<string | null>(null);
   
   const isGoogleUser = user?.app_metadata?.provider === 'google';
+  
+  const { data: localidades = [], isLoading: loadingLocalidades } = useLocalidades();
+  const { data: barrios = [], isLoading: loadingBarrios } = useBarriosPorLocalidad(selectedLocalidad);
 
   const {
     register,
     handleSubmit,
     setValue,
+    watch,
     formState: { errors },
   } = useForm<OnboardingFormData>({
     resolver: zodResolver(onboardingSchema),
@@ -42,12 +49,21 @@ export default function Onboarding() {
       tipo_comida: [],
     },
   });
+  
+  const watchLocalidad = watch("id_localidad");
 
   useEffect(() => {
     if (!authLoading && !user) {
       navigate("/login");
     }
   }, [user, authLoading, navigate]);
+  
+  useEffect(() => {
+    if (watchLocalidad) {
+      setSelectedLocalidad(watchLocalidad);
+      setValue("id_barrio", ""); // Reset barrio when localidad changes
+    }
+  }, [watchLocalidad, setValue]);
 
   const preferences = [
     "Mexicana",
@@ -88,7 +104,8 @@ export default function Onboarding() {
             telefono: data.telefono,
             tipo_comida: data.tipo_comida,
             presupuesto: data.presupuesto,
-            ubicacion: data.ubicacion,
+            id_localidad: data.id_localidad,
+            id_barrio: data.id_barrio,
             onboarding_completed: true,
           },
           { onConflict: "id" }
@@ -156,15 +173,52 @@ export default function Onboarding() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="ubicacion">Ubicación</Label>
-                  <Input
-                    id="ubicacion"
-                    type="text"
-                    placeholder="Bogotá - Chapinero"
-                    {...register("ubicacion")}
-                  />
-                  {errors.ubicacion && (
-                    <p className="text-sm text-destructive">{errors.ubicacion.message}</p>
+                  <Label htmlFor="id_localidad">Localidad</Label>
+                  <Select 
+                    onValueChange={(value) => setValue("id_localidad", value)}
+                    disabled={loadingLocalidades}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={loadingLocalidades ? "Cargando..." : "Selecciona tu localidad"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {localidades.map((localidad) => (
+                        <SelectItem key={localidad.id_localidad} value={localidad.id_localidad}>
+                          {localidad.nombre}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.id_localidad && (
+                    <p className="text-sm text-destructive">{errors.id_localidad.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="id_barrio">Barrio</Label>
+                  <Select 
+                    onValueChange={(value) => setValue("id_barrio", value)}
+                    disabled={!selectedLocalidad || loadingBarrios}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={
+                        !selectedLocalidad 
+                          ? "Primero selecciona una localidad" 
+                          : loadingBarrios 
+                            ? "Cargando..." 
+                            : "Selecciona tu barrio"
+                      } />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {barrios.map((barrio) => (
+                        <SelectItem key={barrio.id_barrio} value={barrio.id_barrio}>
+                          {barrio.nombre}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {errors.id_barrio && (
+                    <p className="text-sm text-destructive">{errors.id_barrio.message}</p>
                   )}
                 </div>
 

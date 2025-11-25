@@ -39,6 +39,7 @@ export interface RestaurantFilters {
   cuisine?: string[];
   priceLevel?: string[];
   neighborhood?: string[];
+  localidad?: string; // Para filtrar por localidad completa
   minRating?: number;
   openNow?: boolean;
 }
@@ -92,8 +93,17 @@ export const useRestaurants = (limit?: number, filters?: RestaurantFilters) => {
       }
 
       if (filters?.neighborhood && filters.neighborhood.length > 0) {
-        // Usar OR para buscar en cualquiera de los barrios seleccionados
-        query = query.or(filters.neighborhood.map(n => `neighborhood.eq.${n}`).join(','));
+        // Buscar en neighborhood Y en formatted_address para mayor precisión
+        const neighborhoodConditions = filters.neighborhood.flatMap(n => [
+          `neighborhood.ilike.%${n}%`,
+          `formatted_address.ilike.%${n}%`
+        ]);
+        query = query.or(neighborhoodConditions.join(','));
+      }
+      
+      // Filtro adicional por localidad (cuando se selecciona solo localidad sin barrio específico)
+      if (filters?.localidad) {
+        query = query.ilike('formatted_address', `%${filters.localidad}%`);
       }
 
       if (filters?.minRating) {
@@ -151,8 +161,17 @@ export const useInfiniteRestaurants = (filters?: RestaurantFilters, pageSize = 1
       }
 
       if (filters?.neighborhood && filters.neighborhood.length > 0) {
-        // Usar OR para buscar en cualquiera de los barrios seleccionados
-        query = query.or(filters.neighborhood.map(n => `neighborhood.eq.${n}`).join(','));
+        // Buscar en neighborhood Y en formatted_address para mayor precisión
+        const neighborhoodConditions = filters.neighborhood.flatMap(n => [
+          `neighborhood.ilike.%${n}%`,
+          `formatted_address.ilike.%${n}%`
+        ]);
+        query = query.or(neighborhoodConditions.join(','));
+      }
+      
+      // Filtro adicional por localidad (cuando se selecciona solo localidad sin barrio específico)
+      if (filters?.localidad) {
+        query = query.ilike('formatted_address', `%${filters.localidad}%`);
       }
 
       if (filters?.minRating) {

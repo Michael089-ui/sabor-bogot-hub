@@ -9,6 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { useRestaurants, getPhotoUrl, RestaurantFilters } from "@/hooks/useRestaurants";
 import { QuickRecommendationModal } from "@/components/QuickRecommendationModal";
+import { useLocalidades, useBarriosPorLocalidad } from "@/hooks/useBarriosBogota";
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
@@ -91,6 +92,10 @@ export default function Mapa() {
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [showRecommendationModal, setShowRecommendationModal] = useState(false);
+  const [selectedLocalidadId, setSelectedLocalidadId] = useState<string | null>(null);
+  
+  const { data: localidades = [], isLoading: loadingLocalidades } = useLocalidades();
+  const { data: barrios = [], isLoading: loadingBarrios } = useBarriosPorLocalidad(selectedLocalidadId);
 
   const filteredRestaurants = restaurants.filter((restaurant) =>
     restaurant.name.toLowerCase().includes(mapSearchQuery.toLowerCase()) ||
@@ -189,14 +194,52 @@ export default function Mapa() {
             </Select>
           </div>
           <div className="flex gap-2">
-            <Select onValueChange={(value) => setFilters(prev => ({ ...prev, neighborhood: [value] }))}>
+            <Select 
+              onValueChange={(value) => {
+                setSelectedLocalidadId(value);
+                // Get localidad name and set neighborhood filter with all barrios from that localidad
+                const localidad = localidades.find(l => l.id_localidad === value);
+                if (localidad) {
+                  setFilters(prev => ({ ...prev, neighborhood: [], localidad: localidad.nombre }));
+                }
+              }}
+              disabled={loadingLocalidades}
+            >
               <SelectTrigger className="flex-1">
-                <SelectValue placeholder="Ubicación" />
+                <SelectValue placeholder={loadingLocalidades ? "Cargando..." : "Localidad"} />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Chapinero Alto">Chapinero Alto</SelectItem>
-                <SelectItem value="Usaquén">Usaquén</SelectItem>
-                <SelectItem value="Zona G">Zona G</SelectItem>
+              <SelectContent className="max-h-[300px]">
+                {localidades.map((localidad) => (
+                  <SelectItem key={localidad.id_localidad} value={localidad.id_localidad}>
+                    {localidad.nombre}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select 
+              onValueChange={(value) => {
+                const barrio = barrios.find(b => b.id_barrio === value);
+                if (barrio) {
+                  setFilters(prev => ({ ...prev, neighborhood: [barrio.nombre] }));
+                }
+              }}
+              disabled={!selectedLocalidadId || loadingBarrios}
+            >
+              <SelectTrigger className="flex-1">
+                <SelectValue placeholder={
+                  !selectedLocalidadId 
+                    ? "Primero selecciona localidad" 
+                    : loadingBarrios 
+                      ? "Cargando..." 
+                      : "Barrio"
+                } />
+              </SelectTrigger>
+              <SelectContent className="max-h-[300px]">
+                {barrios.map((barrio) => (
+                  <SelectItem key={barrio.id_barrio} value={barrio.id_barrio}>
+                    {barrio.nombre}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <Select onValueChange={(value) => setFilters(prev => ({ ...prev, minRating: parseFloat(value) }))}>
@@ -223,7 +266,10 @@ export default function Mapa() {
               variant="outline" 
               size="icon" 
               className="relative"
-              onClick={() => setFilters({ cuisine: [], priceLevel: [], neighborhood: [], minRating: undefined, openNow: undefined })}
+              onClick={() => {
+                setFilters({ cuisine: [], priceLevel: [], neighborhood: [], minRating: undefined, openNow: undefined });
+                setSelectedLocalidadId(null);
+              }}
             >
               <SlidersHorizontal className="h-4 w-4" />
               {activeFiltersCount > 0 && (
