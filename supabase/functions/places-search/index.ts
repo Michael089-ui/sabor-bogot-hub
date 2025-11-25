@@ -27,7 +27,11 @@ serve(async (req) => {
     if (!GOOGLE_MAPS_API_KEY) {
       console.error('GOOGLE_MAPS_API_KEY not configured');
       return new Response(
-        JSON.stringify({ error: 'API key not configured' }),
+        JSON.stringify({ 
+          error: 'Servicio de búsqueda no disponible',
+          details: 'La clave de API de Google Maps no está configurada. Contacta al administrador.',
+          restaurants: []
+        }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -100,9 +104,24 @@ serve(async (req) => {
     if (!placesResponse.ok) {
       const errorText = await placesResponse.text();
       console.error('Places API error:', placesResponse.status, errorText);
+      
+      let errorMessage = 'No se pudieron obtener resultados de búsqueda';
+      if (placesResponse.status === 429) {
+        errorMessage = 'Límite de búsquedas alcanzado. Intenta en unos minutos.';
+      } else if (placesResponse.status === 403) {
+        errorMessage = 'Error de autenticación con el servicio de mapas.';
+      } else if (placesResponse.status >= 500) {
+        errorMessage = 'El servicio de búsqueda está temporalmente no disponible.';
+      }
+      
       return new Response(
-        JSON.stringify({ error: 'Places API error', details: errorText }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ 
+          error: errorMessage,
+          details: `Error ${placesResponse.status}`,
+          restaurants: [],
+          retryable: placesResponse.status === 429 || placesResponse.status >= 500
+        }),
+        { status: placesResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -110,8 +129,13 @@ serve(async (req) => {
     console.log('Places API returned:', placesData.places?.length || 0, 'results');
 
     if (!placesData.places || placesData.places.length === 0) {
+      console.log('⚠️ No se encontraron restaurantes para:', query, 'en', neighborhood);
       return new Response(
-        JSON.stringify({ restaurants: [], cached: false }),
+        JSON.stringify({ 
+          restaurants: [], 
+          cached: false,
+          message: 'No se encontraron restaurantes que coincidan con tu búsqueda. Intenta con términos diferentes.'
+        }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -165,8 +189,19 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Places search error:', error);
+    
+    const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+    const isNetworkError = errorMessage.includes('fetch') || errorMessage.includes('network');
+    
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      JSON.stringify({ 
+        error: isNetworkError
+          ? 'Error de conexión al buscar restaurantes. Verifica tu conexión a internet.'
+          : 'Ocurrió un error al buscar restaurantes. Por favor intenta nuevamente.',
+        details: errorMessage,
+        restaurants: [],
+        retryable: true
+      }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

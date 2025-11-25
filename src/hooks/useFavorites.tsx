@@ -66,7 +66,9 @@ export const useFavorites = () => {
         if (error) throw error;
 
         setFavorites(favorites.filter((id) => id !== placeId));
-        toast.success("Eliminado de favoritos");
+        toast.success("❤️ Eliminado de favoritos", {
+          description: "Ya no verás este restaurante en tu lista de favoritos"
+        });
       } else {
         // Agregar a favoritos
         const { error } = await supabase
@@ -79,11 +81,15 @@ export const useFavorites = () => {
         if (error) throw error;
 
         setFavorites([...favorites, placeId]);
-        toast.success("Agregado a favoritos");
+        toast.success("⭐ Agregado a favoritos", {
+          description: "Podrás encontrar este restaurante en tu lista de favoritos"
+        });
       }
     } catch (error) {
       console.error("Error toggling favorite:", error);
-      toast.error("Error al actualizar favoritos");
+      toast.error("❌ Error al actualizar favoritos", {
+        description: "Por favor intenta nuevamente en unos momentos"
+      });
     }
   };
 

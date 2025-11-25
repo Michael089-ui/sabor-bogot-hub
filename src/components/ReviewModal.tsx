@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Star } from "lucide-react";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -50,7 +51,20 @@ export const ReviewModal = ({
     if (rating === 0) {
       return;
     }
-    onSubmit({ calificacion: rating, comentario: comment, reviewId });
+    
+    // Validar longitud del comentario
+    const trimmedComment = comment.trim();
+    if (trimmedComment.length > 0 && trimmedComment.length < 10) {
+      toast.error("El comentario debe tener al menos 10 caracteres");
+      return;
+    }
+    
+    if (trimmedComment.length > 500) {
+      toast.error("El comentario no puede exceder 500 caracteres");
+      return;
+    }
+    
+    onSubmit({ calificacion: rating, comentario: trimmedComment, reviewId });
   };
 
   return (
@@ -101,15 +115,24 @@ export const ReviewModal = ({
             <Label htmlFor="comment">Comentario</Label>
             <Textarea
               id="comment"
-              placeholder="Cuéntanos sobre tu experiencia..."
+              placeholder="Cuéntanos sobre tu experiencia... (mínimo 10 caracteres)"
               value={comment}
-              onChange={(e) => setComment(e.target.value)}
+              onChange={(e) => {
+                if (e.target.value.length <= 500) {
+                  setComment(e.target.value);
+                }
+              }}
               rows={6}
               className="resize-none"
             />
-            <p className="text-xs text-muted-foreground">
-              {comment.length}/500 caracteres
-            </p>
+            <div className="flex justify-between items-center text-xs">
+              <span className={`${comment.trim().length > 0 && comment.trim().length < 10 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                {comment.trim().length > 0 && comment.trim().length < 10 ? 'Mínimo 10 caracteres' : ''}
+              </span>
+              <span className={`${comment.length > 450 ? 'text-warning' : 'text-muted-foreground'}`}>
+                {comment.length}/500
+              </span>
+            </div>
           </div>
         </div>
 
@@ -123,7 +146,12 @@ export const ReviewModal = ({
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={rating === 0 || isLoading}
+            disabled={
+              rating === 0 || 
+              isLoading || 
+              (comment.trim().length > 0 && comment.trim().length < 10) ||
+              comment.length > 500
+            }
           >
             {isLoading ? "Publicando..." : reviewId ? "Actualizar" : "Publicar"}
           </Button>
