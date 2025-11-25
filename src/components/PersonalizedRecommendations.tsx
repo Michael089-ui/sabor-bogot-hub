@@ -1,8 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Sparkles, MapPin, DollarSign } from "lucide-react";
-import { useRestaurants } from "@/hooks/useRestaurants";
+import { useInfiniteRestaurants } from "@/hooks/useRestaurants";
 import { RestauranteCard } from "@/components/RestauranteCard";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useMemo } from "react";
 
 interface PersonalizedRecommendationsProps {
   tipoComida: string[];
@@ -30,7 +31,13 @@ export const PersonalizedRecommendations = ({
     neighborhood: neighborhood ? [neighborhood] : undefined,
   };
 
-  const { data: restaurants, isLoading } = useRestaurants(6, filters);
+  const { data, isLoading } = useInfiniteRestaurants(filters, 6);
+
+  // Obtener solo los primeros 6 restaurantes
+  const restaurants = useMemo(() => {
+    const allRestaurants = data?.pages.flatMap(page => page.data) || [];
+    return allRestaurants.slice(0, 6);
+  }, [data]);
 
   if (!tipoComida.length && !presupuesto && !neighborhood) {
     return (
