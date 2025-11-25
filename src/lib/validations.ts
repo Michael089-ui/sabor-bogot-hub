@@ -49,10 +49,10 @@ export const registroSchema = z.object({
     .min(1, { message: "Selecciona un presupuesto" }),
   id_localidad: z
     .string()
-    .optional(),
+    .min(1, { message: "Selecciona una localidad" }),
   id_barrio: z
     .string()
-    .optional(),
+    .min(1, { message: "Selecciona un barrio" }),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Las contraseñas no coinciden",
   path: ["confirmPassword"],
