@@ -1,15 +1,16 @@
-import { Heart, Star, Clock, MapPin, DollarSign, MessageSquare, ArrowLeft, Loader2, ExternalLink, Phone, Globe, AlertCircle, BarChart3 } from "lucide-react";
+import { Heart, Star, Clock, MapPin, DollarSign, MessageSquare, ArrowLeft, Loader2, ExternalLink, Phone, Globe, AlertCircle, BarChart3, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { useFavorites } from "@/hooks/useFavorites";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useNavigate, useParams } from "react-router-dom";
 import { useRestaurantDetail, getPhotoUrl, getPriceInfo, formatCurrency } from "@/hooks/useRestaurants";
 import { useRestaurantReviews, useCreateReview } from "@/hooks/useReviews";
 import { GoogleMap, LoadScript, Marker, InfoWindow } from "@react-google-maps/api";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { GoogleReview } from "@/lib/types";
 import { ReviewModal } from "@/components/ReviewModal";
 
@@ -23,6 +24,8 @@ const RestauranteDetalle = () => {
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [showInfoWindow, setShowInfoWindow] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
   if (isLoading) {
     return (
@@ -100,6 +103,36 @@ const RestauranteDetalle = () => {
       { onSuccess: () => setShowReviewModal(false) }
     );
   };
+
+  const openImageModal = (index: number) => {
+    setSelectedImageIndex(index);
+    setIsImageModalOpen(true);
+  };
+
+  const goToPrevious = () => {
+    setSelectedImageIndex((prev) => (prev > 0 ? prev - 1 : additionalPhotos.length - 1));
+  };
+
+  const goToNext = () => {
+    setSelectedImageIndex((prev) => (prev < additionalPhotos.length - 1 ? prev + 1 : 0));
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!isImageModalOpen) return;
+      
+      if (e.key === 'ArrowLeft') {
+        goToPrevious();
+      } else if (e.key === 'ArrowRight') {
+        goToNext();
+      } else if (e.key === 'Escape') {
+        setIsImageModalOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isImageModalOpen, additionalPhotos.length]);
 
   return (
     <div className="min-h-full bg-background">
@@ -434,19 +467,77 @@ const RestauranteDetalle = () => {
             <h2 className="text-2xl font-bold text-foreground mb-4">Galería</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {additionalPhotos.map((photoUrl, index) => (
-                <Card key={index} className="overflow-hidden hover:shadow-lg transition-shadow">
-                  <div className="relative h-48 overflow-hidden">
-                    <img 
-                      src={photoUrl}
-                      alt={`${restaurant.name} foto ${index + 1}`}
-                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-                </Card>
+                <div 
+                  key={index}
+                  className="relative h-64 overflow-hidden rounded-lg bg-muted cursor-pointer group"
+                  onClick={() => openImageModal(index)}
+                >
+                  <img 
+                    src={photoUrl} 
+                    alt={`${restaurant.name} - foto ${index + 1}`}
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300" />
+                </div>
               ))}
             </div>
           </div>
         )}
+
+        {/* Image Zoom Modal */}
+        <Dialog open={isImageModalOpen} onOpenChange={setIsImageModalOpen}>
+          <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 bg-black/95 border-none">
+            <div className="relative flex items-center justify-center min-h-[80vh]">
+              {/* Close Button */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute top-4 right-4 z-50 text-white hover:bg-white/20"
+                onClick={() => setIsImageModalOpen(false)}
+              >
+                <X className="h-6 w-6" />
+              </Button>
+
+              {/* Previous Button */}
+              {additionalPhotos.length > 1 && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute left-4 z-50 text-white hover:bg-white/20"
+                  onClick={goToPrevious}
+                >
+                  <ChevronLeft className="h-8 w-8" />
+                </Button>
+              )}
+
+              {/* Image */}
+              <img
+                src={additionalPhotos[selectedImageIndex]}
+                alt={`${restaurant.name} - foto ${selectedImageIndex + 1}`}
+                className="max-w-full max-h-[85vh] object-contain"
+              />
+
+              {/* Next Button */}
+              {additionalPhotos.length > 1 && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-4 z-50 text-white hover:bg-white/20"
+                  onClick={goToNext}
+                >
+                  <ChevronRight className="h-8 w-8" />
+                </Button>
+              )}
+
+              {/* Image Counter */}
+              {additionalPhotos.length > 1 && (
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/60 text-white px-4 py-2 rounded-full text-sm">
+                  {selectedImageIndex + 1} de {additionalPhotos.length}
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Reviews Section - Tabs */}
         <div className="mb-8">
