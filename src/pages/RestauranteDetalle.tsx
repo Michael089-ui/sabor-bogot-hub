@@ -10,7 +10,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useRestaurantDetail, getPhotoUrl, getPriceInfo, formatCurrency } from "@/hooks/useRestaurants";
 import { useRestaurantReviews, useCreateReview } from "@/hooks/useReviews";
 import { GoogleMap, LoadScript, Marker, InfoWindow } from "@react-google-maps/api";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { GoogleReview } from "@/lib/types";
 import { ReviewModal } from "@/components/ReviewModal";
 
@@ -109,13 +109,13 @@ const RestauranteDetalle = () => {
     setIsImageModalOpen(true);
   };
 
-  const goToPrevious = () => {
+  const goToPrevious = useCallback(() => {
     setSelectedImageIndex((prev) => (prev > 0 ? prev - 1 : additionalPhotos.length - 1));
-  };
+  }, [additionalPhotos.length]);
 
-  const goToNext = () => {
+  const goToNext = useCallback(() => {
     setSelectedImageIndex((prev) => (prev < additionalPhotos.length - 1 ? prev + 1 : 0));
-  };
+  }, [additionalPhotos.length]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -132,7 +132,7 @@ const RestauranteDetalle = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isImageModalOpen, additionalPhotos.length]);
+  }, [isImageModalOpen, goToPrevious, goToNext]);
 
   return (
     <div className="min-h-full bg-background">
@@ -485,59 +485,54 @@ const RestauranteDetalle = () => {
         )}
 
         {/* Image Zoom Modal */}
-        <Dialog open={isImageModalOpen} onOpenChange={setIsImageModalOpen}>
-          <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 bg-black/95 border-none">
-            <div className="relative flex items-center justify-center min-h-[80vh]">
-              {/* Close Button */}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute top-4 right-4 z-50 text-white hover:bg-white/20"
-                onClick={() => setIsImageModalOpen(false)}
-              >
-                <X className="h-6 w-6" />
-              </Button>
+        {additionalPhotos.length > 0 && (
+          <Dialog open={isImageModalOpen} onOpenChange={setIsImageModalOpen}>
+            <DialogContent 
+              className="max-w-[95vw] max-h-[95vh] p-0 bg-black/95 border-none"
+              onOpenAutoFocus={(e) => e.preventDefault()}
+            >
+              <div className="relative flex items-center justify-center min-h-[80vh]">
+                {/* Previous Button */}
+                {additionalPhotos.length > 1 && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute left-4 z-50 text-white hover:bg-white/20"
+                    onClick={goToPrevious}
+                  >
+                    <ChevronLeft className="h-8 w-8" />
+                  </Button>
+                )}
 
-              {/* Previous Button */}
-              {additionalPhotos.length > 1 && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute left-4 z-50 text-white hover:bg-white/20"
-                  onClick={goToPrevious}
-                >
-                  <ChevronLeft className="h-8 w-8" />
-                </Button>
-              )}
+                {/* Image */}
+                <img
+                  src={additionalPhotos[selectedImageIndex]}
+                  alt={`${restaurant.name} - foto ${selectedImageIndex + 1}`}
+                  className="max-w-full max-h-[85vh] object-contain"
+                />
 
-              {/* Image */}
-              <img
-                src={additionalPhotos[selectedImageIndex]}
-                alt={`${restaurant.name} - foto ${selectedImageIndex + 1}`}
-                className="max-w-full max-h-[85vh] object-contain"
-              />
+                {/* Next Button */}
+                {additionalPhotos.length > 1 && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-4 z-50 text-white hover:bg-white/20"
+                    onClick={goToNext}
+                  >
+                    <ChevronRight className="h-8 w-8" />
+                  </Button>
+                )}
 
-              {/* Next Button */}
-              {additionalPhotos.length > 1 && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-4 z-50 text-white hover:bg-white/20"
-                  onClick={goToNext}
-                >
-                  <ChevronRight className="h-8 w-8" />
-                </Button>
-              )}
-
-              {/* Image Counter */}
-              {additionalPhotos.length > 1 && (
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/60 text-white px-4 py-2 rounded-full text-sm">
-                  {selectedImageIndex + 1} de {additionalPhotos.length}
-                </div>
-              )}
-            </div>
-          </DialogContent>
-        </Dialog>
+                {/* Image Counter */}
+                {additionalPhotos.length > 1 && (
+                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/60 text-white px-4 py-2 rounded-full text-sm">
+                    {selectedImageIndex + 1} de {additionalPhotos.length}
+                  </div>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
 
         {/* Reviews Section - Tabs */}
         <div className="mb-8">
