@@ -78,7 +78,7 @@ interface ChatConversation {
 const ChatIA = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [inputMessage, setInputMessage] = useState("");
+  const [inputMessage, setInputMessage] = useState(location.state?.initialPrompt || "");
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
@@ -95,6 +95,16 @@ const ChatIA = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { isFavorite, toggleFavorite } = useFavorites();
+
+  // Enviar prompt inicial si existe
+  useEffect(() => {
+    if (location.state?.initialPrompt && inputMessage) {
+      // Pequeño delay para asegurar que el componente esté montado
+      setTimeout(() => {
+        handleSend();
+      }, 100);
+    }
+  }, []);
 
   // Cargar conversación desde historial
   useEffect(() => {
@@ -539,7 +549,7 @@ const ChatIA = () => {
     return restaurants;
   };
 
-  const handleSendMessage = async () => {
+  const handleSend = async () => {
     if (!inputMessage.trim() || isLoading) return;
 
     const userMessage: Message = {
@@ -1094,12 +1104,12 @@ const ChatIA = () => {
               placeholder="Escribe tu mensaje..."
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSendMessage()}
+              onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
               className="flex-1"
               disabled={isLoading}
             />
             <Button
-              onClick={handleSendMessage}
+              onClick={handleSend}
               disabled={isLoading || !inputMessage.trim()}
               size="icon"
               className="bg-primary hover:bg-primary/90"

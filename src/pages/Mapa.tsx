@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { GoogleMap, LoadScript, Marker, InfoWindow } from "@react-google-maps/api";
-import { Search, SlidersHorizontal, Plus, Minus, Navigation } from "lucide-react";
+import { Search, SlidersHorizontal, Plus, Minus, Navigation, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { useRestaurants, getPhotoUrl, RestaurantFilters } from "@/hooks/useRestaurants";
+import { QuickRecommendationModal } from "@/components/QuickRecommendationModal";
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
@@ -89,6 +90,7 @@ export default function Mapa() {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [showRecommendationModal, setShowRecommendationModal] = useState(false);
 
   const filteredRestaurants = restaurants.filter((restaurant) =>
     restaurant.name.toLowerCase().includes(mapSearchQuery.toLowerCase()) ||
@@ -277,8 +279,12 @@ export default function Mapa() {
         </ScrollArea>
 
         <div className="p-4 border-t border-border">
-          <Button className="w-full" onClick={() => navigate("/chat-ia")}>
-            🤖 Recomiéndame algo
+          <Button 
+            className="w-full gap-2" 
+            onClick={() => setShowRecommendationModal(true)}
+          >
+            <Sparkles className="h-4 w-4" />
+            Recomiéndame algo
           </Button>
         </div>
       </div>
@@ -383,6 +389,14 @@ export default function Mapa() {
           </Button>
         </div>
       </div>
+
+      <QuickRecommendationModal
+        open={showRecommendationModal}
+        onOpenChange={setShowRecommendationModal}
+        restaurants={restaurants}
+        currentFilters={filters}
+        userLocation={userLocation || undefined}
+      />
     </div>
   );
 }
