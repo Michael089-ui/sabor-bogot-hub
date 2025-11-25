@@ -15,18 +15,27 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, systemPrompt } = await req.json();
+    const { messages, systemPrompt, userPreferences } = await req.json();
     const GOOGLE_GEMINI_API_KEY = Deno.env.get('GOOGLE_GEMINI_API_KEY');
     
     console.log('Processing chat request with', messages.length, 'messages');
 
     // Detect if this is a restaurant search query
     const lastUserMessage = messages[messages.length - 1];
+    const isGeneralQuery = lastUserMessage?.role === 'user' && 
+      /\b(hola|hey|ayuda|recomienda|qué|que|buscar)\b/i.test(lastUserMessage.content) && 
+      !/\b(restaurante|comida|comer|pizza|sushi|italiana|mexicana)\b/i.test(lastUserMessage.content);
+    
     const isRestaurantQuery = lastUserMessage?.role === 'user' && 
       detectRestaurantQuery(lastUserMessage.content);
 
     let enrichedSystemPrompt = systemPrompt;
     let restaurantMetadata: any[] = [];
+    
+    // If it's a general query and user has preferences, suggest using them
+    if (isGeneralQuery && userPreferences && (userPreferences.tipo_comida?.length || userPreferences.presupuesto)) {
+      enrichedSystemPrompt += `\n\n**NOTA:** El usuario pregunta de forma general pero tiene preferencias guardadas. Pregúntale si quiere ver recomendaciones basadas en sus preferencias (${userPreferences.tipo_comida?.join(', ') || 'sus gustos'}) o algo diferente.`;
+    }
 
     // If it's a restaurant query, search in cache FIRST, then Places API
     if (isRestaurantQuery && SUPABASE_URL) {
