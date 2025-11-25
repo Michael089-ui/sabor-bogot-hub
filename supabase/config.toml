@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.enrich-with-ai]
 verify_jwt = false
+
+[functions.populate-restaurants]
+verify_jwt = false

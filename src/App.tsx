@@ -28,6 +28,7 @@ import Configuracion from "./pages/Configuracion";
 import ImportRestaurants from "./pages/ImportRestaurants";
 import EnrichAddresses from "./pages/EnrichAddresses";
 import DataQuality from "./pages/DataQuality";
+import AdminPopulate from "./pages/AdminPopulate";
 import NotFound from "./pages/NotFound";
 import { OnboardingRedirect } from "./components/OnboardingRedirect";
 
@@ -49,6 +50,7 @@ const App = () => {
               <Route path="/admin/import" element={<ImportRestaurants />} />
               <Route path="/admin/enrich-addresses" element={<EnrichAddresses />} />
               <Route path="/admin/data-quality" element={<ProtectedRoute><DataQuality /></ProtectedRoute>} />
+              <Route path="/admin/populate" element={<ProtectedRoute><AdminPopulate /></ProtectedRoute>} />
               <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
 
               {/* TODAS las rutas sin OnboardingRedirect */}
