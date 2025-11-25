@@ -41,7 +41,7 @@ export function RestauranteCard({ restaurant, onClick }: RestauranteCardProps) {
   const priceInfo = getPriceInfo(restaurant);
   const imageUrl = restaurant.photos && restaurant.photos.length > 0
     ? getPhotoUrl(restaurant.photos[0], 400) 
-    : 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400';
+    : `https://source.unsplash.com/400x300/?restaurant,food,${encodeURIComponent(restaurant.cuisine || 'dining')}`;
 
   // Intersection Observer para lazy loading
   useEffect(() => {
@@ -90,6 +90,9 @@ export function RestauranteCard({ restaurant, onClick }: RestauranteCardProps) {
                 isLoaded ? 'opacity-100' : 'opacity-0'
               }`}
               onLoad={() => setIsLoaded(true)}
+              onError={(e) => {
+                e.currentTarget.src = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400';
+              }}
               loading="lazy"
             />
           </>
