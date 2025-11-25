@@ -307,7 +307,14 @@ export default function Mapa() {
                     }`}
                     onClick={() => handleRestaurantClick(restaurant)}
                   >
-                    <img src={photoUrl} alt={restaurant.name} className="w-full h-32 object-cover" />
+                    <img 
+                      src={photoUrl} 
+                      alt={restaurant.name} 
+                      className="w-full h-32 object-cover"
+                      onError={(e) => {
+                        e.currentTarget.src = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400';
+                      }}
+                    />
                     <div className="p-3">
                       <h3 className="font-semibold text-foreground mb-1">{restaurant.name}</h3>
                       <div className="flex items-center justify-between text-sm">

@@ -215,20 +215,26 @@ const Registro = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="id_localidad">Localidad</Label>
-                  <LocationCombobox
-                    options={localidades.map(loc => ({
-                      value: loc.id_localidad,
-                      label: `${loc.numero}. ${loc.nombre}`
-                    }))}
+                  <Select
                     value={watch("id_localidad") || ""}
                     onValueChange={(value) => {
                       setValue("id_localidad", value);
                       setSelectedLocalidadId(value);
                       setValue("id_barrio", ""); // Reset barrio when localidad changes
                     }}
-                    placeholder="Selecciona una localidad"
                     disabled={loadingLocalidades}
-                  />
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecciona una localidad" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {localidades.map((loc) => (
+                        <SelectItem key={loc.id_localidad} value={loc.id_localidad}>
+                          {loc.numero}. {loc.nombre}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   {errors.id_localidad && (
                     <p className="text-sm text-destructive">{errors.id_localidad.message}</p>
                   )}

@@ -709,11 +709,7 @@ const Perfil = () => {
                   <FormItem>
                     <FormLabel>Localidad</FormLabel>
                     <FormControl>
-                      <LocationCombobox
-                        options={localidades.map(l => ({
-                          value: l.id_localidad,
-                          label: `${l.numero}. ${l.nombre}`
-                        }))}
+                      <Select
                         value={field.value || ""}
                         onValueChange={(value) => {
                           field.onChange(value);
@@ -721,11 +717,19 @@ const Perfil = () => {
                           // Limpiar barrio cuando se cambia localidad
                           form.setValue('id_barrio', '');
                         }}
-                        placeholder="Selecciona tu localidad"
-                        searchPlaceholder="Buscar localidad..."
-                        emptyText="No se encontró la localidad"
                         disabled={loadingLocalidades}
-                      />
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecciona tu localidad" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {localidades.map((l) => (
+                            <SelectItem key={l.id_localidad} value={l.id_localidad}>
+                              {l.numero}. {l.nombre}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
