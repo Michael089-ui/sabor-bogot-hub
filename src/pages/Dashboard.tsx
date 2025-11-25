@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { RestauranteCard } from "@/components/RestauranteCard";
 import { useNavigate } from "react-router-dom";
 import { testSupabaseConnection } from "@/tests/supabaseTest";
+import { useRestaurants } from "@/hooks/useRestaurants";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -13,6 +14,9 @@ const Dashboard = () => {
   const [connectionStatus, setConnectionStatus] = useState<"loading" | "success" | "error">("loading");
   const [connectionMessage, setConnectionMessage] = useState("");
   const [connectionData, setConnectionData] = useState<any>(null);
+  
+  // Fetch real restaurants data
+  const { data: restaurants, isLoading: loadingRestaurants } = useRestaurants(5);
 
   useEffect(() => {
     const checkConnection = async () => {
@@ -31,119 +35,8 @@ const Dashboard = () => {
     checkConnection();
   }, []);
 
-  // Mock data para recomendaciones - insertar consultas de la base - extraer info de la API de reseñas e insertarlas a la bd para consulta
-  const restaurantesRecomendados = [
-    {
-      id: "1",
-      place_id: "mock-1",
-      name: "La Cocina de Sofía",
-      formatted_address: "Bogotá, Colombia",
-      neighborhood: "Chapinero",
-      rating: 4.8,
-      user_ratings_total: 120,
-      price_level: "3",
-      photos: null,
-      location: null,
-      types: ["Comida Colombiana"],
-      open_now: true,
-      opening_hours: null,
-      phone_number: null,
-      website: null,
-      min_price: 50000,
-      max_price: 100000,
-      currency: "COP",
-      description: null,
-      cuisine: "Comida Colombiana"
-    },
-    {
-      id: "2",
-      place_id: "mock-2",
-      name: "El Fogón de la Abuela",
-      formatted_address: "Bogotá, Colombia",
-      neighborhood: "La Candelaria",
-      rating: 4.5,
-      user_ratings_total: 85,
-      price_level: "2",
-      photos: null,
-      location: null,
-      types: ["Comida Tradicional"],
-      open_now: true,
-      opening_hours: null,
-      phone_number: null,
-      website: null,
-      min_price: 25000,
-      max_price: 50000,
-      currency: "COP",
-      description: null,
-      cuisine: "Comida Tradicional"
-    },
-    {
-      id: "3",
-      place_id: "mock-3",
-      name: "Sabores del Pacífico",
-      formatted_address: "Bogotá, Colombia",
-      neighborhood: "Zona T",
-      rating: 4.7,
-      user_ratings_total: 95,
-      price_level: "4",
-      photos: null,
-      location: null,
-      types: ["Mariscos"],
-      open_now: true,
-      opening_hours: null,
-      phone_number: null,
-      website: null,
-      min_price: 100000,
-      max_price: 200000,
-      currency: "COP",
-      description: null,
-      cuisine: "Mariscos"
-    },
-    {
-      id: "4",
-      place_id: "mock-4",
-      name: "El Rincón Paisa",
-      formatted_address: "Bogotá, Colombia",
-      neighborhood: "Kennedy",
-      rating: 4.6,
-      user_ratings_total: 110,
-      price_level: "2",
-      photos: null,
-      location: null,
-      types: ["Comida Paisa"],
-      open_now: true,
-      opening_hours: null,
-      phone_number: null,
-      website: null,
-      min_price: 25000,
-      max_price: 50000,
-      currency: "COP",
-      description: null,
-      cuisine: "Comida Paisa"
-    },
-    {
-      id: "5",
-      place_id: "mock-5",
-      name: "Ajiaco y Algo Más",
-      formatted_address: "Bogotá, Colombia",
-      neighborhood: "Usaquén",
-      rating: 4.9,
-      user_ratings_total: 130,
-      price_level: "3",
-      photos: null,
-      location: null,
-      types: ["Comida Bogotana"],
-      open_now: true,
-      opening_hours: null,
-      phone_number: null,
-      website: null,
-      min_price: 50000,
-      max_price: 100000,
-      currency: "COP",
-      description: null,
-      cuisine: "Comida Bogotana"
-    }
-  ];
+  // Get real restaurants from API
+  const restaurantesRecomendados = restaurants || [];
 
   const accesosRapidos = [
     {
@@ -281,13 +174,22 @@ const Dashboard = () => {
         </div>
 
         <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
-          {restaurantesRecomendados.map((restaurante) => (
-            <RestauranteCard
-              key={restaurante.id}
-              restaurant={restaurante}
-              onClick={() => navigate('/restaurantes')}
-            />
-          ))}
+          {loadingRestaurants ? (
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Loader2 className="h-5 w-5 animate-spin" />
+              <span>Cargando restaurantes...</span>
+            </div>
+          ) : restaurantesRecomendados.length > 0 ? (
+            restaurantesRecomendados.map((restaurante) => (
+              <RestauranteCard
+                key={restaurante.id}
+                restaurant={restaurante}
+                onClick={() => navigate(`/restaurantes/${restaurante.place_id}`)}
+              />
+            ))
+          ) : (
+            <p className="text-muted-foreground">No hay restaurantes disponibles</p>
+          )}
         </div>
       </section>
 
