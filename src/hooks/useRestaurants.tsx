@@ -288,7 +288,17 @@ const getPriceLabel = (priceLevel: string | null): string => {
 
 // Helper para obtener información genérica de precio
 const getGenericPriceInfo = (priceLevel: string | null): PriceInfo => {
-  const level = priceLevel || "2";
+  // Mapear valores de Google Places API a números
+  const levelMap: { [key: string]: string } = {
+    "PRICE_LEVEL_FREE": "1",
+    "PRICE_LEVEL_INEXPENSIVE": "1",
+    "PRICE_LEVEL_MODERATE": "2",
+    "PRICE_LEVEL_EXPENSIVE": "3",
+    "PRICE_LEVEL_VERY_EXPENSIVE": "4"
+  };
+  
+  const level = priceLevel ? (levelMap[priceLevel] || priceLevel) : "2";
+  
   const ranges: { [key: string]: PriceInfo } = {
     "1": {
       symbols: "$",
