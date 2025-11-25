@@ -41,6 +41,7 @@ const Registro = () => {
   });
 
   const presupuestoValue = watch("presupuesto");
+  const watchLocalidadId = watch("id_localidad");
 
   // Cargar localidades y barrios
   const { data: localidades = [], isLoading: loadingLocalidades } = useLocalidades();
@@ -51,6 +52,12 @@ const Registro = () => {
       navigate('/dashboard');
     }
   }, [user, navigate]);
+  
+  useEffect(() => {
+    if (watchLocalidadId) {
+      setSelectedLocalidadId(watchLocalidadId);
+    }
+  }, [watchLocalidadId]);
 
   const preferences = [
     "Italiana",
