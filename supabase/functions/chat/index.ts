@@ -26,6 +26,7 @@ serve(async (req) => {
       detectRestaurantQuery(lastUserMessage.content);
 
     let enrichedSystemPrompt = systemPrompt;
+    let restaurantMetadata: any[] = [];
 
     // If it's a restaurant query, search in cache FIRST, then Places API
     if (isRestaurantQuery && SUPABASE_URL) {
@@ -56,24 +57,25 @@ serve(async (req) => {
             const source = placesData.cached ? 'caché local' : 'Google Places API';
             console.log(`✅ Got ${placesData.restaurants.length} restaurants from ${source}`);
             
+            // Store metadata to send separately
+            restaurantMetadata = placesData.restaurants;
+            
             // Enrich system prompt with real data
             enrichedSystemPrompt = `${systemPrompt}
 
 **DATOS REALES DE RESTAURANTES${placesData.cached ? ' (CACHÉ LOCAL)' : ' (GOOGLE PLACES API)'}:**
-Usa ÚNICAMENTE los siguientes restaurantes reales. NO inventes datos.
+Tienes acceso a ${placesData.restaurants.length} restaurantes verificados. Estos datos se enviarán automáticamente al frontend, así que NO NECESITAS incluir coordenadas exactas en tu respuesta conversacional.
 
 ${JSON.stringify(placesData.restaurants, null, 2)}
 
 **INSTRUCCIONES CRÍTICAS:**
-1. Usa SOLO los restaurantes de la lista anterior (datos verificados)
-2. TODOS estos restaurantes tienen place_id válidos - puedes enlazarlos con seguridad
-3. Menciona los ratings reales, horarios y precios exactos
-4. DEBES incluir las coordenadas EXACTAS (lat, lng) de cada restaurante en tu respuesta
-5. Mantén el formato de respuesta con la estructura: Nombre | place_id | Lat,Lng | Rating | Precio
-6. Añade descripciones personalizadas y útiles basadas en los datos reales
-7. Si un restaurante está cerrado, menciónalo
-8. Incluye el número de reseñas si está disponible
-9. Los usuarios pueden hacer clic en las tarjetas para ver más detalles, así que proporciona place_id correcto`;
+1. **MENCIONA AL MENOS ${Math.min(8, placesData.restaurants.length)} RESTAURANTES** de la lista anterior
+2. Enfócate en crear una respuesta CONVERSACIONAL y útil
+3. Describe las características, ambiente y especialidades de cada restaurante
+4. Usa los datos reales (ratings, precios, tipos de cocina)
+5. NO necesitas incluir coordenadas exactas - eso se maneja automáticamente
+6. Mantén un tono amigable y profesional
+7. Organiza tu respuesta de forma clara y atractiva`;
           }
         }
       } catch (error) {
@@ -157,8 +159,41 @@ ${JSON.stringify(placesData.restaurants, null, 2)}
       );
     }
 
-    // Stream the response back to client
-    return new Response(response.body, {
+    // Create a new ReadableStream that injects metadata first
+    const { readable, writable } = new TransformStream();
+    const writer = writable.getWriter();
+    const encoder = new TextEncoder();
+
+    // Start streaming in the background
+    (async () => {
+      try {
+        // Send metadata first if we have restaurant data
+        if (restaurantMetadata.length > 0) {
+          const metadataEvent = `data: ${JSON.stringify({
+            type: 'metadata',
+            restaurants: restaurantMetadata
+          })}\n\n`;
+          await writer.write(encoder.encode(metadataEvent));
+        }
+
+        // Then stream the AI response
+        const reader = response.body?.getReader();
+        if (reader) {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            await writer.write(value);
+          }
+        }
+      } catch (error) {
+        console.error('Error streaming response:', error);
+      } finally {
+        writer.close();
+      }
+    })();
+
+    // Return the transformed stream
+    return new Response(readable, {
       headers: {
         ...corsHeaders,
         'Content-Type': 'text/event-stream',
