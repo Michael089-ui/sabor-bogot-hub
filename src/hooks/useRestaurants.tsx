@@ -43,14 +43,42 @@ export interface RestaurantFilters {
   openNow?: boolean;
 }
 
+// Helper para calcular score de completitud de información
+const calculateCompletenessScore = (restaurant: Restaurant): number => {
+  let score = 0;
+  
+  // Información básica (peso alto)
+  if (restaurant.rating) score += 15;
+  if (restaurant.user_ratings_total && restaurant.user_ratings_total > 0) score += 10;
+  if (restaurant.formatted_address) score += 10;
+  if (restaurant.neighborhood) score += 10;
+  
+  // Información de contacto (peso medio)
+  if (restaurant.phone_number) score += 8;
+  if (restaurant.website) score += 8;
+  
+  // Información visual (peso medio)
+  if (restaurant.photos && Array.isArray(restaurant.photos) && restaurant.photos.length > 0) score += 12;
+  
+  // Información de horarios y precios (peso medio)
+  if (restaurant.opening_hours) score += 7;
+  if (restaurant.price_level) score += 7;
+  
+  // Información enriquecida (peso bajo pero importante)
+  if (restaurant.min_price && restaurant.max_price) score += 5;
+  if (restaurant.description) score += 4;
+  if (restaurant.cuisine) score += 4;
+  
+  return score;
+};
+
 export const useRestaurants = (limit?: number, filters?: RestaurantFilters) => {
   return useQuery({
     queryKey: ["restaurants", limit, filters],
     queryFn: async () => {
       let query = supabase
         .from("restaurant_cache")
-        .select("*")
-        .order("rating", { ascending: false, nullsFirst: false });
+        .select("*");
 
       // Aplicar filtros
       if (filters?.cuisine && filters.cuisine.length > 0) {
@@ -74,13 +102,28 @@ export const useRestaurants = (limit?: number, filters?: RestaurantFilters) => {
       }
 
       if (limit) {
-        query = query.limit(limit);
+        query = query.limit(limit * 2); // Obtenemos más para ordenar mejor
       }
 
       const { data, error } = await query;
 
       if (error) throw error;
-      return data as Restaurant[];
+      
+      // Ordenar por completitud y luego por rating
+      const sortedData = (data as Restaurant[]).sort((a, b) => {
+        const scoreA = calculateCompletenessScore(a);
+        const scoreB = calculateCompletenessScore(b);
+        
+        if (scoreB !== scoreA) {
+          return scoreB - scoreA; // Descendente por completitud
+        }
+        
+        // Si tienen el mismo score, ordenar por rating
+        return (b.rating || 0) - (a.rating || 0);
+      });
+      
+      // Aplicar límite después de ordenar
+      return limit ? sortedData.slice(0, limit) : sortedData;
     },
   });
 };
@@ -92,9 +135,7 @@ export const useInfiniteRestaurants = (filters?: RestaurantFilters, pageSize = 1
     queryFn: async ({ pageParam = 0 }) => {
       let query = supabase
         .from("restaurant_cache")
-        .select("*", { count: 'exact' })
-        .order("rating", { ascending: false, nullsFirst: false })
-        .range(pageParam, pageParam + pageSize - 1);
+        .select("*", { count: 'exact' });
 
       // Aplicar filtros
       if (filters?.cuisine && filters.cuisine.length > 0) {
@@ -121,9 +162,24 @@ export const useInfiniteRestaurants = (filters?: RestaurantFilters, pageSize = 1
 
       if (error) throw error;
       
+      // Ordenar por completitud y luego por rating
+      const sortedData = (data as Restaurant[]).sort((a, b) => {
+        const scoreA = calculateCompletenessScore(a);
+        const scoreB = calculateCompletenessScore(b);
+        
+        if (scoreB !== scoreA) {
+          return scoreB - scoreA; // Descendente por completitud
+        }
+        
+        return (b.rating || 0) - (a.rating || 0);
+      });
+      
+      // Aplicar paginación después de ordenar
+      const paginatedData = sortedData.slice(pageParam, pageParam + pageSize);
+      
       return {
-        data: data as Restaurant[],
-        nextCursor: pageParam + pageSize < (count || 0) ? pageParam + pageSize : undefined,
+        data: paginatedData,
+        nextCursor: pageParam + pageSize < sortedData.length ? pageParam + pageSize : undefined,
         totalCount: count || 0
       };
     },
