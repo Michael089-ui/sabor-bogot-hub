@@ -13,6 +13,8 @@ import { Eye, EyeOff } from "lucide-react";
 import { useTheme } from "next-themes";
 import loginBgDark from "@/assets/login-bg-dark.png";
 import loginBgLight from "@/assets/login-bg-light.png";
+import { useLocalidades, useBarriosPorLocalidad } from "@/hooks/useBarriosBogota";
+import { LocationCombobox } from "@/components/LocationCombobox";
 
 const Registro = () => {
   const { signUp, signInWithGoogle, user } = useAuth();
@@ -22,6 +24,7 @@ const Registro = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [selectedPreferences, setSelectedPreferences] = useState<string[]>([]);
+  const [selectedLocalidadId, setSelectedLocalidadId] = useState<string | null>(null);
 
   const {
     register,
@@ -38,6 +41,10 @@ const Registro = () => {
   });
 
   const presupuestoValue = watch("presupuesto");
+
+  // Cargar localidades y barrios
+  const { data: localidades = [], isLoading: loadingLocalidades } = useLocalidades();
+  const { data: barrios = [], isLoading: loadingBarrios } = useBarriosPorLocalidad(selectedLocalidadId);
 
   useEffect(() => {
     if (user) {
@@ -76,7 +83,8 @@ const Registro = () => {
       telefono: data.telefono,
       tipo_comida: data.tipo_comida,
       presupuesto: data.presupuesto,
-      ubicacion: data.ubicacion,
+      id_localidad: data.id_localidad,
+      id_barrio: data.id_barrio,
     });
     setIsLoading(false);
   };
@@ -196,18 +204,45 @@ const Registro = () => {
                 )}
               </div>
 
-              {/* Ubicación */}
-              <div className="space-y-2">
-                <Label htmlFor="ubicacion">Ubicación</Label>
-                <Input
-                  id="ubicacion"
-                  type="text"
-                  placeholder="Bogotá - Chapinero"
-                  {...register("ubicacion")}
-                />
-                {errors.ubicacion && (
-                  <p className="text-sm text-destructive">{errors.ubicacion.message}</p>
-                )}
+              {/* Localidad y Barrio */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="id_localidad">Localidad</Label>
+                  <LocationCombobox
+                    options={localidades.map(loc => ({
+                      value: loc.id_localidad,
+                      label: `${loc.numero}. ${loc.nombre}`
+                    }))}
+                    value={watch("id_localidad") || ""}
+                    onValueChange={(value) => {
+                      setValue("id_localidad", value);
+                      setSelectedLocalidadId(value);
+                      setValue("id_barrio", ""); // Reset barrio when localidad changes
+                    }}
+                    placeholder="Selecciona una localidad"
+                    disabled={loadingLocalidades}
+                  />
+                  {errors.id_localidad && (
+                    <p className="text-sm text-destructive">{errors.id_localidad.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="id_barrio">Barrio</Label>
+                  <LocationCombobox
+                    options={barrios.map(barrio => ({
+                      value: barrio.id_barrio,
+                      label: barrio.nombre
+                    }))}
+                    value={watch("id_barrio") || ""}
+                    onValueChange={(value) => setValue("id_barrio", value)}
+                    placeholder={selectedLocalidadId ? "Selecciona un barrio" : "Primero selecciona localidad"}
+                    disabled={!selectedLocalidadId || loadingBarrios}
+                  />
+                  {errors.id_barrio && (
+                    <p className="text-sm text-destructive">{errors.id_barrio.message}</p>
+                  )}
+                </div>
               </div>
 
               {/* Contraseñas */}

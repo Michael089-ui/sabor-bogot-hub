@@ -43,7 +43,8 @@ export const useAuth = () => {
     telefono: string;
     tipo_comida: string[];
     presupuesto: string;
-    ubicacion: string;
+    id_localidad?: string;
+    id_barrio?: string;
   }) => {
     try {
       const { error } = await supabase.auth.signUp({
@@ -57,7 +58,8 @@ export const useAuth = () => {
             telefono: data.telefono,
             tipo_comida: data.tipo_comida.join(','),
             presupuesto: data.presupuesto,
-            ubicacion: data.ubicacion,
+            id_localidad: data.id_localidad,
+            id_barrio: data.id_barrio,
           },
         },
       });
