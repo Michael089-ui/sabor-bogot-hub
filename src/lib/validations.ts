@@ -47,11 +47,12 @@ export const registroSchema = z.object({
   presupuesto: z
     .string()
     .min(1, { message: "Selecciona un presupuesto" }),
-  ubicacion: z
+  id_localidad: z
     .string()
-    .trim()
-    .min(3, { message: "La ubicación debe tener al menos 3 caracteres" })
-    .max(200, { message: "La ubicación debe tener menos de 200 caracteres" }),
+    .optional(),
+  id_barrio: z
+    .string()
+    .optional(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Las contraseñas no coinciden",
   path: ["confirmPassword"],
