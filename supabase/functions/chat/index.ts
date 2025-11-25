@@ -74,6 +74,7 @@ ${JSON.stringify(placesData.restaurants, null, 2)}
         }
       } catch (error) {
         console.error('Error calling Places API:', error);
+        console.log('⚠️ Continuando con respuesta de IA sin datos de restaurantes');
         // Continue with regular Gemini response if Places API fails
       }
     }
@@ -81,7 +82,10 @@ ${JSON.stringify(placesData.restaurants, null, 2)}
     if (!GOOGLE_GEMINI_API_KEY) {
       console.error('GOOGLE_GEMINI_API_KEY not configured');
       return new Response(
-        JSON.stringify({ error: 'API key not configured' }),
+        JSON.stringify({ 
+          error: 'Servicio de IA no disponible',
+          details: 'La clave de API no está configurada. Por favor contacta al administrador.'
+        }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -129,9 +133,23 @@ ${JSON.stringify(placesData.restaurants, null, 2)}
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Gemini API error:', response.status, errorText);
+      
+      let errorMessage = 'El servicio de IA no está disponible en este momento';
+      if (response.status === 429) {
+        errorMessage = 'Demasiadas solicitudes. Por favor intenta en unos momentos.';
+      } else if (response.status === 403) {
+        errorMessage = 'Acceso denegado al servicio de IA. Verifica la configuración.';
+      } else if (response.status >= 500) {
+        errorMessage = 'El servicio de IA está experimentando problemas. Intenta más tarde.';
+      }
+      
       return new Response(
-        JSON.stringify({ error: 'AI service error' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ 
+          error: errorMessage,
+          details: `Error ${response.status}`,
+          retryable: response.status === 429 || response.status >= 500
+        }),
+        { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -147,8 +165,18 @@ ${JSON.stringify(placesData.restaurants, null, 2)}
 
   } catch (error) {
     console.error('Chat error:', error);
+    
+    const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+    const isNetworkError = errorMessage.includes('fetch') || errorMessage.includes('network');
+    
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      JSON.stringify({ 
+        error: isNetworkError 
+          ? 'Error de conexión. Verifica tu conexión a internet e intenta nuevamente.'
+          : 'Ocurrió un error inesperado. Por favor intenta nuevamente.',
+        details: errorMessage,
+        retryable: true
+      }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

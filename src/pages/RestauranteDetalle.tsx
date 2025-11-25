@@ -1,4 +1,5 @@
 import { Heart, Star, Clock, MapPin, DollarSign, MessageSquare, ArrowLeft, Loader2, ExternalLink, Phone, Globe, AlertCircle, BarChart3 } from "lucide-react";
+import { useFavorites } from "@/hooks/useFavorites";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +19,7 @@ const RestauranteDetalle = () => {
   const { data: restaurant, isLoading, error } = useRestaurantDetail(placeId);
   const { data: communityReviews } = useRestaurantReviews(placeId);
   const createReview = useCreateReview();
+  const { isFavorite, toggleFavorite } = useFavorites();
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [showInfoWindow, setShowInfoWindow] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
@@ -146,9 +148,14 @@ const RestauranteDetalle = () => {
             
             {/* Action Buttons */}
             <div className="flex flex-wrap gap-3">
-              <Button variant="outline" size="lg" className="gap-2">
-                <Heart className="h-5 w-5" />
-                Guardar
+              <Button 
+                variant={isFavorite(placeId || '') ? "default" : "outline"} 
+                size="lg" 
+                className="gap-2"
+                onClick={() => placeId && toggleFavorite(placeId)}
+              >
+                <Heart className={`h-5 w-5 ${isFavorite(placeId || '') ? 'fill-current' : ''}`} />
+                {isFavorite(placeId || '') ? 'Guardado' : 'Guardar'}
               </Button>
               <Button size="lg" className="gap-2" onClick={() => setShowReviewModal(true)}>
                 <MessageSquare className="h-5 w-5" />

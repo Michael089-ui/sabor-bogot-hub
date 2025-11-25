@@ -75,6 +75,23 @@ export const useCreateReview = () => {
     mutationFn: async (input: CreateReviewInput) => {
       if (!user?.id) throw new Error("Usuario no autenticado");
 
+      // Verificar si ya existe una reseña del usuario para este restaurante
+      const { data: existingReview, error: checkError } = await supabase
+        .from("resena")
+        .select("id_resena")
+        .eq("id_usuario", user.id)
+        .eq("place_id", input.place_id)
+        .maybeSingle();
+
+      if (checkError) {
+        console.error("Error verificando reseña duplicada:", checkError);
+        throw new Error("Error al verificar reseñas existentes");
+      }
+
+      if (existingReview) {
+        throw new Error("Ya has escrito una reseña para este restaurante. Puedes editarla desde tu perfil.");
+      }
+
       const { data, error } = await supabase
         .from("resena")
         .insert({
@@ -92,10 +109,14 @@ export const useCreateReview = () => {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["user-reviews"] });
       queryClient.invalidateQueries({ queryKey: ["restaurant-reviews", variables.place_id] });
-      toast.success("Reseña publicada exitosamente");
+      toast.success("✅ Reseña publicada exitosamente", {
+        description: "Gracias por compartir tu experiencia"
+      });
     },
     onError: (error) => {
-      toast.error("Error al publicar la reseña: " + error.message);
+      toast.error("❌ Error al publicar la reseña", {
+        description: error.message
+      });
     },
   });
 };
@@ -122,10 +143,14 @@ export const useUpdateReview = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["user-reviews"] });
       queryClient.invalidateQueries({ queryKey: ["restaurant-reviews"] });
-      toast.success("Reseña actualizada exitosamente");
+      toast.success("✅ Reseña actualizada exitosamente", {
+        description: "Tus cambios han sido guardados"
+      });
     },
     onError: (error) => {
-      toast.error("Error al actualizar la reseña: " + error.message);
+      toast.error("❌ Error al actualizar la reseña", {
+        description: error.message
+      });
     },
   });
 };
@@ -146,10 +171,14 @@ export const useDeleteReview = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["user-reviews"] });
       queryClient.invalidateQueries({ queryKey: ["restaurant-reviews"] });
-      toast.success("Reseña eliminada exitosamente");
+      toast.success("🗑️ Reseña eliminada exitosamente", {
+        description: "Tu reseña ha sido eliminada"
+      });
     },
     onError: (error) => {
-      toast.error("Error al eliminar la reseña: " + error.message);
+      toast.error("❌ Error al eliminar la reseña", {
+        description: error.message
+      });
     },
   });
 };
