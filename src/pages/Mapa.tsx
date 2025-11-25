@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { useRestaurants, getPhotoUrl } from "@/hooks/useRestaurants";
+import { useRestaurants, getPhotoUrl, RestaurantFilters } from "@/hooks/useRestaurants";
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
@@ -41,7 +41,14 @@ const userLocationIcon = {
 
 export default function Mapa() {
   const navigate = useNavigate();
-  const { data: restaurants = [], isLoading } = useRestaurants();
+  const [filters, setFilters] = useState<RestaurantFilters>({
+    cuisine: [],
+    priceLevel: [],
+    neighborhood: [],
+    minRating: undefined,
+    openNow: undefined,
+  });
+  const { data: restaurants = [], isLoading } = useRestaurants(undefined, filters);
   const [mapSearchQuery, setMapSearchQuery] = useState("");
   const [selectedRestaurant, setSelectedRestaurant] = useState<typeof restaurants[0] | null>(null);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
@@ -100,61 +107,61 @@ export default function Mapa() {
       <div className="w-96 border-r border-border flex flex-col">
         <div className="p-4 border-b border-border space-y-3">
           <div className="flex gap-2">
-            <Select>
+            <Select onValueChange={(value) => setFilters(prev => ({ ...prev, cuisine: [value] }))}>
               <SelectTrigger className="flex-1">
                 <SelectValue placeholder="Tipo" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="colombiana">Colombiana</SelectItem>
-                <SelectItem value="japonesa">Japonesa</SelectItem>
-                <SelectItem value="italiana">Italiana</SelectItem>
-                <SelectItem value="mexicana">Mexicana</SelectItem>
+                <SelectItem value="Colombian">Colombiana</SelectItem>
+                <SelectItem value="Asian">Asiática</SelectItem>
+                <SelectItem value="Italian">Italiana</SelectItem>
+                <SelectItem value="Steakhouse">Parrilla</SelectItem>
               </SelectContent>
             </Select>
-            <Select>
+            <Select onValueChange={(value) => setFilters(prev => ({ ...prev, priceLevel: [value] }))}>
               <SelectTrigger className="flex-1">
                 <SelectValue placeholder="Precio" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="$">$</SelectItem>
-                <SelectItem value="$$">$$</SelectItem>
-                <SelectItem value="$$$">$$$</SelectItem>
-                <SelectItem value="$$$$">$$$$</SelectItem>
+                <SelectItem value="1">$</SelectItem>
+                <SelectItem value="2">$$</SelectItem>
+                <SelectItem value="3">$$$</SelectItem>
+                <SelectItem value="4">$$$$</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div className="flex gap-2">
-            <Select>
+            <Select onValueChange={(value) => setFilters(prev => ({ ...prev, neighborhood: [value] }))}>
               <SelectTrigger className="flex-1">
                 <SelectValue placeholder="Ubicación" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="chapinero">Chapinero</SelectItem>
-                <SelectItem value="usaquen">Usaquén</SelectItem>
-                <SelectItem value="zona-t">Zona T</SelectItem>
+                <SelectItem value="Chapinero Alto">Chapinero Alto</SelectItem>
+                <SelectItem value="Usaquén">Usaquén</SelectItem>
+                <SelectItem value="Zona G">Zona G</SelectItem>
               </SelectContent>
             </Select>
-            <Select>
+            <Select onValueChange={(value) => setFilters(prev => ({ ...prev, minRating: parseFloat(value) }))}>
               <SelectTrigger className="flex-1">
                 <SelectValue placeholder="Calificación" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="4">4+ estrellas</SelectItem>
-                <SelectItem value="3">3+ estrellas</SelectItem>
+                <SelectItem value="4.5">4.5+ estrellas</SelectItem>
+                <SelectItem value="4.0">4.0+ estrellas</SelectItem>
+                <SelectItem value="3.5">3.5+ estrellas</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div className="flex gap-2">
-            <Select>
+            <Select onValueChange={(value) => setFilters(prev => ({ ...prev, openNow: value === "true" }))}>
               <SelectTrigger className="flex-1">
                 <SelectValue placeholder="Disponibilidad" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="ahora">Disponible ahora</SelectItem>
-                <SelectItem value="hoy">Disponible hoy</SelectItem>
+                <SelectItem value="true">Disponible ahora</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline" size="icon">
+            <Button variant="outline" size="icon" onClick={() => setFilters({ cuisine: [], priceLevel: [], neighborhood: [], minRating: undefined, openNow: undefined })}>
               <SlidersHorizontal className="h-4 w-4" />
             </Button>
           </div>

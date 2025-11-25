@@ -36,7 +36,7 @@ const Restaurantes = () => {
   });
 
   const itemsPerPage = 12;
-  const { data: allRestaurants, isLoading, error } = useRestaurants();
+  const { data: allRestaurants, isLoading, error } = useRestaurants(undefined, filters);
 
   // Paginación en el cliente
   const paginatedRestaurants = useMemo(() => {
