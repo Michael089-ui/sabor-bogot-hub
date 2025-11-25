@@ -6,14 +6,27 @@ export function detectRestaurantQuery(message: string): boolean {
     'italiano', 'mexicano', 'japonés', 'chino', 'colombiano',
     'pizza', 'sushi', 'tacos', 'hamburguesa', 'pasta',
     'recomendación', 'recomienda', 'dónde', 'lugar', 'sitio',
-    'mejor', 'bueno', 'rico', 'delicioso'
+    'mejor', 'bueno', 'rico', 'delicioso',
+    // Respuestas afirmativas para búsqueda con preferencias
+    'sí', 'si', 'claro', 'dale', 'ok', 'perfecto', 'preferencias',
+    'mis gustos', 'basado en', 'según mis'
   ];
 
   const messageLower = message.toLowerCase();
   return restaurantKeywords.some(keyword => messageLower.includes(keyword));
 }
 
-export function extractSearchParams(message: string): { query: string; neighborhood?: string } {
+export function detectPreferenceConfirmation(message: string): boolean {
+  const confirmationKeywords = [
+    'sí', 'si', 'claro', 'dale', 'ok', 'perfecto', 
+    'preferencias', 'mis gustos', 'basado en', 'según mis'
+  ];
+  
+  const messageLower = message.toLowerCase();
+  return confirmationKeywords.some(keyword => messageLower.includes(keyword));
+}
+
+export function extractSearchParams(message: string, userPreferences?: any): { query: string; neighborhood?: string } {
   const messageLower = message.toLowerCase();
   
   // Bogotá neighborhoods
@@ -43,10 +56,17 @@ export function extractSearchParams(message: string): { query: string; neighborh
   ];
 
   let query = 'restaurante';
-  for (const cuisine of cuisineTypes) {
-    if (messageLower.includes(cuisine)) {
-      query = cuisine;
-      break;
+  
+  // If user has preferences and confirms, use their preferences
+  if (userPreferences?.tipo_comida?.length > 0) {
+    query = userPreferences.tipo_comida[0]; // Use first preference
+  } else {
+    // Otherwise extract from message
+    for (const cuisine of cuisineTypes) {
+      if (messageLower.includes(cuisine)) {
+        query = cuisine;
+        break;
+      }
     }
   }
 
