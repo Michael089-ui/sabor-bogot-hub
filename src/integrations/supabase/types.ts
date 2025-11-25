@@ -276,6 +276,7 @@ export type Database = {
           place_id: string
           price_level: string | null
           rating: number | null
+          reviews: Json | null
           search_query: string | null
           types: string[] | null
           user_ratings_total: number | null
@@ -301,6 +302,7 @@ export type Database = {
           place_id: string
           price_level?: string | null
           rating?: number | null
+          reviews?: Json | null
           search_query?: string | null
           types?: string[] | null
           user_ratings_total?: number | null
@@ -326,6 +328,7 @@ export type Database = {
           place_id?: string
           price_level?: string | null
           rating?: number | null
+          reviews?: Json | null
           search_query?: string | null
           types?: string[] | null
           user_ratings_total?: number | null

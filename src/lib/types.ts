@@ -75,25 +75,13 @@ export interface LogAuditoria {
   fecha_hora: string;
 }
 
-// Google Places API types
-export interface GooglePlace {
-  place_id: string;
-  name: string;
-  formatted_address: string;
-  geometry: {
-    location: {
-      lat: number;
-      lng: number;
-    };
-  };
-  rating?: number;
-  user_ratings_total?: number;
-  photos?: Array<{
-    photo_reference: string;
-  }>;
-  opening_hours?: {
-    open_now: boolean;
-    weekday_text?: string[];
-  };
-  types?: string[];
+// Google Places Review type
+export interface GoogleReview {
+  author_name: string;
+  author_photo: string | null;
+  rating: number | null;
+  text: string;
+  time: string | null;
+  relative_time: string | null;
 }
+

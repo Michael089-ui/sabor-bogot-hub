@@ -48,7 +48,7 @@ serve(async (req) => {
       headers: {
         'Content-Type': 'application/json',
         'X-Goog-Api-Key': GOOGLE_MAPS_API_KEY,
-        'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.priceLevel,places.types,places.currentOpeningHours,places.photos,places.nationalPhoneNumber,places.websiteUri'
+        'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.priceLevel,places.types,places.currentOpeningHours,places.photos,places.nationalPhoneNumber,places.websiteUri,places.reviews'
       },
       body: JSON.stringify({
         textQuery: `restaurantes en ${neighborhood}, Bogotá, Colombia`,
@@ -125,6 +125,14 @@ serve(async (req) => {
           } : null,
           phone_number: place.nationalPhoneNumber || null,
           website: place.websiteUri || null,
+          reviews: place.reviews ? place.reviews.map((review: any) => ({
+            author_name: review.authorAttribution?.displayName || 'Usuario',
+            author_photo: review.authorAttribution?.photoUri || null,
+            rating: review.rating || null,
+            text: review.text?.text || '',
+            time: review.publishTime || null,
+            relative_time: review.relativePublishTimeDescription || null
+          })) : null,
           search_query: `API:${neighborhood}`,
           cached_at: new Date().toISOString(),
           expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 días

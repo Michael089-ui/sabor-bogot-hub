@@ -1,17 +1,21 @@
-import { Star, MessageSquare, Edit, Trash2, Plus } from "lucide-react";
+import { Star, MessageSquare, Edit, Trash2, Plus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
+import { useUserReviews, useDeleteReview, useUpdateReview } from "@/hooks/useReviews";
+import { ReviewModal } from "@/components/ReviewModal";
+import { useState } from "react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 interface ResenaCardProps {
-  id: number;
+  id: string;
   restaurante: string;
   calificacion: number;
   comentario: string;
   fecha: string;
-  onEdit: (id: number) => void;
-  onDelete: (id: number) => void;
+  onEdit: (id: string) => void;
+  onDelete: (id: string) => void;
 }
 
 const ResenaCard = ({ 
@@ -83,52 +87,68 @@ const ResenaCard = ({
 
 const Resenas = () => {
   const navigate = useNavigate();
+  const { data: reviews, isLoading } = useUserReviews();
+  const deleteReview = useDeleteReview();
+  const updateReview = useUpdateReview();
+  
+  const [editingReview, setEditingReview] = useState<{ id: string; rating: number; comment: string; placeId: string; restaurantName: string } | null>(null);
+  const [deletingReviewId, setDeletingReviewId] = useState<string | null>(null);
 
-  // Mock data - reseñas del usuario
-  const resenas = [
-    {
-      id: 1,
-      restaurante: "El Fogón de Doña Rosa",
-      calificacion: 5,
-      comentario: "Excelente comida tradicional colombiana. El ajiaco es increíble, con todos los ingredientes frescos y un sabor auténtico. El ambiente es muy acogedor y el servicio excepcional.",
-      fecha: "Hace 2 días"
-    },
-    {
-      id: 2,
-      restaurante: "La Puerta Falsa",
-      calificacion: 4,
-      comentario: "Un lugar emblemático de Bogotá. El chocolate con queso y las almojábanas son deliciosos. Perfecto para desayunar. Solo le falta un poco más de espacio.",
-      fecha: "Hace 1 semana"
-    },
-    {
-      id: 3,
-      restaurante: "Andrés Carne de Res",
-      calificacion: 5,
-      comentario: "Experiencia única en Bogotá. La comida es excelente, especialmente las carnes. El ambiente es muy animado y la decoración es espectacular. Ideal para celebraciones.",
-      fecha: "Hace 2 semanas"
-    },
-    {
-      id: 4,
-      restaurante: "Leo Cocina y Cava",
-      calificacion: 5,
-      comentario: "Alta cocina colombiana en su mejor expresión. Cada plato es una obra de arte. El servicio es impecable y la carta de vinos excepcional. Totalmente recomendado.",
-      fecha: "Hace 1 mes"
-    },
-  ];
-
-  const handleEditResena = (id: number) => {
-    // TODO: Conectar con la tabla reseña
-    console.log("Editar reseña:", id);
+  const handleEditResena = (id: string) => {
+    const review = reviews?.find((r) => r.id_resena === id);
+    if (review) {
+      setEditingReview({
+        id: review.id_resena,
+        rating: review.calificacion || 0,
+        comment: review.comentario || "",
+        placeId: review.place_id,
+        restaurantName: "Restaurante" // TODO: Fetch restaurant name
+      });
+    }
   };
 
-  const handleDeleteResena = (id: number) => {
-    // TODO: Conectar con la tabla reseña
-    console.log("Eliminar reseña:", id);
+  const handleDeleteResena = (id: string) => {
+    setDeletingReviewId(id);
+  };
+
+  const confirmDelete = () => {
+    if (deletingReviewId) {
+      deleteReview.mutate(deletingReviewId);
+      setDeletingReviewId(null);
+    }
+  };
+
+  const handleUpdateReview = (data: { calificacion: number; comentario: string; reviewId?: string }) => {
+    if (data.reviewId) {
+      updateReview.mutate(
+        { id_resena: data.reviewId, calificacion: data.calificacion, comentario: data.comentario },
+        { onSuccess: () => setEditingReview(null) }
+      );
+    }
   };
 
   const handleNewResena = () => {
     navigate('/restaurantes');
   };
+
+  const formatRelativeTime = (dateString: string | null) => {
+    if (!dateString) return "Fecha desconocida";
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) return "Hoy";
+    if (diffDays === 1) return "Ayer";
+    if (diffDays < 7) return `Hace ${diffDays} días`;
+    if (diffDays < 30) return `Hace ${Math.floor(diffDays / 7)} semanas`;
+    if (diffDays < 365) return `Hace ${Math.floor(diffDays / 30)} meses`;
+    return `Hace ${Math.floor(diffDays / 365)} años`;
+  };
+
+  const avgRating = reviews && reviews.length > 0
+    ? (reviews.reduce((sum, r) => sum + (r.calificacion || 0), 0) / reviews.length).toFixed(1)
+    : "0.0";
 
   return (
     <div className="min-h-full bg-background">
@@ -162,7 +182,11 @@ const Resenas = () => {
 
       {/* Content */}
       <div className="max-w-5xl mx-auto px-6 py-8">
-        {resenas.length > 0 ? (
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : reviews && reviews.length > 0 ? (
           <>
             {/* Stats Card */}
             <Card className="mb-8 bg-muted/50">
@@ -170,18 +194,18 @@ const Resenas = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div>
                     <p className="text-sm text-muted-foreground mb-1">Total de Reseñas</p>
-                    <p className="text-3xl font-bold text-foreground">{resenas.length}</p>
+                    <p className="text-3xl font-bold text-foreground">{reviews.length}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground mb-1">Calificación Promedio</p>
                     <div className="flex items-center gap-2">
-                      <p className="text-3xl font-bold text-foreground">4.8</p>
+                      <p className="text-3xl font-bold text-foreground">{avgRating}</p>
                       <Star className="h-6 w-6 fill-yellow-500 text-yellow-500" />
                     </div>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground mb-1">Restaurantes Visitados</p>
-                    <p className="text-3xl font-bold text-foreground">12</p>
+                    <p className="text-sm text-muted-foreground mb-1">Restaurantes Evaluados</p>
+                    <p className="text-3xl font-bold text-foreground">{reviews.length}</p>
                   </div>
                 </div>
               </div>
@@ -189,14 +213,14 @@ const Resenas = () => {
 
             {/* Lista de Reseñas */}
             <div className="space-y-4">
-              {resenas.map((resena) => (
+              {reviews.map((review) => (
                 <ResenaCard
-                  key={resena.id}
-                  id={resena.id}
-                  restaurante={resena.restaurante}
-                  calificacion={resena.calificacion}
-                  comentario={resena.comentario}
-                  fecha={resena.fecha}
+                  key={review.id_resena}
+                  id={review.id_resena}
+                  restaurante="Restaurante" // TODO: Fetch restaurant name from place_id
+                  calificacion={review.calificacion || 0}
+                  comentario={review.comentario || ""}
+                  fecha={formatRelativeTime(review.fecha_resena)}
                   onEdit={handleEditResena}
                   onDelete={handleDeleteResena}
                 />
@@ -221,6 +245,39 @@ const Resenas = () => {
             </div>
           </Card>
         )}
+
+        {/* Edit Review Modal */}
+        {editingReview && (
+          <ReviewModal
+            open={!!editingReview}
+            onOpenChange={(open) => !open && setEditingReview(null)}
+            restaurantName={editingReview.restaurantName}
+            placeId={editingReview.placeId}
+            initialRating={editingReview.rating}
+            initialComment={editingReview.comment}
+            reviewId={editingReview.id}
+            onSubmit={handleUpdateReview}
+            isLoading={updateReview.isPending}
+          />
+        )}
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={!!deletingReviewId} onOpenChange={(open) => !open && setDeletingReviewId(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>¿Eliminar reseña?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta acción no se puede deshacer. La reseña será eliminada permanentemente.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Eliminar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );

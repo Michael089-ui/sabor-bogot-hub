@@ -22,6 +22,7 @@ interface Restaurant {
   currency?: string | null;
   description?: string | null;
   cuisine?: string | null;
+  reviews?: any;
 }
 
 export interface PriceInfo {
