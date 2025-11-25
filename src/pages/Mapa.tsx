@@ -1,7 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { GoogleMap, LoadScript, Marker, InfoWindow } from "@react-google-maps/api";
-import { Search, SlidersHorizontal, Plus, Minus, Navigation, X, MapPin } from "lucide-react";
+import { GoogleMap, useLoadScript, Marker, InfoWindow } from "@react-google-maps/api";
+import { Search, Plus, Minus, Navigation, X, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -13,13 +13,13 @@ import { useRestaurants, getPhotoUrl, RestaurantFilters } from "@/hooks/useResta
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
 const mapContainerStyle = {
-  width: '100%',
-  height: '100%'
+  width: "100%",
+  height: "100%",
 };
 
 const defaultCenter = {
   lat: 4.6097,
-  lng: -74.0817
+  lng: -74.0817,
 };
 
 // Íconos SVG codificados
@@ -28,7 +28,7 @@ const restaurantIcon = {
     <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
       <circle cx="16" cy="16" r="10" fill="hsl(12, 88%, 58%)" stroke="white" stroke-width="3"/>
     </svg>
-  `)}`
+  `)}`,
 };
 
 const userLocationIcon = {
@@ -36,20 +36,24 @@ const userLocationIcon = {
     <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28">
       <circle cx="14" cy="14" r="8" fill="hsl(142, 48%, 45%)" stroke="white" stroke-width="4"/>
     </svg>
-  `)}`
+  `)}`,
 };
-
 
 export default function Mapa() {
   const navigate = useNavigate();
   const { data: restaurants = [], isLoading } = useRestaurants();
   const [mapSearchQuery, setMapSearchQuery] = useState("");
-  const [selectedRestaurant, setSelectedRestaurant] = useState<typeof restaurants[0] | null>(null);
+  const [selectedRestaurant, setSelectedRestaurant] = useState<(typeof restaurants)[0] | null>(null);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
-  const [isLoaded, setIsLoaded] = useState(false);
   const [showInfoCard, setShowInfoCard] = useState(true);
-  
+
+  // Usar useLoadScript hook en lugar del componente LoadScript
+  const { isLoaded, loadError } = useLoadScript({
+    googleMapsApiKey: GOOGLE_MAPS_API_KEY,
+    libraries: ["places"],
+  });
+
   // Filtros
   const [filters, setFilters] = useState<RestaurantFilters>({
     cuisine: [],
@@ -65,45 +69,44 @@ export default function Mapa() {
 
     // Filtro por búsqueda
     if (mapSearchQuery) {
-      result = result.filter((restaurant) =>
-        restaurant.name.toLowerCase().includes(mapSearchQuery.toLowerCase()) ||
-        (restaurant.cuisine && restaurant.cuisine.toLowerCase().includes(mapSearchQuery.toLowerCase())) ||
-        (restaurant.neighborhood && restaurant.neighborhood.toLowerCase().includes(mapSearchQuery.toLowerCase()))
+      result = result.filter(
+        (restaurant) =>
+          restaurant.name.toLowerCase().includes(mapSearchQuery.toLowerCase()) ||
+          (restaurant.cuisine && restaurant.cuisine.toLowerCase().includes(mapSearchQuery.toLowerCase())) ||
+          (restaurant.neighborhood && restaurant.neighborhood.toLowerCase().includes(mapSearchQuery.toLowerCase())),
       );
     }
 
     // Filtro por tipo de comida
     if (filters.cuisine && filters.cuisine.length > 0) {
       result = result.filter((restaurant) =>
-        filters.cuisine?.some(cuisine => 
-          restaurant.cuisine?.toLowerCase().includes(cuisine.toLowerCase()) ||
-          restaurant.types?.some(type => type.toLowerCase().includes(cuisine.toLowerCase()))
-        )
+        filters.cuisine?.some(
+          (cuisine) =>
+            restaurant.cuisine?.toLowerCase().includes(cuisine.toLowerCase()) ||
+            restaurant.types?.some((type) => type.toLowerCase().includes(cuisine.toLowerCase())),
+        ),
       );
     }
 
     // Filtro por precio
     if (filters.priceLevel && filters.priceLevel.length > 0) {
-      result = result.filter((restaurant) =>
-        filters.priceLevel?.includes(restaurant.price_level || "")
-      );
+      result = result.filter((restaurant) => filters.priceLevel?.includes(restaurant.price_level || ""));
     }
 
     // Filtro por ubicación
     if (filters.neighborhood && filters.neighborhood.length > 0) {
       result = result.filter((restaurant) =>
-        filters.neighborhood?.some(neighborhood =>
-          restaurant.neighborhood?.toLowerCase().includes(neighborhood.toLowerCase()) ||
-          restaurant.formatted_address?.toLowerCase().includes(neighborhood.toLowerCase())
-        )
+        filters.neighborhood?.some(
+          (neighborhood) =>
+            restaurant.neighborhood?.toLowerCase().includes(neighborhood.toLowerCase()) ||
+            restaurant.formatted_address?.toLowerCase().includes(neighborhood.toLowerCase()),
+        ),
       );
     }
 
     // Filtro por calificación
     if (filters.minRating) {
-      result = result.filter((restaurant) =>
-        restaurant.rating && restaurant.rating >= filters.minRating!
-      );
+      result = result.filter((restaurant) => restaurant.rating && restaurant.rating >= filters.minRating!);
     }
 
     // Filtro por disponibilidad
@@ -133,7 +136,7 @@ export default function Mapa() {
         },
         (error) => {
           console.error("Error getting location:", error);
-        }
+        },
       );
     }
   };
@@ -150,7 +153,7 @@ export default function Mapa() {
     }
   };
 
-  const handleRestaurantClick = (restaurant: typeof restaurants[0]) => {
+  const handleRestaurantClick = (restaurant: (typeof restaurants)[0]) => {
     setSelectedRestaurant(restaurant);
     if (map && restaurant.location?.lat && restaurant.location?.lng) {
       map.panTo({ lat: restaurant.location.lat, lng: restaurant.location.lng });
@@ -160,17 +163,42 @@ export default function Mapa() {
 
   const onLoad = (mapInstance: google.maps.Map) => {
     setMap(mapInstance);
-    setIsLoaded(true);
   };
+
+  // Mostrar estados de carga y error
+  if (loadError) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-background">
+        <div className="text-center p-8">
+          <div className="text-destructive text-lg font-semibold mb-4">Error al cargar Google Maps</div>
+          <p className="text-muted-foreground mb-4">
+            Verifica tu conexión a internet y la configuración de la API key.
+          </p>
+          <Button onClick={() => window.location.reload()}>Reintentar</Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isLoaded) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-background">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Cargando mapa...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-background">
       <div className="w-96 border-r border-border flex flex-col">
         <div className="p-4 border-b border-border space-y-3">
           <div className="flex gap-2">
-            <Select 
-              value={filters.cuisine?.[0] || ""} 
-              onValueChange={(value) => setFilters(prev => ({...prev, cuisine: value ? [value] : []}))}
+            <Select
+              value={filters.cuisine?.[0] || ""}
+              onValueChange={(value) => setFilters((prev) => ({ ...prev, cuisine: value ? [value] : [] }))}
             >
               <SelectTrigger className="flex-1">
                 <SelectValue placeholder="Tipo" />
@@ -185,9 +213,9 @@ export default function Mapa() {
                 <SelectItem value="asian">Asiática</SelectItem>
               </SelectContent>
             </Select>
-            <Select 
-              value={filters.priceLevel?.[0] || ""} 
-              onValueChange={(value) => setFilters(prev => ({...prev, priceLevel: value ? [value] : []}))}
+            <Select
+              value={filters.priceLevel?.[0] || ""}
+              onValueChange={(value) => setFilters((prev) => ({ ...prev, priceLevel: value ? [value] : [] }))}
             >
               <SelectTrigger className="flex-1">
                 <SelectValue placeholder="Precio" />
@@ -202,9 +230,9 @@ export default function Mapa() {
             </Select>
           </div>
           <div className="flex gap-2">
-            <Select 
-              value={filters.neighborhood?.[0] || ""} 
-              onValueChange={(value) => setFilters(prev => ({...prev, neighborhood: value ? [value] : []}))}
+            <Select
+              value={filters.neighborhood?.[0] || ""}
+              onValueChange={(value) => setFilters((prev) => ({ ...prev, neighborhood: value ? [value] : [] }))}
             >
               <SelectTrigger className="flex-1">
                 <SelectValue placeholder="Ubicación" />
@@ -219,9 +247,11 @@ export default function Mapa() {
                 <SelectItem value="zona rosa">Zona Rosa</SelectItem>
               </SelectContent>
             </Select>
-            <Select 
-              value={filters.minRating?.toString() || ""} 
-              onValueChange={(value) => setFilters(prev => ({...prev, minRating: value ? parseFloat(value) : undefined}))}
+            <Select
+              value={filters.minRating?.toString() || ""}
+              onValueChange={(value) =>
+                setFilters((prev) => ({ ...prev, minRating: value ? parseFloat(value) : undefined }))
+              }
             >
               <SelectTrigger className="flex-1">
                 <SelectValue placeholder="Calificación" />
@@ -236,9 +266,11 @@ export default function Mapa() {
             </Select>
           </div>
           <div className="flex gap-2">
-            <Select 
-              value={filters.openNow ? "true" : ""} 
-              onValueChange={(value) => setFilters(prev => ({...prev, openNow: value === "true" ? true : undefined}))}
+            <Select
+              value={filters.openNow ? "true" : ""}
+              onValueChange={(value) =>
+                setFilters((prev) => ({ ...prev, openNow: value === "true" ? true : undefined }))
+              }
             >
               <SelectTrigger className="flex-1">
                 <SelectValue placeholder="Disponibilidad" />
@@ -248,16 +280,18 @@ export default function Mapa() {
                 <SelectItem value="true">Abierto ahora</SelectItem>
               </SelectContent>
             </Select>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="icon"
-              onClick={() => setFilters({
-                cuisine: [],
-                priceLevel: [],
-                neighborhood: [],
-                minRating: undefined,
-                openNow: undefined,
-              })}
+              onClick={() =>
+                setFilters({
+                  cuisine: [],
+                  priceLevel: [],
+                  neighborhood: [],
+                  minRating: undefined,
+                  openNow: undefined,
+                })
+              }
             >
               <X className="h-4 w-4" />
             </Button>
@@ -272,15 +306,18 @@ export default function Mapa() {
               <div className="text-center text-muted-foreground py-8">No se encontraron restaurantes</div>
             ) : (
               filteredRestaurants.map((restaurant) => {
-                const photoUrl = restaurant.photos && restaurant.photos.length > 0
-                  ? getPhotoUrl(restaurant.photos[0], 400)
-                  : 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400';
-                
+                const photoUrl =
+                  restaurant.photos && restaurant.photos.length > 0
+                    ? getPhotoUrl(restaurant.photos[0], 400)
+                    : "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400";
+
                 return (
                   <div
                     key={restaurant.id}
                     className={`bg-card rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all cursor-pointer border ${
-                      selectedRestaurant?.id === restaurant.id ? "border-primary ring-2 ring-primary/20" : "border-border"
+                      selectedRestaurant?.id === restaurant.id
+                        ? "border-primary ring-2 ring-primary/20"
+                        : "border-border"
                     }`}
                     onClick={() => handleRestaurantClick(restaurant)}
                   >
@@ -292,8 +329,8 @@ export default function Mapa() {
                           {restaurant.cuisine || restaurant.types?.[0]?.replace(/_/g, " ") || "Restaurante"}
                         </Badge>
                         <div className="flex items-center gap-2">
-                          <span className="text-yellow-500">⭐ {restaurant.rating?.toFixed(1) || 'N/A'}</span>
-                          <span className="text-muted-foreground">{restaurant.price_level || '$$'}</span>
+                          <span className="text-yellow-500">⭐ {restaurant.rating?.toFixed(1) || "N/A"}</span>
+                          <span className="text-muted-foreground">{restaurant.price_level || "$$"}</span>
                         </div>
                       </div>
                     </div>
@@ -330,19 +367,12 @@ export default function Mapa() {
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between">
                 <MapPin className="h-5 w-5 text-primary mt-1" />
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-6 w-6 -mt-1"
-                  onClick={() => setShowInfoCard(false)}
-                >
+                <Button variant="ghost" size="icon" className="h-6 w-6 -mt-1" onClick={() => setShowInfoCard(false)}>
                   <X className="h-4 w-4" />
                 </Button>
               </div>
               <CardTitle className="text-lg">Explora restaurantes en el mapa</CardTitle>
-              <CardDescription>
-                Descubre los mejores lugares de Bogotá
-              </CardDescription>
+              <CardDescription>Descubre los mejores lugares de Bogotá</CardDescription>
             </CardHeader>
             <CardContent className="pb-4">
               <ul className="space-y-2 text-sm text-muted-foreground">
@@ -363,87 +393,82 @@ export default function Mapa() {
           </Card>
         )}
 
-        <LoadScript 
-          googleMapsApiKey={GOOGLE_MAPS_API_KEY}
-          onLoad={() => setIsLoaded(true)}
+        <GoogleMap
+          mapContainerStyle={mapContainerStyle}
+          center={defaultCenter}
+          zoom={13}
+          onLoad={onLoad}
+          options={{
+            disableDefaultUI: true,
+            zoomControl: false,
+          }}
         >
-          <GoogleMap
-            mapContainerStyle={mapContainerStyle}
-            center={defaultCenter}
-            zoom={13}
-            onLoad={onLoad}
-            options={{
-              disableDefaultUI: true,
-              zoomControl: false,
-            }}
-          >
-            {isLoaded && filteredRestaurants
-              .filter(r => r.location?.lat && r.location?.lng)
-              .map((restaurant) => (
-                <Marker
-                  key={restaurant.id}
-                  position={{ lat: restaurant.location.lat, lng: restaurant.location.lng }}
-                  onClick={() => setSelectedRestaurant(restaurant)}
-                  icon={restaurantIcon}
-                />
-              ))}
-
-            {isLoaded && selectedRestaurant && selectedRestaurant.location?.lat && selectedRestaurant.location?.lng && (
-              <InfoWindow
-                position={{ lat: selectedRestaurant.location.lat, lng: selectedRestaurant.location.lng }}
-                onCloseClick={() => setSelectedRestaurant(null)}
-              >
-                <div className="w-48">
-                  <img 
-                    src={selectedRestaurant.photos && selectedRestaurant.photos.length > 0
-                      ? getPhotoUrl(selectedRestaurant.photos[0], 400)
-                      : 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400'
-                    } 
-                    alt={selectedRestaurant.name} 
-                    className="w-full h-24 object-cover rounded mb-2" 
-                  />
-                  <h3 className="font-semibold text-sm mb-1">{selectedRestaurant.name}</h3>
-                  <p className="text-xs text-muted-foreground mb-2">
-                    {selectedRestaurant.cuisine || selectedRestaurant.types?.[0]?.replace(/_/g, " ") || "Restaurante"}
-                  </p>
-                  <div className="flex items-center justify-between text-xs mb-2">
-                    <span className="text-yellow-500">⭐ {selectedRestaurant.rating?.toFixed(1) || 'N/A'}</span>
-                    <span className="text-muted-foreground">{selectedRestaurant.price_level || '$$'}</span>
-                  </div>
-                  <Button size="sm" className="w-full" onClick={() => navigate(`/restaurantes/${selectedRestaurant.place_id}`)}>
-                    Ver detalles
-                  </Button>
-                </div>
-              </InfoWindow>
-            )}
-
-            {isLoaded && userLocation && (
-              <Marker 
-                position={userLocation}
-                icon={userLocationIcon}
+          {filteredRestaurants
+            .filter((r) => r.location?.lat && r.location?.lng)
+            .map((restaurant) => (
+              <Marker
+                key={restaurant.id}
+                position={{ lat: restaurant.location.lat, lng: restaurant.location.lng }}
+                onClick={() => setSelectedRestaurant(restaurant)}
+                icon={restaurantIcon}
               />
-            )}
-          </GoogleMap>
-        </LoadScript>
+            ))}
+
+          {selectedRestaurant && selectedRestaurant.location?.lat && selectedRestaurant.location?.lng && (
+            <InfoWindow
+              position={{ lat: selectedRestaurant.location.lat, lng: selectedRestaurant.location.lng }}
+              onCloseClick={() => setSelectedRestaurant(null)}
+            >
+              <div className="w-48">
+                <img
+                  src={
+                    selectedRestaurant.photos && selectedRestaurant.photos.length > 0
+                      ? getPhotoUrl(selectedRestaurant.photos[0], 400)
+                      : "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400"
+                  }
+                  alt={selectedRestaurant.name}
+                  className="w-full h-24 object-cover rounded mb-2"
+                />
+                <h3 className="font-semibold text-sm mb-1">{selectedRestaurant.name}</h3>
+                <p className="text-xs text-muted-foreground mb-2">
+                  {selectedRestaurant.cuisine || selectedRestaurant.types?.[0]?.replace(/_/g, " ") || "Restaurante"}
+                </p>
+                <div className="flex items-center justify-between text-xs mb-2">
+                  <span className="text-yellow-500">⭐ {selectedRestaurant.rating?.toFixed(1) || "N/A"}</span>
+                  <span className="text-muted-foreground">{selectedRestaurant.price_level || "$$"}</span>
+                </div>
+                <Button
+                  size="sm"
+                  className="w-full"
+                  onClick={() => navigate(`/restaurantes/${selectedRestaurant.place_id}`)}
+                >
+                  Ver detalles
+                </Button>
+              </div>
+            </InfoWindow>
+          )}
+
+          {userLocation && <Marker position={userLocation} icon={userLocationIcon} />}
+        </GoogleMap>
 
         <div className="absolute bottom-6 right-6 z-10 flex flex-col gap-2">
-          <Button 
-            size="icon" 
-            className="shadow-glow bg-primary hover:bg-primary-hover text-primary-foreground rounded-full h-12 w-12 transition-all hover:scale-110" 
+          <Button
+            size="icon"
+            className="shadow-glow bg-primary hover:bg-primary-hover text-primary-foreground rounded-full h-12 w-12 transition-all hover:scale-110"
             onClick={handleZoomIn}
           >
             <Plus className="h-5 w-5" />
           </Button>
-          <Button 
-            size="icon" 
-            className="shadow-glow bg-primary hover:bg-primary-hover text-primary-foreground rounded-full h-12 w-12 transition-all hover:scale-110" 
+          <Button
+            size="icon"
+            className="shadow-glow bg-primary hover:bg-primary-hover text-primary-foreground rounded-full h-12 w-12 transition-all hover:scale-110"
             onClick={handleZoomOut}
           >
             <Minus className="h-5 w-5" />
           </Button>
-          <Button 
-            size="icon" 
-            className="shadow-glow bg-accent hover:bg-accent/90 text-accent-foreground rounded-full h-12 w-12 transition-all hover:scale-110" 
+          <Button
+            size="icon"
+            className="shadow-glow bg-accent hover:bg-accent/90 text-accent-foreground rounded-full h-12 w-12 transition-all hover:scale-110"
             onClick={handleLocate}
           >
             <Navigation className="h-5 w-5" />
