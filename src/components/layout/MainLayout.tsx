@@ -30,9 +30,12 @@ export function MainLayout({ children }: MainLayoutProps) {
               {isLoading ? (
                 <Skeleton className="h-5 w-32" />
               ) : userProfile ? (
-                <span className="text-sm font-medium text-foreground">
-                  {userProfile.nombre} {userProfile.apellidos}
-                </span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-sm text-muted-foreground">Bienvenido(a),</span>
+                  <span className="text-sm font-semibold text-foreground">
+                    {userProfile.nombre} {userProfile.apellidos}
+                  </span>
+                </div>
               ) : null}
             </div>
           </header>
