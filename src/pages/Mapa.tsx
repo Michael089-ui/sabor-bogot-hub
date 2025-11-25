@@ -95,6 +95,14 @@ export default function Mapa() {
     (restaurant.cuisine && restaurant.cuisine.toLowerCase().includes(mapSearchQuery.toLowerCase()))
   );
 
+  const activeFiltersCount = [
+    filters.cuisine.length > 0,
+    filters.priceLevel.length > 0,
+    filters.neighborhood.length > 0,
+    filters.minRating !== undefined,
+    filters.openNow !== undefined,
+  ].filter(Boolean).length;
+
   const handleLocate = () => {
     if (navigator.geolocation && map) {
       navigator.geolocation.getCurrentPosition(
@@ -209,8 +217,21 @@ export default function Mapa() {
                 <SelectItem value="true">Disponible ahora</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline" size="icon" onClick={() => setFilters({ cuisine: [], priceLevel: [], neighborhood: [], minRating: undefined, openNow: undefined })}>
+            <Button 
+              variant="outline" 
+              size="icon" 
+              className="relative"
+              onClick={() => setFilters({ cuisine: [], priceLevel: [], neighborhood: [], minRating: undefined, openNow: undefined })}
+            >
               <SlidersHorizontal className="h-4 w-4" />
+              {activeFiltersCount > 0 && (
+                <Badge 
+                  variant="destructive" 
+                  className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs"
+                >
+                  {activeFiltersCount}
+                </Badge>
+              )}
             </Button>
           </div>
         </div>
