@@ -1,14 +1,13 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { GoogleMap, LoadScript, Marker, InfoWindow } from "@react-google-maps/api";
-import { Search, SlidersHorizontal, Plus, Minus, Navigation, X, MapPin } from "lucide-react";
+import { Search, SlidersHorizontal, Plus, Minus, Navigation } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useRestaurants, getPhotoUrl, RestaurantFilters } from "@/hooks/useRestaurants";
+import { useRestaurants, getPhotoUrl } from "@/hooks/useRestaurants";
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
@@ -48,78 +47,11 @@ export default function Mapa() {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [showInfoCard, setShowInfoCard] = useState(true);
-  
-  // Filtros
-  const [filters, setFilters] = useState<RestaurantFilters>({
-    cuisine: [],
-    priceLevel: [],
-    neighborhood: [],
-    minRating: undefined,
-    openNow: undefined,
-  });
 
-  // Aplicar filtros
-  const filteredRestaurants = useMemo(() => {
-    let result = restaurants;
-
-    // Filtro por búsqueda
-    if (mapSearchQuery) {
-      result = result.filter((restaurant) =>
-        restaurant.name.toLowerCase().includes(mapSearchQuery.toLowerCase()) ||
-        (restaurant.cuisine && restaurant.cuisine.toLowerCase().includes(mapSearchQuery.toLowerCase())) ||
-        (restaurant.neighborhood && restaurant.neighborhood.toLowerCase().includes(mapSearchQuery.toLowerCase()))
-      );
-    }
-
-    // Filtro por tipo de comida
-    if (filters.cuisine && filters.cuisine.length > 0) {
-      result = result.filter((restaurant) =>
-        filters.cuisine?.some(cuisine => 
-          restaurant.cuisine?.toLowerCase().includes(cuisine.toLowerCase()) ||
-          restaurant.types?.some(type => type.toLowerCase().includes(cuisine.toLowerCase()))
-        )
-      );
-    }
-
-    // Filtro por precio
-    if (filters.priceLevel && filters.priceLevel.length > 0) {
-      result = result.filter((restaurant) =>
-        filters.priceLevel?.includes(restaurant.price_level || "")
-      );
-    }
-
-    // Filtro por ubicación
-    if (filters.neighborhood && filters.neighborhood.length > 0) {
-      result = result.filter((restaurant) =>
-        filters.neighborhood?.some(neighborhood =>
-          restaurant.neighborhood?.toLowerCase().includes(neighborhood.toLowerCase()) ||
-          restaurant.formatted_address?.toLowerCase().includes(neighborhood.toLowerCase())
-        )
-      );
-    }
-
-    // Filtro por calificación
-    if (filters.minRating) {
-      result = result.filter((restaurant) =>
-        restaurant.rating && restaurant.rating >= filters.minRating!
-      );
-    }
-
-    // Filtro por disponibilidad
-    if (filters.openNow) {
-      result = result.filter((restaurant) => restaurant.open_now === true);
-    }
-
-    // Priorizar restaurantes premium (alta calificación y muchas reseñas)
-    result = result.sort((a, b) => {
-      const scoreA = (a.rating || 0) * Math.log((a.user_ratings_total || 1) + 1);
-      const scoreB = (b.rating || 0) * Math.log((b.user_ratings_total || 1) + 1);
-      return scoreB - scoreA;
-    });
-
-    return result;
-  }, [restaurants, mapSearchQuery, filters]);
+  const filteredRestaurants = restaurants.filter((restaurant) =>
+    restaurant.name.toLowerCase().includes(mapSearchQuery.toLowerCase()) ||
+    (restaurant.cuisine && restaurant.cuisine.toLowerCase().includes(mapSearchQuery.toLowerCase()))
+  );
 
   const handleLocate = () => {
     if (navigator.geolocation && map) {
@@ -168,32 +100,22 @@ export default function Mapa() {
       <div className="w-96 border-r border-border flex flex-col">
         <div className="p-4 border-b border-border space-y-3">
           <div className="flex gap-2">
-            <Select 
-              value={filters.cuisine?.[0] || ""} 
-              onValueChange={(value) => setFilters(prev => ({...prev, cuisine: value ? [value] : []}))}
-            >
+            <Select>
               <SelectTrigger className="flex-1">
                 <SelectValue placeholder="Tipo" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos</SelectItem>
-                <SelectItem value="colombian">Colombiana</SelectItem>
-                <SelectItem value="japanese">Japonesa</SelectItem>
-                <SelectItem value="italian">Italiana</SelectItem>
-                <SelectItem value="mexican">Mexicana</SelectItem>
-                <SelectItem value="american">Americana</SelectItem>
-                <SelectItem value="asian">Asiática</SelectItem>
+                <SelectItem value="colombiana">Colombiana</SelectItem>
+                <SelectItem value="japonesa">Japonesa</SelectItem>
+                <SelectItem value="italiana">Italiana</SelectItem>
+                <SelectItem value="mexicana">Mexicana</SelectItem>
               </SelectContent>
             </Select>
-            <Select 
-              value={filters.priceLevel?.[0] || ""} 
-              onValueChange={(value) => setFilters(prev => ({...prev, priceLevel: value ? [value] : []}))}
-            >
+            <Select>
               <SelectTrigger className="flex-1">
                 <SelectValue placeholder="Precio" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos</SelectItem>
                 <SelectItem value="$">$</SelectItem>
                 <SelectItem value="$$">$$</SelectItem>
                 <SelectItem value="$$$">$$$</SelectItem>
@@ -202,64 +124,38 @@ export default function Mapa() {
             </Select>
           </div>
           <div className="flex gap-2">
-            <Select 
-              value={filters.neighborhood?.[0] || ""} 
-              onValueChange={(value) => setFilters(prev => ({...prev, neighborhood: value ? [value] : []}))}
-            >
+            <Select>
               <SelectTrigger className="flex-1">
                 <SelectValue placeholder="Ubicación" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todas</SelectItem>
                 <SelectItem value="chapinero">Chapinero</SelectItem>
                 <SelectItem value="usaquen">Usaquén</SelectItem>
-                <SelectItem value="zona t">Zona T</SelectItem>
-                <SelectItem value="parque 93">Parque 93</SelectItem>
-                <SelectItem value="zona g">Zona G</SelectItem>
-                <SelectItem value="zona rosa">Zona Rosa</SelectItem>
+                <SelectItem value="zona-t">Zona T</SelectItem>
               </SelectContent>
             </Select>
-            <Select 
-              value={filters.minRating?.toString() || ""} 
-              onValueChange={(value) => setFilters(prev => ({...prev, minRating: value ? parseFloat(value) : undefined}))}
-            >
+            <Select>
               <SelectTrigger className="flex-1">
                 <SelectValue placeholder="Calificación" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todas</SelectItem>
-                <SelectItem value="4.5">4.5+ estrellas</SelectItem>
                 <SelectItem value="4">4+ estrellas</SelectItem>
-                <SelectItem value="3.5">3.5+ estrellas</SelectItem>
                 <SelectItem value="3">3+ estrellas</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div className="flex gap-2">
-            <Select 
-              value={filters.openNow ? "true" : ""} 
-              onValueChange={(value) => setFilters(prev => ({...prev, openNow: value === "true" ? true : undefined}))}
-            >
+            <Select>
               <SelectTrigger className="flex-1">
                 <SelectValue placeholder="Disponibilidad" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos</SelectItem>
-                <SelectItem value="true">Abierto ahora</SelectItem>
+                <SelectItem value="ahora">Disponible ahora</SelectItem>
+                <SelectItem value="hoy">Disponible hoy</SelectItem>
               </SelectContent>
             </Select>
-            <Button 
-              variant="outline" 
-              size="icon"
-              onClick={() => setFilters({
-                cuisine: [],
-                priceLevel: [],
-                neighborhood: [],
-                minRating: undefined,
-                openNow: undefined,
-              })}
-            >
-              <X className="h-4 w-4" />
+            <Button variant="outline" size="icon">
+              <SlidersHorizontal className="h-4 w-4" />
             </Button>
           </div>
         </div>
@@ -323,45 +219,6 @@ export default function Mapa() {
             />
           </div>
         </div>
-
-        {/* Carta informativa flotante */}
-        {showInfoCard && (
-          <Card className="absolute top-20 left-4 z-10 w-80 shadow-elegant bg-card/95 backdrop-blur-sm border-border/50">
-            <CardHeader className="pb-3">
-              <div className="flex items-start justify-between">
-                <MapPin className="h-5 w-5 text-primary mt-1" />
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-6 w-6 -mt-1"
-                  onClick={() => setShowInfoCard(false)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-              <CardTitle className="text-lg">Explora restaurantes en el mapa</CardTitle>
-              <CardDescription>
-                Descubre los mejores lugares de Bogotá
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pb-4">
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li className="flex items-start gap-2">
-                  <span className="text-primary mt-0.5">•</span>
-                  <span>Usa los filtros para encontrar restaurantes por tipo, precio, ubicación y calificación</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-primary mt-0.5">•</span>
-                  <span>Haz clic en un restaurante para ver más detalles</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-primary mt-0.5">•</span>
-                  <span>Los restaurantes premium se muestran primero según calificación y popularidad</span>
-                </li>
-              </ul>
-            </CardContent>
-          </Card>
-        )}
 
         <LoadScript 
           googleMapsApiKey={GOOGLE_MAPS_API_KEY}
