@@ -263,19 +263,21 @@ export default function Mapa() {
               </SelectContent>
             </Select>
             <Button 
-              variant="outline" 
-              size="icon" 
-              className="relative"
+              variant="outline"
+              className="flex-1"
               onClick={() => {
                 setFilters({ cuisine: [], priceLevel: [], neighborhood: [], minRating: undefined, openNow: undefined });
                 setSelectedLocalidadId(null);
+                setMapSearchQuery("");
               }}
+              disabled={activeFiltersCount === 0}
             >
-              <SlidersHorizontal className="h-4 w-4" />
+              <SlidersHorizontal className="h-4 w-4 mr-2" />
+              Limpiar filtros
               {activeFiltersCount > 0 && (
                 <Badge 
                   variant="destructive" 
-                  className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs"
+                  className="ml-2 h-5 w-5 flex items-center justify-center p-0 text-xs"
                 >
                   {activeFiltersCount}
                 </Badge>
@@ -292,9 +294,10 @@ export default function Mapa() {
               <div className="text-center text-muted-foreground py-8">No se encontraron restaurantes</div>
             ) : (
               filteredRestaurants.map((restaurant) => {
+                // Priorizar fotos del caché, luego Google Places, luego imagen por defecto
                 const photoUrl = restaurant.photos && restaurant.photos.length > 0
                   ? getPhotoUrl(restaurant.photos[0], 400)
-                  : 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400';
+                  : `https://source.unsplash.com/400x300/?restaurant,food,${encodeURIComponent(restaurant.cuisine || 'dining')}`;
                 
                 return (
                   <div
@@ -382,10 +385,13 @@ export default function Mapa() {
                   <img 
                     src={selectedRestaurant.photos && selectedRestaurant.photos.length > 0
                       ? getPhotoUrl(selectedRestaurant.photos[0], 400)
-                      : 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400'
+                      : `https://source.unsplash.com/400x300/?restaurant,food,${encodeURIComponent(selectedRestaurant.cuisine || 'dining')}`
                     } 
                     alt={selectedRestaurant.name} 
-                    className="w-full h-24 object-cover rounded mb-2" 
+                    className="w-full h-24 object-cover rounded mb-2"
+                    onError={(e) => {
+                      e.currentTarget.src = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400';
+                    }}
                   />
                   <h3 className="font-semibold text-sm mb-1">{selectedRestaurant.name}</h3>
                   <p className="text-xs text-muted-foreground mb-2">
