@@ -78,7 +78,9 @@ export const useRestaurants = (limit?: number, filters?: RestaurantFilters) => {
     queryFn: async () => {
       let query = supabase
         .from("restaurant_cache")
-        .select("*");
+        .select("*")
+        // CRÍTICO: Filtrar solo restaurantes de Bogotá, Colombia
+        .or('formatted_address.ilike.%Bogotá%,formatted_address.ilike.%Colombia%');
 
       // Aplicar filtros
       if (filters?.cuisine && filters.cuisine.length > 0) {
@@ -128,14 +130,15 @@ export const useRestaurants = (limit?: number, filters?: RestaurantFilters) => {
   });
 };
 
-// Hook para paginación infinita
 export const useInfiniteRestaurants = (filters?: RestaurantFilters, pageSize = 12) => {
   return useInfiniteQuery({
     queryKey: ["restaurants-infinite", filters, pageSize],
     queryFn: async ({ pageParam = 0 }) => {
       let query = supabase
         .from("restaurant_cache")
-        .select("*", { count: 'exact' });
+        .select("*", { count: 'exact' })
+        // CRÍTICO: Filtrar solo restaurantes de Bogotá, Colombia
+        .or('formatted_address.ilike.%Bogotá%,formatted_address.ilike.%Colombia%');
 
       // Aplicar filtros
       if (filters?.cuisine && filters.cuisine.length > 0) {

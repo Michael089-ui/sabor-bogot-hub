@@ -62,10 +62,10 @@ serve(async (req) => {
 
     console.log('📡 Cache MISS - Calling Google Places API (New)');
 
-    // Build the text query
+    // Build the text query - SIEMPRE incluir "Bogotá Colombia" para asegurar resultados locales
     const textQuery = neighborhood 
-      ? `${query} restaurant in ${neighborhood} Bogotá`
-      : `${query} restaurant in Bogotá`;
+      ? `${query} restaurant in ${neighborhood}, Bogotá, Colombia`
+      : `${query} restaurant in Bogotá, Colombia`;
 
     // Field mask for cost optimization
     const fieldMask = [
@@ -96,7 +96,17 @@ serve(async (req) => {
         body: JSON.stringify({
           textQuery,
           languageCode: 'es',
-          maxResultCount: 5
+          regionCode: 'CO', // Código de Colombia para priorizar resultados locales
+          locationBias: {
+            circle: {
+              center: {
+                latitude: 4.7110, // Centro de Bogotá
+                longitude: -74.0721
+              },
+              radius: 25000.0 // 25km de radio para cubrir toda Bogotá
+            }
+          },
+          maxResultCount: 10 // Incrementar resultados para obtener más opciones
         })
       }
     );
