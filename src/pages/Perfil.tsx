@@ -708,7 +708,20 @@ const Perfil = () => {
                   <FormItem>
                     <FormLabel>Teléfono</FormLabel>
                     <FormControl>
-                      <Input placeholder="+57 123 456 7890" {...field} />
+                      <Input 
+                        placeholder="3001234567" 
+                        {...field}
+                        onKeyDown={(e) => {
+                          const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight'];
+                          if (allowedKeys.includes(e.key) || 
+                              (e.key >= '0' && e.key <= '9') ||
+                              (e.ctrlKey && ['a', 'c', 'v', 'x'].includes(e.key))) {
+                            return;
+                          }
+                          e.preventDefault();
+                        }}
+                        maxLength={10}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
