@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Restaurant {
@@ -82,6 +82,53 @@ export const useRestaurants = (limit?: number, filters?: RestaurantFilters) => {
       if (error) throw error;
       return data as Restaurant[];
     },
+  });
+};
+
+// Hook para paginación infinita
+export const useInfiniteRestaurants = (filters?: RestaurantFilters, pageSize = 12) => {
+  return useInfiniteQuery({
+    queryKey: ["restaurants-infinite", filters, pageSize],
+    queryFn: async ({ pageParam = 0 }) => {
+      let query = supabase
+        .from("restaurant_cache")
+        .select("*", { count: 'exact' })
+        .order("rating", { ascending: false, nullsFirst: false })
+        .range(pageParam, pageParam + pageSize - 1);
+
+      // Aplicar filtros
+      if (filters?.cuisine && filters.cuisine.length > 0) {
+        query = query.or(filters.cuisine.map(c => `cuisine.ilike.%${c}%`).join(','));
+      }
+
+      if (filters?.priceLevel && filters.priceLevel.length > 0) {
+        query = query.in("price_level", filters.priceLevel);
+      }
+
+      if (filters?.neighborhood && filters.neighborhood.length > 0) {
+        query = query.in("neighborhood", filters.neighborhood);
+      }
+
+      if (filters?.minRating) {
+        query = query.gte("rating", filters.minRating);
+      }
+
+      if (filters?.openNow === true) {
+        query = query.eq("open_now", true);
+      }
+
+      const { data, error, count } = await query;
+
+      if (error) throw error;
+      
+      return {
+        data: data as Restaurant[],
+        nextCursor: pageParam + pageSize < (count || 0) ? pageParam + pageSize : undefined,
+        totalCount: count || 0
+      };
+    },
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
+    initialPageParam: 0,
   });
 };
 
