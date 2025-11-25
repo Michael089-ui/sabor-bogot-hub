@@ -38,6 +38,9 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { ProfileStats } from "@/components/ProfileStats";
+import { ProfileCompleteness } from "@/components/ProfileCompleteness";
+import { PersonalizedRecommendations } from "@/components/PersonalizedRecommendations";
 
 const profileSchema = z.object({
   nombre: z.string().min(1, "El nombre es requerido").max(100),
@@ -326,7 +329,7 @@ const Perfil = () => {
 
   return (
     <div className="min-h-full bg-background">
-      <div className="max-w-3xl mx-auto px-6 py-12">
+      <div className="max-w-6xl mx-auto px-6 py-12">
         {/* Avatar y Datos del Usuario */}
         <div className="flex flex-col items-center mb-8">
           <Avatar className="h-32 w-32 mb-4 border-4 border-primary/10">
@@ -342,6 +345,35 @@ const Perfil = () => {
           <p className="text-primary font-medium">
             {userData.email || user?.email}
           </p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          {/* Columna izquierda - Completitud */}
+          <div className="lg:col-span-1">
+            <ProfileCompleteness 
+              userData={userData}
+              onEditProfile={handleEditProfile}
+            />
+          </div>
+
+          {/* Columna derecha - Estadísticas */}
+          <div className="lg:col-span-2">
+            <ProfileStats
+              busquedasCount={busquedas.length}
+              resenasCount={resenas.length}
+              favoritosCount={favoritos.length}
+              tipoComidaPreferences={tipoComidaArray}
+            />
+          </div>
+        </div>
+
+        {/* Recomendaciones Personalizadas */}
+        <div className="mb-8">
+          <PersonalizedRecommendations
+            tipoComida={tipoComidaArray}
+            presupuesto={userData.presupuesto}
+            neighborhood={userData.barrio?.nombre}
+          />
         </div>
 
         {/* Preferencias Gastronómicas */}
