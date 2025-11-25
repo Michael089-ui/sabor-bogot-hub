@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { useRestaurants, getPhotoUrl } from "@/hooks/useRestaurants";
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
@@ -37,70 +38,19 @@ const userLocationIcon = {
   `)}`
 };
 
-const mockRestaurantes = [
-  {
-    id: 1,
-    nombre: "La Cocina de Sofía",
-    tipo: "Comida Colombiana",
-    calificacion: 4.5,
-    precio: "$$$",
-    imagen: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400",
-    lat: 4.6097,
-    lng: -74.0817,
-  },
-  {
-    id: 2,
-    nombre: "Sushi Dreams",
-    tipo: "Japonesa",
-    calificacion: 4.8,
-    precio: "$$$$",
-    imagen: "https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=400",
-    lat: 4.6534,
-    lng: -74.0836,
-  },
-  {
-    id: 3,
-    nombre: "Pizza Roma",
-    tipo: "Italiana",
-    calificacion: 4.3,
-    precio: "$$",
-    imagen: "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400",
-    lat: 4.6762,
-    lng: -74.0481,
-  },
-  {
-    id: 4,
-    nombre: "Tacos El Güero",
-    tipo: "Mexicana",
-    calificacion: 4.6,
-    precio: "$$",
-    imagen: "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=400",
-    lat: 4.6398,
-    lng: -74.0892,
-  },
-  {
-    id: 5,
-    nombre: "Le Petit Bistro",
-    tipo: "Francesa",
-    calificacion: 4.7,
-    precio: "$$$$",
-    imagen: "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400",
-    lat: 4.6482,
-    lng: -74.0632,
-  },
-];
 
 export default function Mapa() {
   const navigate = useNavigate();
+  const { data: restaurants = [], isLoading } = useRestaurants();
   const [mapSearchQuery, setMapSearchQuery] = useState("");
-  const [selectedRestaurant, setSelectedRestaurant] = useState<typeof mockRestaurantes[0] | null>(null);
+  const [selectedRestaurant, setSelectedRestaurant] = useState<typeof restaurants[0] | null>(null);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  const filteredRestaurants = mockRestaurantes.filter((restaurant) =>
-    restaurant.nombre.toLowerCase().includes(mapSearchQuery.toLowerCase()) ||
-    restaurant.tipo.toLowerCase().includes(mapSearchQuery.toLowerCase())
+  const filteredRestaurants = restaurants.filter((restaurant) =>
+    restaurant.name.toLowerCase().includes(mapSearchQuery.toLowerCase()) ||
+    (restaurant.cuisine && restaurant.cuisine.toLowerCase().includes(mapSearchQuery.toLowerCase()))
   );
 
   const handleLocate = () => {
@@ -132,10 +82,10 @@ export default function Mapa() {
     }
   };
 
-  const handleRestaurantClick = (restaurant: typeof mockRestaurantes[0]) => {
+  const handleRestaurantClick = (restaurant: typeof restaurants[0]) => {
     setSelectedRestaurant(restaurant);
-    if (map) {
-      map.panTo({ lat: restaurant.lat, lng: restaurant.lng });
+    if (map && restaurant.location?.lat && restaurant.location?.lng) {
+      map.panTo({ lat: restaurant.location.lat, lng: restaurant.location.lng });
       map.setZoom(16);
     }
   };
@@ -212,27 +162,41 @@ export default function Mapa() {
 
         <ScrollArea className="flex-1">
           <div className="p-4 space-y-3">
-            {filteredRestaurants.map((restaurant) => (
-              <div
-                key={restaurant.id}
-                className={`bg-card rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all cursor-pointer border ${
-                  selectedRestaurant?.id === restaurant.id ? "border-primary ring-2 ring-primary/20" : "border-border"
-                }`}
-                onClick={() => handleRestaurantClick(restaurant)}
-              >
-                <img src={restaurant.imagen} alt={restaurant.nombre} className="w-full h-32 object-cover" />
-                <div className="p-3">
-                  <h3 className="font-semibold text-foreground mb-1">{restaurant.nombre}</h3>
-                  <div className="flex items-center justify-between text-sm">
-                    <Badge variant="secondary" className="text-xs">{restaurant.tipo}</Badge>
-                    <div className="flex items-center gap-2">
-                      <span className="text-yellow-500">⭐ {restaurant.calificacion}</span>
-                      <span className="text-muted-foreground">{restaurant.precio}</span>
+            {isLoading ? (
+              <div className="text-center text-muted-foreground py-8">Cargando restaurantes...</div>
+            ) : filteredRestaurants.length === 0 ? (
+              <div className="text-center text-muted-foreground py-8">No se encontraron restaurantes</div>
+            ) : (
+              filteredRestaurants.map((restaurant) => {
+                const photoUrl = restaurant.photos && restaurant.photos.length > 0
+                  ? getPhotoUrl(restaurant.photos[0], 400)
+                  : 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400';
+                
+                return (
+                  <div
+                    key={restaurant.id}
+                    className={`bg-card rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all cursor-pointer border ${
+                      selectedRestaurant?.id === restaurant.id ? "border-primary ring-2 ring-primary/20" : "border-border"
+                    }`}
+                    onClick={() => handleRestaurantClick(restaurant)}
+                  >
+                    <img src={photoUrl} alt={restaurant.name} className="w-full h-32 object-cover" />
+                    <div className="p-3">
+                      <h3 className="font-semibold text-foreground mb-1">{restaurant.name}</h3>
+                      <div className="flex items-center justify-between text-sm">
+                        <Badge variant="secondary" className="text-xs">
+                          {restaurant.cuisine || restaurant.types?.[0]?.replace(/_/g, " ") || "Restaurante"}
+                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <span className="text-yellow-500">⭐ {restaurant.rating?.toFixed(1) || 'N/A'}</span>
+                          <span className="text-muted-foreground">{restaurant.price_level || '$$'}</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            ))}
+                );
+              })
+            )}
           </div>
         </ScrollArea>
 
@@ -270,29 +234,40 @@ export default function Mapa() {
               zoomControl: false,
             }}
           >
-            {isLoaded && filteredRestaurants.map((restaurant) => (
-              <Marker
-                key={restaurant.id}
-                position={{ lat: restaurant.lat, lng: restaurant.lng }}
-                onClick={() => setSelectedRestaurant(restaurant)}
-                icon={restaurantIcon}
-              />
-            ))}
+            {isLoaded && filteredRestaurants
+              .filter(r => r.location?.lat && r.location?.lng)
+              .map((restaurant) => (
+                <Marker
+                  key={restaurant.id}
+                  position={{ lat: restaurant.location.lat, lng: restaurant.location.lng }}
+                  onClick={() => setSelectedRestaurant(restaurant)}
+                  icon={restaurantIcon}
+                />
+              ))}
 
-            {isLoaded && selectedRestaurant && (
+            {isLoaded && selectedRestaurant && selectedRestaurant.location?.lat && selectedRestaurant.location?.lng && (
               <InfoWindow
-                position={{ lat: selectedRestaurant.lat, lng: selectedRestaurant.lng }}
+                position={{ lat: selectedRestaurant.location.lat, lng: selectedRestaurant.location.lng }}
                 onCloseClick={() => setSelectedRestaurant(null)}
               >
                 <div className="w-48">
-                  <img src={selectedRestaurant.imagen} alt={selectedRestaurant.nombre} className="w-full h-24 object-cover rounded mb-2" />
-                  <h3 className="font-semibold text-sm mb-1">{selectedRestaurant.nombre}</h3>
-                  <p className="text-xs text-muted-foreground mb-2">{selectedRestaurant.tipo}</p>
+                  <img 
+                    src={selectedRestaurant.photos && selectedRestaurant.photos.length > 0
+                      ? getPhotoUrl(selectedRestaurant.photos[0], 400)
+                      : 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400'
+                    } 
+                    alt={selectedRestaurant.name} 
+                    className="w-full h-24 object-cover rounded mb-2" 
+                  />
+                  <h3 className="font-semibold text-sm mb-1">{selectedRestaurant.name}</h3>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    {selectedRestaurant.cuisine || selectedRestaurant.types?.[0]?.replace(/_/g, " ") || "Restaurante"}
+                  </p>
                   <div className="flex items-center justify-between text-xs mb-2">
-                    <span className="text-yellow-500">⭐ {selectedRestaurant.calificacion}</span>
-                    <span className="text-muted-foreground">{selectedRestaurant.precio}</span>
+                    <span className="text-yellow-500">⭐ {selectedRestaurant.rating?.toFixed(1) || 'N/A'}</span>
+                    <span className="text-muted-foreground">{selectedRestaurant.price_level || '$$'}</span>
                   </div>
-                  <Button size="sm" className="w-full" onClick={() => navigate("/restaurante-detalle")}>
+                  <Button size="sm" className="w-full" onClick={() => navigate(`/restaurantes/${selectedRestaurant.place_id}`)}>
                     Ver detalles
                   </Button>
                 </div>
