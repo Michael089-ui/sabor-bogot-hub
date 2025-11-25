@@ -75,6 +75,93 @@ const userLocationIcon = {
   `)}`
 };
 
+// Mapeo de barrios oficiales a zonas comerciales en la BD
+const neighborhoodMapping: { [key: string]: string[] } = {
+  // Chapinero
+  'Chicó Lago': ['Parque 93', 'La Cabrera', 'Rincón del Chico'],
+  'Chicó Norte': ['Parque 93', 'La Cabrera', 'Rincón del Chico', 'Quinta Camacho'],
+  'Chicó Norte II': ['Parque 93', 'Quinta Camacho'],
+  'El Retiro': ['Parque 93', 'Rincón del Chico'],
+  'Chapinero': ['Chapinero', 'Chapinero Central'],
+  'Chapinero Norte': ['Chapinero', 'Chapinero Central', 'Quinta Camacho'],
+  'Chapinero Central': ['Chapinero Central', 'Chapinero'],
+  'Pardo Rubio': ['Chapinero'],
+  
+  // Usaquén
+  'Usaquén': ['Usaquén'],
+  'Santa Bárbara': ['Usaquén', 'Santa Bárbara'],
+  'Country Club': ['Usaquén'],
+  'Los Cedros': ['Usaquén'],
+  'San Patricio': ['Usaquén'],
+  
+  // La Candelaria
+  'La Candelaria': ['La Candelaria', 'La Concordia', 'Centro'],
+  
+  // Teusaquillo
+  'Teusaquillo': ['Teusaquillo'],
+  'Galerías': ['Teusaquillo'],
+  'Parque Simón Bolívar': ['Teusaquillo'],
+  
+  // Suba
+  'Suba': ['Suba'],
+  'Suba Centro': ['Suba'],
+  
+  // Engativá
+  'Engativá': ['Engativá'],
+  'Álamos': ['Engativá'],
+  
+  // Fontibón
+  'Fontibón': ['Fontibón'],
+  'Modelia': ['Fontibón'],
+  'Aeropuerto El Dorado': ['Fontibón'],
+  
+  // Kennedy
+  'Kennedy': ['Kennedy'],
+  'Kennedy Central': ['Kennedy'],
+  
+  // Puente Aranda
+  'Puente Aranda': ['Puente Aranda'],
+  
+  // Antonio Nariño
+  'Antonio Nariño': ['Antonio Nariño'],
+  
+  // Rafael Uribe Uribe
+  'Rafael Uribe Uribe': ['Rafael Uribe Uribe'],
+  
+  // Tunjuelito
+  'Tunjuelito': ['Tunjuelito'],
+  
+  // Bosa
+  'Bosa': ['Bosa'],
+  
+  // Ciudad Bolívar
+  'Ciudad Bolívar': ['Ciudad Bolívar'],
+  
+  // Usme
+  'Usme': ['Usme'],
+  
+  // San Cristóbal
+  'San Cristóbal': ['San Cristóbal'],
+  
+  // Santa Fe
+  'Santa Fe': ['Santa Fe', 'La Candelaria'],
+  
+  // Los Mártires
+  'Los Mártires': ['Los Mártires', 'Centro'],
+  
+  // Barrios Unidos
+  'Barrios Unidos': ['Barrios Unidos'],
+  
+  // Rosales
+  'Rosales': ['Rosales', 'Zona G'],
+  
+  // Zona G
+  'Zona G': ['Zona G', 'Rosales'],
+  
+  // Zona T
+  'Zona T': ['Zona T', 'Zona Rosa'],
+  'Zona Rosa': ['Zona Rosa', 'Zona T'],
+};
 
 export default function Mapa() {
   const navigate = useNavigate();
@@ -220,7 +307,9 @@ export default function Mapa() {
               onValueChange={(value) => {
                 const barrio = barrios.find(b => b.id_barrio === value);
                 if (barrio) {
-                  setFilters(prev => ({ ...prev, neighborhood: [barrio.nombre] }));
+                  // Usar el mapeo para convertir barrio oficial a zonas comerciales
+                  const mappedNeighborhoods = neighborhoodMapping[barrio.nombre] || [barrio.nombre];
+                  setFilters(prev => ({ ...prev, neighborhood: mappedNeighborhoods }));
                 }
               }}
               disabled={!selectedLocalidadId || loadingBarrios}
