@@ -69,7 +69,9 @@ const Perfil = () => {
   const [userData, setUserData] = useState<any>(null);
   const [busquedas, setBusquedas] = useState<any[]>([]);
   const [resenas, setResenas] = useState<any[]>([]);
+  const [resenasConNombres, setResenasConNombres] = useState<any[]>([]);
   const [favoritos, setFavoritos] = useState<any[]>([]);
+  const [favoritosConNombres, setFavoritosConNombres] = useState<any[]>([]);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedLocalidadId, setSelectedLocalidadId] = useState<string | null>(null);
@@ -181,6 +183,25 @@ const Perfil = () => {
 
         if (!reviewsError && reviews) {
           setResenas(reviews);
+          
+          // Cargar nombres de restaurantes para las reseñas
+          const placeIds = reviews.map(r => r.place_id);
+          if (placeIds.length > 0) {
+            const { data: restaurants } = await supabase
+              .from('restaurant_cache')
+              .select('place_id, name, formatted_address')
+              .in('place_id', placeIds);
+            
+            const reviewsWithNames = reviews.map(review => {
+              const restaurant = restaurants?.find(r => r.place_id === review.place_id);
+              return {
+                ...review,
+                restaurant_name: restaurant?.name || 'Restaurante desconocido',
+                restaurant_address: restaurant?.formatted_address
+              };
+            });
+            setResenasConNombres(reviewsWithNames);
+          }
         }
 
         // Obtener favoritos
@@ -193,6 +214,25 @@ const Perfil = () => {
 
         if (!favsError && favs) {
           setFavoritos(favs);
+          
+          // Cargar nombres de restaurantes para favoritos
+          const favPlaceIds = favs.map(f => f.place_id);
+          if (favPlaceIds.length > 0) {
+            const { data: restaurants } = await supabase
+              .from('restaurant_cache')
+              .select('place_id, name, formatted_address')
+              .in('place_id', favPlaceIds);
+            
+            const favsWithNames = favs.map(fav => {
+              const restaurant = restaurants?.find(r => r.place_id === fav.place_id);
+              return {
+                ...fav,
+                restaurant_name: restaurant?.name || 'Restaurante desconocido',
+                restaurant_address: restaurant?.formatted_address
+              };
+            });
+            setFavoritosConNombres(favsWithNames);
+          }
         }
 
         /* console.log('🎯 Perfil - Datos cargados exitosamente'); */
@@ -476,22 +516,40 @@ const Perfil = () => {
 
                 <TabsContent value="resenas" className="mt-6">
                   <div className="space-y-3">
-                    {resenas.length > 0 ? (
-                      resenas.map((resena) => (
+                    {resenasConNombres.length > 0 ? (
+                      resenasConNombres.map((resena) => (
                         <div
                           key={resena.id_resena}
-                          className="py-3 border-b border-border last:border-0 text-foreground hover:text-primary cursor-pointer transition-colors"
-                          onClick={() => navigate('/resenas')}
+                          className="py-3 px-4 border border-border rounded-lg hover:border-primary/50 cursor-pointer transition-all hover:shadow-sm"
+                          onClick={() => navigate(`/restaurante/${resena.place_id}`)}
                         >
-                          <div className="flex items-center justify-between">
-                            <div className="font-medium">{resena.place_id}</div>
-                            <div className="text-sm">⭐ {resena.calificacion}/5</div>
-                          </div>
-                          {resena.comentario && (
-                            <div className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                              {resena.comentario}
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex-1 min-w-0">
+                              <div className="font-semibold text-foreground truncate">
+                                {resena.restaurant_name}
+                              </div>
+                              {resena.restaurant_address && (
+                                <div className="text-xs text-muted-foreground mt-0.5 truncate">
+                                  {resena.restaurant_address}
+                                </div>
+                              )}
+                              {resena.comentario && (
+                                <div className="text-sm text-muted-foreground mt-2 line-clamp-2">
+                                  "{resena.comentario}"
+                                </div>
+                              )}
+                              <div className="text-xs text-muted-foreground mt-2">
+                                {new Date(resena.fecha_resena).toLocaleDateString('es-ES', { 
+                                  year: 'numeric', 
+                                  month: 'long', 
+                                  day: 'numeric' 
+                                })}
+                              </div>
                             </div>
-                          )}
+                            <div className="flex items-center gap-1 text-sm font-medium bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 px-2 py-1 rounded flex-shrink-0">
+                              ⭐ {resena.calificacion}
+                            </div>
+                          </div>
                         </div>
                       ))
                     ) : (
@@ -504,16 +562,27 @@ const Perfil = () => {
 
                 <TabsContent value="favoritos" className="mt-6">
                   <div className="space-y-3">
-                    {favoritos.length > 0 ? (
-                      favoritos.map((favorito) => (
+                    {favoritosConNombres.length > 0 ? (
+                      favoritosConNombres.map((favorito) => (
                         <div
                           key={favorito.id_favorito}
-                          className="py-3 border-b border-border last:border-0 text-foreground hover:text-primary cursor-pointer transition-colors"
-                          onClick={() => navigate('/favoritos')}
+                          className="py-3 px-4 border border-border rounded-lg hover:border-primary/50 cursor-pointer transition-all hover:shadow-sm"
+                          onClick={() => navigate(`/restaurante/${favorito.place_id}`)}
                         >
-                          <div className="font-medium">{favorito.place_id}</div>
-                          <div className="text-xs text-muted-foreground mt-1">
-                            {new Date(favorito.fecha_agregado).toLocaleDateString('es-ES')}
+                          <div className="font-semibold text-foreground truncate">
+                            {favorito.restaurant_name}
+                          </div>
+                          {favorito.restaurant_address && (
+                            <div className="text-xs text-muted-foreground mt-0.5 truncate">
+                              {favorito.restaurant_address}
+                            </div>
+                          )}
+                          <div className="text-xs text-muted-foreground mt-2">
+                            Agregado el {new Date(favorito.fecha_agregado).toLocaleDateString('es-ES', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric'
+                            })}
                           </div>
                         </div>
                       ))
