@@ -88,40 +88,15 @@ const Registro = () => {
 
   // Función para permitir solo números en el teléfono
   const handlePhoneInput = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    // Permitir: backspace, delete, tab, escape, enter, puntos, guiones, paréntesis y números
-    const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', '.', '-', '(', ')', '+'];
+    const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight'];
     
     if (allowedKeys.includes(e.key) || 
-        // Permitir: números
         (e.key >= '0' && e.key <= '9') ||
-        // Permitir: Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
         (e.ctrlKey && ['a', 'c', 'v', 'x'].includes(e.key))) {
       return;
     }
     
-    // Prevenir cualquier otra tecla
     e.preventDefault();
-  };
-
-  // Función para formatear el teléfono mientras se escribe
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/\D/g, ''); // Remover todo excepto números
-    const formattedValue = formatPhoneNumber(value);
-    e.target.value = formattedValue;
-  };
-
-  // Función para formatear el número de teléfono
-  const formatPhoneNumber = (value: string) => {
-    if (!value) return value;
-    
-    const phoneNumber = value.replace(/\D/g, '');
-    const phoneNumberLength = phoneNumber.length;
-    
-    if (phoneNumberLength < 4) return phoneNumber;
-    if (phoneNumberLength < 7) {
-      return `+${phoneNumber.slice(0, 3)} ${phoneNumber.slice(3)}`;
-    }
-    return `+${phoneNumber.slice(0, 3)} ${phoneNumber.slice(3, 6)} ${phoneNumber.slice(6, 10)}`;
   };
 
   const onSubmit = async (data: RegistroFormData) => {
@@ -258,17 +233,17 @@ const Registro = () => {
                 <Input
                   id="telefono"
                   type="tel"
-                  placeholder="+57 123 456 7890"
+                  placeholder="3001234567"
                   {...register("telefono")}
                   onKeyDown={handlePhoneInput}
-                  onChange={handlePhoneChange}
+                  maxLength={10}
                   required
                 />
                 {errors.telefono && (
                   <p className="text-sm text-destructive">{errors.telefono.message}</p>
                 )}
                 <p className="text-xs text-muted-foreground">
-                  Formato: +57 123 456 7890
+                  Ingresa tu número de celular (10 dígitos)
                 </p>
               </div>
 

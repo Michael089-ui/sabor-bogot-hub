@@ -31,9 +31,8 @@ export const registroSchema = z.object({
   telefono: z
     .string()
     .trim()
-    .regex(/^[0-9+\-\s()]+$/, { message: "Número de teléfono inválido" })
-    .min(7, { message: "El teléfono debe tener al menos 7 caracteres" })
-    .max(20, { message: "El teléfono debe tener menos de 20 caracteres" }),
+    .regex(/^[0-9]{10}$/, { message: "Ingresa un número de teléfono válido de 10 dígitos" })
+    .length(10, { message: "El teléfono debe tener exactamente 10 dígitos" }),
   password: z
     .string()
     .min(6, { message: "La contraseña debe tener al menos 6 caracteres" })
