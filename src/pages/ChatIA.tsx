@@ -613,10 +613,12 @@ const ChatIA = () => {
 
             try {
               const parsed = JSON.parse(data);
+              console.log('📥 Parsed SSE data:', parsed);
               
               // Check if this is metadata
               if (parsed.type === 'metadata' && parsed.restaurants) {
                 console.log('📦 Received metadata with', parsed.restaurants.length, 'restaurants');
+                console.log('📦 Full metadata:', parsed.restaurants);
                 
                 // Convert metadata to Restaurant objects
                 receivedRestaurants = parsed.restaurants.map((place: any) => {
@@ -651,6 +653,8 @@ const ChatIA = () => {
                   };
                 });
                 
+                console.log('✅ Converted', receivedRestaurants.length, 'restaurants:', receivedRestaurants.map(r => r.name));
+                
                 // Set restaurants immediately
                 setRestaurants(receivedRestaurants);
                 setCurrentPage(1); // Reset to first page
@@ -673,6 +677,7 @@ const ChatIA = () => {
               }
             } catch (e) {
               console.error('Error parseando el SSE:', e);
+              console.error('Line that failed:', line);
             }
           }
         }
