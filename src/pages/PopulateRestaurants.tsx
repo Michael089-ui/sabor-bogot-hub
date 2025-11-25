@@ -13,10 +13,6 @@ export default function PopulateRestaurants() {
   const handlePopulate = async () => {
     setIsPopulating(true);
     setProgress(null);
-    
-    toast.info("Iniciando población masiva de restaurantes...", {
-      description: "Este proceso tomará 25-35 minutos. Puedes cerrar esta página."
-    });
 
     try {
       const { data, error } = await supabase.functions.invoke('populate-restaurants', {
@@ -27,18 +23,13 @@ export default function PopulateRestaurants() {
 
       setProgress(data);
       
-      if (data.success) {
-        toast.success("¡Población completada exitosamente!", {
-          description: `${data.newRestaurants} restaurantes nuevos agregados de ${data.totalProcessed} procesados.`
-        });
-      } else {
-        toast.error("Hubo errores durante la población", {
-          description: "Revisa los detalles abajo."
-        });
-      }
+      toast.success("¡Proceso iniciado en background!", {
+        description: "El proceso tomará 25-35 minutos. Puedes cerrar esta página y revisar los logs para ver el progreso.",
+        duration: 8000
+      });
     } catch (error: any) {
       console.error('Error:', error);
-      toast.error("Error al ejecutar la población", {
+      toast.error("Error al iniciar la población", {
         description: error.message || "Error desconocido"
       });
     } finally {
@@ -61,9 +52,10 @@ export default function PopulateRestaurants() {
           <strong>Información importante:</strong>
           <ul className="list-disc list-inside mt-2 space-y-1">
             <li>Este proceso poblará el catálogo con 4,000-6,000 restaurantes de Bogotá</li>
-            <li>Durará aproximadamente 25-35 minutos</li>
+            <li>Durará aproximadamente 25-35 minutos ejecutándose en background</li>
+            <li><strong>Puedes cerrar esta página</strong> - el proceso continuará en el servidor</li>
             <li>Se ejecutará automáticamente cada domingo a las 3 AM</li>
-            <li>Puedes cerrar esta página durante el proceso</li>
+            <li>Revisa los logs del Edge Function para ver el progreso en tiempo real</li>
           </ul>
         </AlertDescription>
       </Alert>
@@ -120,51 +112,55 @@ export default function PopulateRestaurants() {
             {isPopulating ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Poblando restaurantes... (Esto tomará ~30 min)
+                Iniciando proceso en background...
               </>
             ) : (
               <>
                 <Database className="mr-2 h-4 w-4" />
-                Iniciar Población Masiva
+                Iniciar Población Masiva en Background
               </>
             )}
           </Button>
 
           {progress && (
-            <Card className={progress.success ? "border-green-500" : "border-red-500"}>
+            <Card className="border-green-500">
               <CardHeader>
                 <CardTitle className="text-lg">
-                  {progress.success ? "✅ Completado" : "⚠️ Completado con Errores"}
+                  ✅ Proceso Iniciado en Background
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Total Procesados</p>
-                    <p className="text-2xl font-bold">{progress.totalProcessed}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Nuevos Agregados</p>
-                    <p className="text-2xl font-bold text-green-600">{progress.newRestaurants}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Duplicados</p>
-                    <p className="text-2xl font-bold text-yellow-600">{progress.duplicates}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Errores</p>
-                    <p className="text-2xl font-bold text-red-600">{progress.errors}</p>
-                  </div>
+              <CardContent className="space-y-4">
+                <Alert>
+                  <CheckCircle2 className="h-4 w-4" />
+                  <AlertDescription>
+                    <strong>El proceso está ejecutándose en el servidor.</strong>
+                    <ul className="list-disc list-inside mt-2 space-y-1">
+                      <li>Duración estimada: 25-35 minutos</li>
+                      <li>Puedes cerrar esta página - el proceso continuará</li>
+                      <li>Revisa los logs para ver el progreso en tiempo real</li>
+                    </ul>
+                  </AlertDescription>
+                </Alert>
+                
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Monitoreo del progreso:</p>
+                  <a
+                    href={progress.logsUrl || 'https://supabase.com/dashboard/project/ozladdazcubyvmgdpyop/functions/populate-restaurants/logs'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
+                  >
+                    <Database className="h-4 w-4" />
+                    Ver Logs del Edge Function en Tiempo Real →
+                  </a>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Los logs mostrarán el progreso detallado: localidades procesadas, restaurantes agregados, y resumen final.
+                  </p>
                 </div>
 
-                {progress.errorDetails && progress.errorDetails.length > 0 && (
-                  <div className="mt-4">
-                    <p className="text-sm font-medium mb-2">Primeros errores:</p>
-                    <div className="bg-muted p-3 rounded text-xs font-mono max-h-40 overflow-y-auto">
-                      {progress.errorDetails.map((error: string, idx: number) => (
-                        <div key={idx} className="mb-1">{error}</div>
-                      ))}
-                    </div>
+                {progress.message && (
+                  <div className="bg-muted p-3 rounded text-sm">
+                    {progress.message}
                   </div>
                 )}
               </CardContent>
