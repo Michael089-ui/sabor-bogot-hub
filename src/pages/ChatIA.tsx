@@ -10,6 +10,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useFavorites } from "@/hooks/useFavorites";
+import { useUserProfile } from "@/hooks/useUserProfile";
+import { getPhotoUrl } from "@/hooks/useRestaurants";
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
@@ -97,6 +99,7 @@ const ChatIA = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const { isFavorite, toggleFavorite } = useFavorites();
+  const { data: userProfile } = useUserProfile();
 
   // Enviar prompt inicial si existe
   useEffect(() => {
@@ -564,23 +567,56 @@ const ChatIA = () => {
     setInputMessage("");
     setIsLoading(true);
 
-    try {
-      const response = await fetch(
-        `https://ozladdazcubyvmgdpyop.supabase.co/functions/v1/chat`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            systemPrompt: systemPrompt,
-            messages: [...messages, userMessage].map(m => ({
-              role: m.role,
-              content: m.content
-            }))
-          })
+      try {
+        // Build user preferences context
+        let preferencesContext = '';
+        if (userProfile?.tipo_comida?.length > 0 || userProfile?.presupuesto || userProfile?.ubicacion) {
+          preferencesContext = `\n\n**PREFERENCIAS DEL USUARIO:**
+${userProfile.tipo_comida?.length > 0 ? `- Tipos de comida favoritos: ${userProfile.tipo_comida.join(', ')}` : ''}
+${userProfile.presupuesto ? `- Presupuesto preferido: ${userProfile.presupuesto}` : ''}
+${userProfile.ubicacion ? `- Ubicación preferida: ${userProfile.ubicacion}` : ''}`;
         }
-      );
+
+        const systemPrompt = `Eres Sabor Capital, un asistente experto en restaurantes de Bogotá, Colombia. 
+
+Tu misión es ayudar a los usuarios a encontrar el lugar perfecto para comer en Bogotá.
+
+**INSTRUCCIONES IMPORTANTES:**
+- SIEMPRE menciona las **coordenadas exactas** de cada restaurante
+- Habla de forma amigable y entusiasta
+- Da recomendaciones específicas
+- Si te preguntan por un tipo de comida o zona, busca restaurantes relevantes
+- Menciona detalles como calificación, precio, dirección y tipo de cocina
+${preferencesContext}
+
+**DETECCIÓN DE CONSULTAS GENERALES:**
+Si el usuario te saluda o pregunta algo general como "hola", "qué recomiendas", "ayúdame a buscar" o no especifica qué tipo de comida quiere:
+1. Responde el saludo de forma amigable
+2. Pregúntale si quiere ver recomendaciones basadas en sus preferencias guardadas o si prefiere que le recomiendes algo general
+3. Ejemplo: "¡Hola! 👋 Veo que tienes preferencias guardadas. ¿Quieres que busque restaurantes basándome en tus gustos (${userProfile?.tipo_comida?.join(', ') || 'tus preferencias'}) o prefieres que te recomiende algo diferente?"
+`;
+
+        const response = await fetch(
+          `https://ozladdazcubyvmgdpyop.supabase.co/functions/v1/chat`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              systemPrompt: systemPrompt,
+              userPreferences: userProfile ? {
+                tipo_comida: userProfile.tipo_comida,
+                presupuesto: userProfile.presupuesto,
+                ubicacion: userProfile.ubicacion
+              } : undefined,
+              messages: [...messages, userMessage].map(m => ({
+                role: m.role,
+                content: m.content
+              }))
+            })
+          }
+        );
 
       if (!response.ok || !response.body) {
         throw new Error('Error al conectar con el asistente');
@@ -647,7 +683,7 @@ const ChatIA = () => {
                     website: place.website,
                     openNow: place.open_now,
                     openingHours: place.opening_hours,
-                    image: place.photos?.[0] || restaurantImages[Math.floor(Math.random() * restaurantImages.length)],
+                    image: place.photos?.[0] ? getPhotoUrl(place.photos[0], 800) : restaurantImages[Math.floor(Math.random() * restaurantImages.length)],
                     userRatingsTotal: place.user_ratings_total || 0,
                     description: `${place.name} - ${place.rating || 0} ⭐ (${place.user_ratings_total || 0} reseñas)`
                   };
