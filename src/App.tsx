@@ -16,6 +16,7 @@ import ChatIA from "./pages/ChatIA";
 import Mapa from "./pages/Mapa";
 import Restaurantes from "./pages/Restaurantes";
 import RestauranteDetalle from "./pages/RestauranteDetalle";
+import EstadisticasRestaurante from "./pages/EstadisticasRestaurante";
 import Favoritos from "./pages/Favoritos";
 import Resenas from "./pages/Resenas";
 import HistorialBusquedas from "./pages/HistorialBusquedas";
@@ -56,6 +57,7 @@ const App = () => (
           <Route path="/mapa" element={<MainLayout><ProtectedRoute><Mapa /></ProtectedRoute></MainLayout>} />
           <Route path="/restaurantes" element={<MainLayout><ProtectedRoute><Restaurantes /></ProtectedRoute></MainLayout>} />
           <Route path="/restaurantes/:id" element={<MainLayout><ProtectedRoute><RestauranteDetalle /></ProtectedRoute></MainLayout>} />
+          <Route path="/restaurantes/:id/estadisticas" element={<MainLayout><ProtectedRoute><EstadisticasRestaurante /></ProtectedRoute></MainLayout>} />
           <Route path="/favoritos" element={<MainLayout><ProtectedRoute><Favoritos /></ProtectedRoute></MainLayout>} />
           <Route path="/resenas" element={<MainLayout><ProtectedRoute><Resenas /></ProtectedRoute></MainLayout>} />
           <Route path="/historial/busquedas" element={<MainLayout><ProtectedRoute><HistorialBusquedas /></ProtectedRoute></MainLayout>} />

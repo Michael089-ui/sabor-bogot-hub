@@ -1,4 +1,4 @@
-import { Heart, Star, Clock, MapPin, DollarSign, MessageSquare, ArrowLeft, Loader2, ExternalLink, Phone, Globe, AlertCircle } from "lucide-react";
+import { Heart, Star, Clock, MapPin, DollarSign, MessageSquare, ArrowLeft, Loader2, ExternalLink, Phone, Globe, AlertCircle, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -145,7 +145,7 @@ const RestauranteDetalle = () => {
             </div>
             
             {/* Action Buttons */}
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-3">
               <Button variant="outline" size="lg" className="gap-2">
                 <Heart className="h-5 w-5" />
                 Guardar
@@ -153,6 +153,15 @@ const RestauranteDetalle = () => {
               <Button size="lg" className="gap-2" onClick={() => setShowReviewModal(true)}>
                 <MessageSquare className="h-5 w-5" />
                 Escribir Reseña
+              </Button>
+              <Button 
+                variant="outline" 
+                size="lg" 
+                className="gap-2"
+                onClick={() => navigate(`/restaurantes/${placeId}/estadisticas`)}
+              >
+                <BarChart3 className="h-5 w-5" />
+                Estadísticas
               </Button>
             </div>
           </div>
