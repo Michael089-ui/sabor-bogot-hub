@@ -877,7 +877,7 @@ Si el usuario te saluda o pregunta algo general como "hola", "qué recomiendas",
   });
 
   return (
-    <div className="flex h-full bg-background">
+    <div className="flex h-[calc(100vh-3.5rem)] bg-background">
       {/* LEFT SIDE: Map + Restaurant Cards */}
       <div className="w-[55%] flex flex-col h-full border-r border-border">
         {/* Map Section - Fixed height */}
