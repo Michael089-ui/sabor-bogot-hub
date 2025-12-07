@@ -879,69 +879,71 @@ Si el usuario te saluda o pregunta algo general como "hola", "qué recomiendas",
   return (
     <div className="flex h-full bg-background">
       {/* LEFT SIDE: Map + Restaurant Cards */}
-      <div className="w-[55%] flex flex-col border-r border-border">
-        {/* Map Section */}
-        <div className="flex-1 relative min-h-0">
-          {isLoaded ? (
-            <GoogleMap
-              mapContainerStyle={{ width: '100%', height: '100%' }}
-              center={restaurants.length > 0 ? { lat: restaurants[0].lat, lng: restaurants[0].lng } : defaultCenter}
-              zoom={13}
-              onLoad={onMapLoad}
-              options={{
-                disableDefaultUI: true,
-                zoomControl: false,
-              }}
-            >
-              {restaurants.map((restaurant, index) => (
-                <Marker
-                  key={`${restaurant.name}-${index}`}
-                  position={{ lat: restaurant.lat, lng: restaurant.lng }}
-                  onClick={() => handleRestaurantClick(restaurant)}
-                  icon={restaurantIcon}
-                />
-              ))}
+      <div className="w-[55%] flex flex-col h-full border-r border-border">
+        {/* Map Section - Fixed height */}
+        <div className="h-[calc(100%-220px)] relative">
+          <div className="absolute inset-0 rounded-lg overflow-hidden">
+            {isLoaded ? (
+              <GoogleMap
+                mapContainerStyle={{ width: '100%', height: '100%' }}
+                center={restaurants.length > 0 ? { lat: restaurants[0].lat, lng: restaurants[0].lng } : defaultCenter}
+                zoom={13}
+                onLoad={onMapLoad}
+                options={{
+                  disableDefaultUI: true,
+                  zoomControl: false,
+                }}
+              >
+                {restaurants.map((restaurant, index) => (
+                  <Marker
+                    key={`${restaurant.name}-${index}`}
+                    position={{ lat: restaurant.lat, lng: restaurant.lng }}
+                    onClick={() => handleRestaurantClick(restaurant)}
+                    icon={restaurantIcon}
+                  />
+                ))}
 
-              {selectedRestaurant && (
-                <InfoWindow
-                  position={{ lat: selectedRestaurant.lat, lng: selectedRestaurant.lng }}
-                  onCloseClick={() => setSelectedRestaurant(null)}
-                >
-                  <div className="p-2 max-w-xs">
-                    <h4 className="font-semibold text-sm mb-1">{selectedRestaurant.name}</h4>
-                    {selectedRestaurant.type && (
-                      <Badge variant="secondary" className="text-xs mb-2">
-                        {selectedRestaurant.type}
-                      </Badge>
-                    )}
-                    {selectedRestaurant.address && (
-                      <p className="text-xs text-gray-600 mb-2">{selectedRestaurant.address}</p>
-                    )}
-                    <div className="flex items-center gap-4 text-xs text-gray-500">
-                      {selectedRestaurant.rating && (
-                        <div className="flex items-center gap-1">
-                          <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />
-                          <span>{selectedRestaurant.rating}</span>
-                        </div>
+                {selectedRestaurant && (
+                  <InfoWindow
+                    position={{ lat: selectedRestaurant.lat, lng: selectedRestaurant.lng }}
+                    onCloseClick={() => setSelectedRestaurant(null)}
+                  >
+                    <div className="p-2 max-w-xs">
+                      <h4 className="font-semibold text-sm mb-1">{selectedRestaurant.name}</h4>
+                      {selectedRestaurant.type && (
+                        <Badge variant="secondary" className="text-xs mb-2">
+                          {selectedRestaurant.type}
+                        </Badge>
                       )}
-                      {selectedRestaurant.price && (
-                        <div className="flex items-center gap-1">
-                          {getPriceLevel(selectedRestaurant.price)}
-                        </div>
+                      {selectedRestaurant.address && (
+                        <p className="text-xs text-gray-600 mb-2">{selectedRestaurant.address}</p>
                       )}
+                      <div className="flex items-center gap-4 text-xs text-gray-500">
+                        {selectedRestaurant.rating && (
+                          <div className="flex items-center gap-1">
+                            <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />
+                            <span>{selectedRestaurant.rating}</span>
+                          </div>
+                        )}
+                        {selectedRestaurant.price && (
+                          <div className="flex items-center gap-1">
+                            {getPriceLevel(selectedRestaurant.price)}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </InfoWindow>
-              )}
-            </GoogleMap>
-          ) : (
-            <div className="w-full h-full flex items-center justify-center bg-muted">
-              <div className="text-center">
-                <MapPin className="w-8 h-8 mx-auto mb-2 text-muted-foreground animate-pulse" />
-                <p className="text-sm text-muted-foreground">Cargando mapa...</p>
+                  </InfoWindow>
+                )}
+              </GoogleMap>
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-muted rounded-lg">
+                <div className="text-center">
+                  <MapPin className="w-8 h-8 mx-auto mb-2 text-muted-foreground animate-pulse" />
+                  <p className="text-sm text-muted-foreground">Cargando mapa...</p>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
           {/* Zoom Controls */}
           <div className="absolute bottom-4 right-4 z-10 flex flex-col gap-2">
