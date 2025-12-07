@@ -284,7 +284,7 @@ ${preferencesContext}`;
     <Sheet open={isOpen} onOpenChange={(open) => !open && closeChat()}>
       <SheetContent 
         side="bottom" 
-        className="h-[85vh] p-0 rounded-t-3xl border-t-2 border-primary/20 bg-background"
+        className="h-[90vh] w-[95vw] max-w-7xl mx-auto left-1/2 -translate-x-1/2 p-0 rounded-t-3xl border-t-2 border-x border-primary/20 bg-background"
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b bg-gradient-to-r from-primary/5 to-secondary/5">
@@ -348,7 +348,7 @@ ${preferencesContext}`;
         </div>
 
         {/* Main Content: Map + Restaurant List */}
-        <div className="flex-1 flex h-[calc(85vh-200px)]">
+        <div className="flex-1 flex h-[calc(90vh-200px)]">
           {/* Map Section - 65% */}
           <div className="w-[65%] p-4 border-r">
             {isLoaded ? (
