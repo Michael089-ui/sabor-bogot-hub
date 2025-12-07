@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { useRestaurants } from "@/hooks/useRestaurants";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useAuth } from "@/hooks/useAuth";
+import { useChat } from "@/contexts/ChatContext";
 
 const categorias = [
   { id: "colombiana", nombre: "Comida Típica", icon: Utensils, color: "bg-orange-500/10 text-orange-600 dark:bg-orange-500/20 dark:text-orange-400", filter: "Colombian" },
@@ -22,6 +23,7 @@ const categorias = [
 const Dashboard = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
+  const { openChat } = useChat();
   
   const { user } = useAuth();
   const { data: profile } = useUserProfile();
@@ -70,14 +72,14 @@ const Dashboard = () => {
 
   const handleBuscarConIA = () => {
     if (searchQuery.trim()) {
-      navigate("/chat-ia", { state: { query: searchQuery } });
+      openChat(searchQuery.trim());
     } else {
-      navigate("/chat-ia");
+      openChat();
     }
   };
 
   const handleIADecide = () => {
-    navigate("/chat-ia", { state: { query: "Sorpréndeme con una recomendación basada en mis gustos" } });
+    openChat("Sorpréndeme con una recomendación basada en mis gustos");
   };
 
   const handleCategoryClick = (filter: string) => {
