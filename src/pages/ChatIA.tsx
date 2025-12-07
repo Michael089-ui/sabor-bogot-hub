@@ -876,20 +876,20 @@ Si el usuario te saluda o pregunta algo general como "hola", "qué recomiendas",
   return (
     <div className="flex flex-col h-full bg-background">
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-4xl mx-auto px-4 py-6">
-          <div className="mb-8 text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
-              <Sparkles className="w-8 h-8 text-primary" />
+        <div className="max-w-7xl mx-auto px-2 sm:px-4 py-4">
+          <div className="mb-6 text-center">
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 mb-3">
+              <Sparkles className="w-6 h-6 text-primary" />
             </div>
-            <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-2">
+            <h1 className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-1">
               ¡Hola! Soy Sabor Capital 🍽️
             </h1>
-            <p className="text-lg text-muted-foreground font-medium">
+            <p className="text-sm text-muted-foreground font-medium">
               Tu asistente experto para encontrar los mejores restaurantes de Bogotá 🌟✨
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-2 justify-center mb-8">
+          <div className="flex flex-wrap gap-2 justify-center mb-6">
             {quickSuggestions.map((suggestion, index) => (
               <Button
                 key={index}
@@ -901,6 +901,26 @@ Si el usuario te saluda o pregunta algo general como "hola", "qué recomiendas",
                 {suggestion}
               </Button>
             ))}
+          </div>
+
+          {/* CHAT - PRIMERO: Mensajes del usuario y respuestas IA */}
+          <div className="space-y-4 mb-6">
+            {messages.map((message, index) => (
+              <ChatMessage
+                key={index}
+                role={message.role}
+                content={message.content}
+                timestamp={message.timestamp}
+              />
+            ))}
+            {isLoading && messages[messages.length - 1]?.role === "user" && (
+              <ChatMessage
+                role="assistant"
+                content="Buscando las mejores opciones para ti..."
+                timestamp={new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
+              />
+            )}
+            <div ref={messagesEndRef} />
           </div>
 
           {/* SECCIÓN DE MAPA Y RECOMENDACIONES - LAYOUT SPLIT */}
@@ -1134,31 +1154,11 @@ Si el usuario te saluda o pregunta algo general como "hola", "qué recomiendas",
               </div>
             </div>
           )}
-
-          {/* CHAT - DEBAJO DEL MAPA Y RECOMENDACIONES */}
-          <div className="space-y-4">
-            {messages.map((message, index) => (
-              <ChatMessage
-                key={index}
-                role={message.role}
-                content={message.content}
-                timestamp={message.timestamp}
-              />
-            ))}
-            {isLoading && messages[messages.length - 1]?.role === "user" && (
-              <ChatMessage
-                role="assistant"
-                content="Buscando las mejores opciones para ti..."
-                timestamp={new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
-              />
-            )}
-            <div ref={messagesEndRef} />
-          </div>
         </div>
       </div>
 
-      <div className="border-t border-border bg-background/95 backdrop-blur-sm p-4 sticky bottom-0">
-        <div className="max-w-4xl mx-auto">
+      <div className="border-t border-border bg-background/95 backdrop-blur-sm p-3 sticky bottom-0">
+        <div className="max-w-7xl mx-auto px-2">
           <div className="flex gap-2">
             <Button size="icon" variant="ghost" className="text-muted-foreground hover:text-foreground">
               <Mic className="h-5 w-5" />
