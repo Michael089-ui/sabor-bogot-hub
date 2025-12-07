@@ -9,24 +9,28 @@ export const useAuth = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Primero obtener la sesión actual
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    // Luego escuchar cambios de autenticación
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        // Ignorar INITIAL_SESSION ya que getSession lo maneja
-        if (event === 'INITIAL_SESSION') return;
-        
+        console.log('Auth state changed:', event, session?.user?.email);
+
+        // Si hay sesión pero no está marcado "recordarme", verificar
+        if (session && !localStorage.getItem('rememberMe')) {
+          // No hacer nada aquí, dejar que la sesión persista hasta cerrar navegador
+        }
+
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
       }
     );
+
+    // Revisar si existe la sesión
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Initial session check:', session?.user?.email);
+      setSession(session);
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
 
     return () => subscription.unsubscribe();
   }, []);
