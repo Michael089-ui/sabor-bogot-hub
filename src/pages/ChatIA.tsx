@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Send, Mic, Sparkles, MapPin, ExternalLink, Plus, Minus, Navigation, Star, Clock, DollarSign, Heart, Eye } from "lucide-react";
 import ChatMessage from "@/components/ChatMessage";
 import { useToast } from "@/hooks/use-toast";
-import { GoogleMap, LoadScript, Marker, InfoWindow } from "@react-google-maps/api";
+import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from "@react-google-maps/api";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -92,7 +92,7 @@ const ChatIA = () => {
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
-  const [isMapLoaded, setIsMapLoaded] = useState(false);
+  
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const RESTAURANTS_PER_PAGE = 6;
@@ -829,7 +829,6 @@ Si el usuario te saluda o pregunta algo general como "hola", "qué recomiendas",
 
   const onMapLoad = (mapInstance: google.maps.Map) => {
     setMap(mapInstance);
-    setIsMapLoaded(true);
   };
 
   const getPriceLevel = (price: string) => {
@@ -873,16 +872,17 @@ Si el usuario te saluda o pregunta algo general como "hola", "qué recomiendas",
     }
   };
 
+  const { isLoaded } = useJsApiLoader({
+    googleMapsApiKey: GOOGLE_MAPS_API_KEY,
+  });
+
   return (
     <div className="flex h-full bg-background">
       {/* LEFT SIDE: Map + Restaurant Cards */}
       <div className="w-[55%] flex flex-col border-r border-border">
         {/* Map Section */}
-        <div className="flex-1 relative">
-          <LoadScript
-            googleMapsApiKey={GOOGLE_MAPS_API_KEY}
-            onLoad={() => setIsMapLoaded(true)}
-          >
+        <div className="flex-1 relative min-h-0">
+          {isLoaded ? (
             <GoogleMap
               mapContainerStyle={{ width: '100%', height: '100%' }}
               center={restaurants.length > 0 ? { lat: restaurants[0].lat, lng: restaurants[0].lng } : defaultCenter}
@@ -893,7 +893,7 @@ Si el usuario te saluda o pregunta algo general como "hola", "qué recomiendas",
                 zoomControl: false,
               }}
             >
-              {isMapLoaded && restaurants.map((restaurant, index) => (
+              {restaurants.map((restaurant, index) => (
                 <Marker
                   key={`${restaurant.name}-${index}`}
                   position={{ lat: restaurant.lat, lng: restaurant.lng }}
@@ -902,7 +902,7 @@ Si el usuario te saluda o pregunta algo general como "hola", "qué recomiendas",
                 />
               ))}
 
-              {isMapLoaded && selectedRestaurant && (
+              {selectedRestaurant && (
                 <InfoWindow
                   position={{ lat: selectedRestaurant.lat, lng: selectedRestaurant.lng }}
                   onCloseClick={() => setSelectedRestaurant(null)}
@@ -934,7 +934,14 @@ Si el usuario te saluda o pregunta algo general como "hola", "qué recomiendas",
                 </InfoWindow>
               )}
             </GoogleMap>
-          </LoadScript>
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-muted">
+              <div className="text-center">
+                <MapPin className="w-8 h-8 mx-auto mb-2 text-muted-foreground animate-pulse" />
+                <p className="text-sm text-muted-foreground">Cargando mapa...</p>
+              </div>
+            </div>
+          )}
 
           {/* Zoom Controls */}
           <div className="absolute bottom-4 right-4 z-10 flex flex-col gap-2">
@@ -962,7 +969,7 @@ Si el usuario te saluda o pregunta algo general como "hola", "qué recomiendas",
           </div>
 
           {/* Empty state overlay */}
-          {restaurants.length === 0 && (
+          {restaurants.length === 0 && isLoaded && (
             <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm">
               <div className="text-center p-6">
                 <MapPin className="w-12 h-12 mx-auto mb-3 text-muted-foreground/50" />
@@ -975,7 +982,7 @@ Si el usuario te saluda o pregunta algo general como "hola", "qué recomiendas",
 
         {/* Restaurant Cards - Bottom */}
         {restaurants.length > 0 && (
-          <div className="h-[200px] border-t border-border bg-card">
+          <div className="h-[200px] border-t border-border bg-card flex-shrink-0">
             <div className="px-3 py-2 border-b bg-gradient-to-r from-primary/5 to-secondary/5 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-primary" />
@@ -1127,7 +1134,7 @@ Si el usuario te saluda o pregunta algo general como "hola", "qué recomiendas",
         </div>
 
         {/* Chat Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
           {messages.map((message, index) => (
             <ChatMessage
               key={index}
@@ -1147,7 +1154,7 @@ Si el usuario te saluda o pregunta algo general como "hola", "qué recomiendas",
         </div>
 
         {/* Input */}
-        <div className="border-t border-border bg-background p-3">
+        <div className="border-t border-border bg-background p-3 flex-shrink-0">
           <div className="flex gap-2">
             <Button size="icon" variant="ghost" className="text-muted-foreground hover:text-foreground shrink-0">
               <Mic className="h-5 w-5" />
