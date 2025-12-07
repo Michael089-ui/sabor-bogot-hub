@@ -943,43 +943,43 @@ Si el usuario te saluda o pregunta algo general como "hola", "qué recomiendas",
                 </div>
               </div>
             )}
-          </div>
 
-          {/* Zoom Controls */}
-          <div className="absolute bottom-4 right-4 z-10 flex flex-col gap-2">
-            <Button
-              size="icon"
-              onClick={handleZoomIn}
-              className="shadow-lg bg-primary hover:bg-primary/90 text-primary-foreground rounded-full h-10 w-10"
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
-            <Button
-              size="icon"
-              onClick={handleZoomOut}
-              className="shadow-lg bg-primary hover:bg-primary/90 text-primary-foreground rounded-full h-10 w-10"
-            >
-              <Minus className="h-4 w-4" />
-            </Button>
-            <Button
-              size="icon"
-              onClick={handleLocate}
-              className="shadow-lg bg-accent hover:bg-accent/90 text-accent-foreground rounded-full h-10 w-10"
-            >
-              <Navigation className="h-4 w-4" />
-            </Button>
-          </div>
-
-          {/* Empty state overlay */}
-          {restaurants.length === 0 && isLoaded && (
-            <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-              <div className="text-center p-6">
-                <MapPin className="w-12 h-12 mx-auto mb-3 text-muted-foreground/50" />
-                <p className="text-muted-foreground">Pregúntame qué quieres comer</p>
-                <p className="text-sm text-muted-foreground/70">y te mostraré los mejores lugares en el mapa</p>
-              </div>
+            {/* Zoom Controls */}
+            <div className="absolute bottom-4 right-4 z-10 flex flex-col gap-2">
+              <Button
+                size="icon"
+                onClick={handleZoomIn}
+                className="shadow-lg bg-primary hover:bg-primary/90 text-primary-foreground rounded-full h-10 w-10"
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+              <Button
+                size="icon"
+                onClick={handleZoomOut}
+                className="shadow-lg bg-primary hover:bg-primary/90 text-primary-foreground rounded-full h-10 w-10"
+              >
+                <Minus className="h-4 w-4" />
+              </Button>
+              <Button
+                size="icon"
+                onClick={handleLocate}
+                className="shadow-lg bg-accent hover:bg-accent/90 text-accent-foreground rounded-full h-10 w-10"
+              >
+                <Navigation className="h-4 w-4" />
+              </Button>
             </div>
-          )}
+
+            {/* Empty state overlay */}
+            {restaurants.length === 0 && isLoaded && (
+              <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm rounded-lg">
+                <div className="text-center p-6">
+                  <MapPin className="w-12 h-12 mx-auto mb-3 text-muted-foreground/50" />
+                  <p className="text-muted-foreground">Pregúntame qué quieres comer</p>
+                  <p className="text-sm text-muted-foreground/70">y te mostraré los mejores lugares en el mapa</p>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Restaurant Cards - Bottom */}
