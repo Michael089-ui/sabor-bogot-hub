@@ -903,284 +903,234 @@ Si el usuario te saluda o pregunta algo general como "hola", "qué recomiendas",
             ))}
           </div>
 
-          {/* SECCIÓN DE MAPA Y RECOMENDACIONES - ARRIBA DEL CHAT */}
+          {/* SECCIÓN DE MAPA Y RECOMENDACIONES - LAYOUT SPLIT */}
           {restaurants.length > 0 && (
-            <div className="mb-8 space-y-6">
-              {/* Mapa */}
-              <div className="bg-card rounded-lg border border-border p-4">
-                <div className="flex items-center gap-2 mb-4">
-                  <MapPin className="h-5 w-5 text-primary" />
-                  <h3 className="font-semibold text-lg">🗺️ Mapa de Zonas Recomendadas</h3>
-                </div>
-
-                <div className="relative rounded-lg overflow-hidden">
-                  <LoadScript
-                    googleMapsApiKey={GOOGLE_MAPS_API_KEY}
-                    onLoad={() => setIsMapLoaded(true)}
-                  >
-                    <GoogleMap
-                      mapContainerStyle={mapContainerStyle}
-                      center={restaurants.length > 0 ? { lat: restaurants[0].lat, lng: restaurants[0].lng } : defaultCenter}
-                      zoom={13}
-                      onLoad={onMapLoad}
-                      options={{
-                        disableDefaultUI: true,
-                        zoomControl: false,
-                      }}
-                    >
-                      {isMapLoaded && restaurants.map((restaurant, index) => (
-                        <Marker
-                          key={`${restaurant.name}-${index}`}
-                          position={{ lat: restaurant.lat, lng: restaurant.lng }}
-                          onClick={() => handleRestaurantClick(restaurant)}
-                          icon={restaurantIcon}
-                        />
-                      ))}
-
-                      {isMapLoaded && selectedRestaurant && (
-                        <InfoWindow
-                          position={{ lat: selectedRestaurant.lat, lng: selectedRestaurant.lng }}
-                          onCloseClick={() => setSelectedRestaurant(null)}
-                        >
-                          <div className="p-2 max-w-xs">
-                            <h4 className="font-semibold text-sm mb-1">{selectedRestaurant.name}</h4>
-                            {selectedRestaurant.type && (
-                              <Badge variant="secondary" className="text-xs mb-2">
-                                {selectedRestaurant.type}
-                              </Badge>
-                            )}
-                            {selectedRestaurant.address && (
-                              <p className="text-xs text-gray-600 mb-2">{selectedRestaurant.address}</p>
-                            )}
-                            <div className="flex items-center gap-4 text-xs text-gray-500 mb-2">
-                              {selectedRestaurant.rating && (
-                                <div className="flex items-center gap-1">
-                                  <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />
-                                  <span>{selectedRestaurant.rating}</span>
-                                </div>
-                              )}
-                              {selectedRestaurant.price && (
-                                <div className="flex items-center gap-1">
-                                  {getPriceLevel(selectedRestaurant.price)}
-                                </div>
-                              )}
-                            </div>
-                            {selectedRestaurant.description && (
-                              <p className="text-xs text-gray-600 mb-2">{selectedRestaurant.description}</p>
-                            )}
-                          </div>
-                        </InfoWindow>
-                      )}
-                    </GoogleMap>
-                  </LoadScript>
-
-                  <div className="absolute bottom-6 right-6 z-10 flex flex-col gap-2">
-                    <Button
-                      size="icon"
-                      onClick={handleZoomIn}
-                      className="shadow-glow bg-primary hover:bg-primary-hover text-primary-foreground rounded-full h-12 w-12 transition-all hover:scale-110"
-                    >
-                      <Plus className="h-5 w-5" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      onClick={handleZoomOut}
-                      className="shadow-glow bg-primary hover:bg-primary-hover text-primary-foreground rounded-full h-12 w-12 transition-all hover:scale-110"
-                    >
-                      <Minus className="h-5 w-5" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      onClick={handleLocate}
-                      className="shadow-glow bg-accent hover:bg-accent/90 text-accent-foreground rounded-full h-12 w-12 transition-all hover:scale-110"
-                    >
-                      <Navigation className="h-5 w-5" />
-                    </Button>
+            <div className="mb-8 bg-card rounded-xl border border-border overflow-hidden">
+              {/* Header */}
+              <div className="px-6 py-4 border-b bg-gradient-to-r from-primary/5 to-secondary/5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Sparkles className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-lg">Restaurantes Recomendados</h3>
+                      <p className="text-xs text-muted-foreground">
+                        {restaurants.length} lugares encontrados • ⭐ 2.0+ Estrellas
+                      </p>
+                    </div>
                   </div>
+                  <Badge variant="secondary">✅ Vigentes</Badge>
                 </div>
               </div>
 
-              {/* Lista de Restaurantes Recomendados */}
-              <div className="bg-card rounded-lg border border-border p-4">
-                <div className="flex items-center gap-2 mb-4">
-                  <Sparkles className="h-5 w-5 text-primary" />
-                  <h3 className="font-semibold text-lg">🌟 Restaurantes Recomendados</h3>
-                  <Badge variant="secondary" className="ml-2">
-                    ⭐ 2.0+ Estrellas • ✅ Vigentes
-                  </Badge>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {restaurants
-                    .slice((currentPage - 1) * RESTAURANTS_PER_PAGE, currentPage * RESTAURANTS_PER_PAGE)
-                    .map((restaurant, index) => (
-                    <Card
-                      key={index}
-                      className={`restaurant-card cursor-pointer transition-all hover:shadow-lg border-2 ${selectedRestaurant?.name === restaurant.name
-                        ? 'border-primary shadow-xl'
-                        : 'border-border hover:border-primary/50'
-                        }`}
-                      onClick={() => handleRestaurantClick(restaurant)}
+              {/* Split Layout: Map Left (60%) + Cards Right (40%) */}
+              <div className="flex h-[500px]">
+                {/* Map Section - 60% */}
+                <div className="w-[60%] p-4 border-r">
+                  <div className="relative h-full rounded-lg overflow-hidden">
+                    <LoadScript
+                      googleMapsApiKey={GOOGLE_MAPS_API_KEY}
+                      onLoad={() => setIsMapLoaded(true)}
                     >
-                      <div className="relative h-48 overflow-hidden rounded-t-lg">
-                        <img
-                          src={restaurant.image}
-                          alt={restaurant.name}
-                          className="w-full h-full object-cover"
-                        />
-                        {restaurant.openNow !== undefined && (
-                          <Badge
-                            variant={restaurant.openNow ? "default" : "destructive"}
-                            className="absolute top-2 right-2 text-xs"
+                      <GoogleMap
+                        mapContainerStyle={{ width: '100%', height: '100%', borderRadius: '12px' }}
+                        center={restaurants.length > 0 ? { lat: restaurants[0].lat, lng: restaurants[0].lng } : defaultCenter}
+                        zoom={13}
+                        onLoad={onMapLoad}
+                        options={{
+                          disableDefaultUI: true,
+                          zoomControl: false,
+                        }}
+                      >
+                        {isMapLoaded && restaurants.map((restaurant, index) => (
+                          <Marker
+                            key={`${restaurant.name}-${index}`}
+                            position={{ lat: restaurant.lat, lng: restaurant.lng }}
+                            onClick={() => handleRestaurantClick(restaurant)}
+                            icon={restaurantIcon}
+                          />
+                        ))}
+
+                        {isMapLoaded && selectedRestaurant && (
+                          <InfoWindow
+                            position={{ lat: selectedRestaurant.lat, lng: selectedRestaurant.lng }}
+                            onCloseClick={() => setSelectedRestaurant(null)}
                           >
-                            {restaurant.openNow ? '🟢 Abierto' : '🔴 Cerrado'}
-                          </Badge>
-                        )}
-                      </div>
-
-                      <CardContent className="p-5">
-                        {/* NOMBRE DEL RESTAURANTE DESTACADO */}
-                        <div className="flex items-start justify-between mb-3">
-                          <h4 className="font-bold text-lg text-foreground line-clamp-1">{restaurant.name}</h4>
-                          {restaurant.rating && (
-                            <Badge variant="default" className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100 text-sm ml-2 flex-shrink-0">
-                              ⭐ {restaurant.rating.toFixed(1)}
-                            </Badge>
-                          )}
-                        </div>
-
-                        {restaurant.type && (
-                          <Badge variant="secondary" className="mb-3 text-sm">
-                            {restaurant.type}
-                          </Badge>
-                        )}
-
-                        <div className="space-y-2 text-sm">
-                          {restaurant.address && (
-                            <div className="flex items-start gap-2 text-muted-foreground">
-                              <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                              <span className="line-clamp-2 text-sm">{restaurant.address}</span>
-                            </div>
-                          )}
-
-                          <div className="flex items-center justify-between">
-                            {restaurant.price && (
-                              <div className="flex items-center gap-1">
-                                {getPriceLevel(restaurant.price)}
+                            <div className="p-2 max-w-xs">
+                              <h4 className="font-semibold text-sm mb-1">{selectedRestaurant.name}</h4>
+                              {selectedRestaurant.type && (
+                                <Badge variant="secondary" className="text-xs mb-2">
+                                  {selectedRestaurant.type}
+                                </Badge>
+                              )}
+                              {selectedRestaurant.address && (
+                                <p className="text-xs text-gray-600 mb-2">{selectedRestaurant.address}</p>
+                              )}
+                              <div className="flex items-center gap-4 text-xs text-gray-500 mb-2">
+                                {selectedRestaurant.rating && (
+                                  <div className="flex items-center gap-1">
+                                    <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />
+                                    <span>{selectedRestaurant.rating}</span>
+                                  </div>
+                                )}
+                                {selectedRestaurant.price && (
+                                  <div className="flex items-center gap-1">
+                                    {getPriceLevel(selectedRestaurant.price)}
+                                  </div>
+                                )}
                               </div>
-                            )}
-
-                            {restaurant.userRatingsTotal && (
-                              <span className="text-muted-foreground text-sm">
-                                ({restaurant.userRatingsTotal} reseñas)
-                              </span>
-                            )}
-                          </div>
-
-                          {restaurant.description && (
-                            <p className="text-muted-foreground text-sm line-clamp-2">
-                              {restaurant.description}
-                            </p>
-                          )}
-
-                          {/* Botones de acción */}
-                          <div className="flex gap-3 mt-4 pt-3 border-t border-border">
-                            <Button
-                              size="default"
-                              variant={isFavorite(restaurant.placeId || '') ? "default" : "outline"}
-                              className="flex-1 h-10 text-sm gap-2"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleFavorite(restaurant.placeId || '');
-                              }}
-                            >
-                              <Heart className={`h-4 w-4 ${isFavorite(restaurant.placeId || '') ? 'fill-current' : ''}`} />
-                              {isFavorite(restaurant.placeId || '') ? 'Guardado' : 'Guardar'}
-                            </Button>
-                            <Button
-                              size="default"
-                              variant="default"
-                              className="flex-1 h-10 text-sm gap-2"
-                              asChild
-                            >
-                              <a
-                                href={`/restaurantes/${restaurant.placeId}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <Eye className="h-4 w-4" />
-                                Ver detalle
-                              </a>
-                            </Button>
-                          </div>
-
-                          {(restaurant.website || restaurant.phone) && (
-                            <div className="flex gap-2 mt-2">
-                              {restaurant.website && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="flex-1 h-9 text-sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    window.open(restaurant.website, '_blank');
-                                  }}
-                                >
-                                  <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
-                                  Web
-                                </Button>
-                              )}
-                              {restaurant.phone && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="flex-1 h-9 text-sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    window.open(`tel:${restaurant.phone}`, '_blank');
-                                  }}
-                                >
-                                  📞 Llamar
-                                </Button>
-                              )}
                             </div>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                          </InfoWindow>
+                        )}
+                      </GoogleMap>
+                    </LoadScript>
+
+                    {/* Zoom Controls */}
+                    <div className="absolute bottom-4 right-4 z-10 flex flex-col gap-2">
+                      <Button
+                        size="icon"
+                        onClick={handleZoomIn}
+                        className="shadow-lg bg-primary hover:bg-primary/90 text-primary-foreground rounded-full h-10 w-10"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        onClick={handleZoomOut}
+                        className="shadow-lg bg-primary hover:bg-primary/90 text-primary-foreground rounded-full h-10 w-10"
+                      >
+                        <Minus className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        onClick={handleLocate}
+                        className="shadow-lg bg-accent hover:bg-accent/90 text-accent-foreground rounded-full h-10 w-10"
+                      >
+                        <Navigation className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
                 </div>
 
-                {/* Paginación */}
-                {restaurants.length > RESTAURANTS_PER_PAGE && (
-                  <div className="flex justify-center items-center gap-4 mt-6 pt-6 border-t border-border">
-                    <Button
-                      variant="outline"
-                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                      disabled={currentPage === 1}
-                      className="gap-2"
-                    >
-                      ← Anterior
-                    </Button>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-muted-foreground">
-                        Página {currentPage} de {Math.ceil(restaurants.length / RESTAURANTS_PER_PAGE)}
-                      </span>
-                      <Badge variant="secondary" className="text-xs">
-                        {restaurants.length} restaurantes
-                      </Badge>
-                    </div>
-                    <Button
-                      variant="outline"
-                      onClick={() => setCurrentPage(prev => Math.min(Math.ceil(restaurants.length / RESTAURANTS_PER_PAGE), prev + 1))}
-                      disabled={currentPage === Math.ceil(restaurants.length / RESTAURANTS_PER_PAGE)}
-                      className="gap-2"
-                    >
-                      Siguiente →
-                    </Button>
+                {/* Restaurant List Section - 40% */}
+                <div className="w-[40%] flex flex-col">
+                  <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                    {restaurants
+                      .slice((currentPage - 1) * RESTAURANTS_PER_PAGE, currentPage * RESTAURANTS_PER_PAGE)
+                      .map((restaurant, index) => (
+                      <Card
+                        key={index}
+                        className={`cursor-pointer transition-all hover:shadow-md border-l-4 ${
+                          selectedRestaurant?.name === restaurant.name
+                            ? 'border-l-primary shadow-md bg-primary/5'
+                            : 'border-l-primary/30 hover:border-l-primary'
+                        }`}
+                        onClick={() => handleRestaurantClick(restaurant)}
+                      >
+                        <div className="flex">
+                          <div className="w-24 h-24 flex-shrink-0">
+                            <img
+                              src={restaurant.image}
+                              alt={restaurant.name}
+                              className="w-full h-full object-cover rounded-l-lg"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = restaurantImages[0];
+                              }}
+                            />
+                          </div>
+                          <CardContent className="flex-1 p-3">
+                            <div className="flex items-start justify-between gap-2">
+                              <h4 className="font-semibold text-sm line-clamp-1">{restaurant.name}</h4>
+                              {restaurant.rating && (
+                                <Badge variant="secondary" className="text-[10px] shrink-0 bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100">
+                                  ⭐ {restaurant.rating.toFixed(1)}
+                                </Badge>
+                              )}
+                            </div>
+                            
+                            <div className="flex items-center gap-2 mt-1">
+                              {restaurant.price && (
+                                <div className="flex items-center">
+                                  {getPriceLevel(restaurant.price)}
+                                </div>
+                              )}
+                              {restaurant.type && (
+                                <Badge variant="outline" className="text-[10px]">
+                                  {restaurant.type}
+                                </Badge>
+                              )}
+                            </div>
+
+                            {restaurant.address && (
+                              <p className="text-[11px] text-muted-foreground mt-1 line-clamp-1 flex items-center gap-1">
+                                <MapPin className="w-3 h-3" />
+                                {restaurant.address}
+                              </p>
+                            )}
+
+                            {/* Action Buttons */}
+                            <div className="flex gap-2 mt-2">
+                              <Button
+                                size="sm"
+                                variant={isFavorite(restaurant.placeId || '') ? "default" : "outline"}
+                                className="h-7 text-xs px-2"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleFavorite(restaurant.placeId || '');
+                                }}
+                              >
+                                <Heart className={`h-3 w-3 mr-1 ${isFavorite(restaurant.placeId || '') ? 'fill-current' : ''}`} />
+                                {isFavorite(restaurant.placeId || '') ? 'Guardado' : 'Guardar'}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="default"
+                                className="h-7 text-xs px-2"
+                                asChild
+                              >
+                                <a
+                                  href={`/restaurantes/${restaurant.placeId}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <Eye className="h-3 w-3 mr-1" />
+                                  Ver
+                                </a>
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </div>
+                      </Card>
+                    ))}
                   </div>
-                )}
+
+                  {/* Pagination */}
+                  {restaurants.length > RESTAURANTS_PER_PAGE && (
+                    <div className="flex justify-center items-center gap-2 p-3 border-t bg-muted/30">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                        disabled={currentPage === 1}
+                      >
+                        ←
+                      </Button>
+                      <span className="text-xs text-muted-foreground">
+                        {currentPage} / {Math.ceil(restaurants.length / RESTAURANTS_PER_PAGE)}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(prev => Math.min(Math.ceil(restaurants.length / RESTAURANTS_PER_PAGE), prev + 1))}
+                        disabled={currentPage === Math.ceil(restaurants.length / RESTAURANTS_PER_PAGE)}
+                      >
+                        →
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}
